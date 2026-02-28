@@ -32,7 +32,12 @@ public class FQApiProperties {
      * 设备参数配置
      */
     private Device device = new Device();
-    
+
+    /**
+     * 设备池配置
+     */
+    private DevicePool devicePool = new DevicePool();
+
     @Data
     public static class Device {
         /**
@@ -99,5 +104,18 @@ public class FQApiProperties {
          * 主机ABI
          */
         private String hostAbi = "arm64-v8a";
+    }
+
+    @Data
+    public static class DevicePool {
+        /**
+         * 是否启用设备池
+         */
+        private Boolean enabled = true;
+
+        /**
+         * 设备池目标数量
+         */
+        private Integer size = 3;
     }
 }

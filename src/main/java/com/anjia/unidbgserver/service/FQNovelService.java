@@ -1,6 +1,5 @@
 package com.anjia.unidbgserver.service;
 
-import com.anjia.unidbgserver.config.FQApiProperties;
 import com.anjia.unidbgserver.dto.*;
 import com.anjia.unidbgserver.service.FqCrypto;
 import com.anjia.unidbgserver.utils.FQApiUtils;
@@ -22,6 +21,7 @@ import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
@@ -41,32 +41,16 @@ public class FQNovelService {
     private FQRegisterKeyService registerKeyService;
 
     @Resource
-    private FQApiProperties fqApiProperties;
-
-    @Resource
     private FQApiUtils fqApiUtils;
 
     @Resource
     private FQSearchService fqSearchService;
 
     @Resource
-    private DeviceManagementService deviceManagementService;
+    private DevicePoolService devicePoolService;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    // 默认FQ变量配置
-    private FqVariable defaultFqVariable;
-
-    /**
-     * 获取默认FQ变量（延迟初始化）
-     */
-    private FqVariable getDefaultFqVariable() {
-        if (defaultFqVariable == null) {
-            defaultFqVariable = new FqVariable(fqApiProperties);
-        }
-        return defaultFqVariable;
-    }
 
     /**
      * 批量获取章节内容 (基于 fqnovel-api 的 batch_full 方法)
@@ -77,24 +61,49 @@ public class FQNovelService {
      * @return 批量内容响应
      */
     public CompletableFuture<FQNovelResponse<FqIBatchFullResponse>> batchFull(String itemIds, String bookId, boolean download) {
-        return CompletableFuture.supplyAsync(() -> {
-            int maxAttempts = 2; // 首次 + 失败后自动更换设备重试一次
-            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-                try {
-                    FqVariable var = getDefaultFqVariable();
+        return batchFull(itemIds, bookId, download, null, null);
+    }
 
-                    // 使用工具类构建URL和参数
+    private CompletableFuture<FQNovelResponse<FqIBatchFullResponse>> batchFull(
+            String itemIds,
+            String bookId,
+            boolean download,
+            DeviceInfo requestedDevice) {
+        return batchFull(itemIds, bookId, download, requestedDevice, null);
+    }
+
+    private CompletableFuture<FQNovelResponse<FqIBatchFullResponse>> batchFull(
+            String itemIds,
+            String bookId,
+            boolean download,
+            DeviceInfo requestedDevice,
+            AtomicReference<DeviceInfo> successfulDeviceRef) {
+        return CompletableFuture.supplyAsync(() -> {
+            int maxAttempts = resolveMaxAttempts(requestedDevice);
+            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                DeviceInfo currentDevice = requestedDevice != null ? requestedDevice : devicePoolService.nextDevice();
+                String deviceCacheKey = FQRegisterKeyService.buildDeviceCacheKey(currentDevice);
+                try {
+                    long keyRegisterTs = registerKeyService.ensureRegisterKeyReady(currentDevice);
+
+                    FqVariable var = new FqVariable(currentDevice);
+                    var.setKeyRegisterTs(String.valueOf(keyRegisterTs));
+
                     String url = fqApiUtils.getBaseUrl() + "/reading/reader/batch_full/v";
                     Map<String, String> params = fqApiUtils.buildBatchFullParams(var, itemIds, bookId, download);
                     String fullUrl = fqApiUtils.buildUrlWithParams(url, params);
 
-                    // 使用工具类构建请求头
-                    Map<String, String> headers = fqApiUtils.buildCommonHeaders();
+                    log.debug("batch_full请求准备，attempt={}/{}, deviceId={}, deviceCacheKey={}, key_register_ts={}, fixedDevice={}",
+                        attempt,
+                        maxAttempts,
+                        currentDevice != null ? currentDevice.getDeviceId() : null,
+                        deviceCacheKey,
+                        keyRegisterTs,
+                        requestedDevice != null);
 
-                    // 使用现有的签名服务生成签名
+                    Map<String, String> headers = fqApiUtils.buildCommonHeaders(currentDevice);
                     Map<String, String> signedHeaders = fqEncryptServiceWorker.generateSignatureHeaders(fullUrl, headers).get();
 
-                    // 发起API请求
                     HttpHeaders httpHeaders = new HttpHeaders();
                     signedHeaders.forEach(httpHeaders::set);
                     headers.forEach(httpHeaders::set);
@@ -102,80 +111,201 @@ public class FQNovelService {
                     HttpEntity<String> entity = new HttpEntity<>(httpHeaders);
                     ResponseEntity<byte[]> response = restTemplate.exchange(fullUrl, HttpMethod.GET, entity, byte[].class);
 
-                    // 解压缩 GZIP 响应体
-                    String responseBody = "";
-                    try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(response.getBody()))) {
-                        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                        byte[] buffer = new byte[1024];
-                        int length;
-                        while ((length = gzipInputStream.read(buffer)) != -1) {
-                            byteArrayOutputStream.write(buffer, 0, length);
-                        }
-                        responseBody = new String(byteArrayOutputStream.toByteArray(), StandardCharsets.UTF_8);
-                    } catch (Exception e) {
-                        // 可能不是GZIP或响应体为空
-                        byte[] raw = response.getBody();
-                        if (raw != null) {
-                            try {
-                                responseBody = new String(raw, StandardCharsets.UTF_8);
-                            } catch (Exception ignored) {
-                                // ignore
-                            }
-                        }
-                        log.warn("GZIP 解压失败或非GZIP响应，尝试直接读取文本。", e);
-
-                        // 检查错误类型，如果是关键错误则立即跳出循环
-                        String em = e.getMessage() != null ? e.getMessage() : "";
-                        
-                        // 检测到"Not in GZIP format"错误，立即返回错误避免无限循环
-                        if (em.contains("Not in GZIP format")) {
-                            log.warn("检测到非GZIP格式响应，立即跳出循环避免无限重试。attempt={}, error={}", attempt, em);
-                            return FQNovelResponse.error("批量获取章节内容失败: 响应格式异常，请手动更新设备信息");
-                        }
-                        
-                        // 检测到"ILLEGAL_ACCESS"错误，立即返回错误
-                        if (responseBody != null && responseBody.contains("ILLEGAL_ACCESS")) {
-                            log.warn("检测到非法访问响应，立即跳出循环。attempt={}, responseBody={}", attempt, responseBody);
-                            return FQNovelResponse.error("批量获取章节内容失败: 非法访问，请手动更新设备信息");
-                        }
-                    }
-
-                    if (responseBody == null) {
-                        responseBody = "";
-                    }
-
-                    // 如果响应体为空，视为需要更换设备并重试
+                    String responseBody = decodeResponseBody(response);
                     if (responseBody.trim().isEmpty()) {
-                        throw new RuntimeException("No content to map due to end-of-input");
+                        throw new RuntimeException("EMPTY_RESPONSE");
                     }
 
-                    // 解析响应
                     if (responseBody.contains("\"code\":110") || responseBody.contains("ILLEGAL_ACCESS")) {
-                        log.warn("检测到ILLEGAL_ACCESS，建议手动更新设备信息。attempt={}", attempt);
-                        return FQNovelResponse.error("批量获取章节内容失败: ILLEGAL_ACCESS，请手动更新设备信息");
-                    }
-                    FqIBatchFullResponse batchResponse = objectMapper.readValue(responseBody, FqIBatchFullResponse.class);
-                    return FQNovelResponse.success(batchResponse);
+                        log.warn("检测到ILLEGAL_ACCESS，attempt={}/{}, deviceId={}, deviceCacheKey={}, key_register_ts={}, fixedDevice={}",
+                            attempt,
+                            maxAttempts,
+                            currentDevice != null ? currentDevice.getDeviceId() : null,
+                            deviceCacheKey,
+                            registerKeyService.getKeyRegisterTs(currentDevice),
+                            requestedDevice != null);
 
+                        try {
+                            registerKeyService.refreshRegisterKey(currentDevice);
+                            log.info("ILLEGAL_ACCESS后刷新registerkey成功，deviceId={}, deviceCacheKey={}, key_register_ts={}",
+                                currentDevice != null ? currentDevice.getDeviceId() : null,
+                                deviceCacheKey,
+                                registerKeyService.getKeyRegisterTs(currentDevice));
+                        } catch (Exception refreshEx) {
+                            log.warn("ILLEGAL_ACCESS后刷新registerkey失败，deviceId={}, deviceCacheKey={}",
+                                currentDevice != null ? currentDevice.getDeviceId() : null,
+                                deviceCacheKey,
+                                refreshEx);
+                        }
+
+                        if (requestedDevice == null) {
+                            devicePoolService.removeAndReplenish(currentDevice, "batch_full illegal_access");
+                        }
+                        continue;
+                    }
+
+                    FqIBatchFullResponse batchResponse = objectMapper.readValue(responseBody, FqIBatchFullResponse.class);
+
+                    if (containsInvalidItemPayload(batchResponse, currentDevice, registerKeyService.getKeyRegisterTs(currentDevice))) {
+                        log.warn("检测到无效章节载荷(如 content=Invalid)，attempt={}/{}, deviceId={}, deviceCacheKey={}, key_register_ts={}, fixedDevice={}",
+                            attempt,
+                            maxAttempts,
+                            currentDevice != null ? currentDevice.getDeviceId() : null,
+                            deviceCacheKey,
+                            registerKeyService.getKeyRegisterTs(currentDevice),
+                            requestedDevice != null);
+
+                        if (requestedDevice != null) {
+                            refreshRegisterKeyForFixedDeviceRetry(currentDevice, "invalid_item_payload", attempt, maxAttempts);
+                        } else {
+                            devicePoolService.removeAndReplenish(currentDevice, "batch_full invalid item payload");
+                        }
+                        continue;
+                    }
+
+                    if (successfulDeviceRef != null) {
+                        successfulDeviceRef.set(currentDevice);
+                    }
+                    return FQNovelResponse.success(batchResponse);
                 } catch (Exception e) {
                     String message = e.getMessage() != null ? e.getMessage() : "";
-                    boolean parseEmpty = message.contains("No content to map due to end-of-input");
-                    boolean gzipErr = message.contains("Not in GZIP format");
-                    if (gzipErr) {
-                        log.warn("检测到GZIP解析异常，建议手动更新设备信息。attempt={}, error={}", attempt, message);
-                        return FQNovelResponse.error("批量获取章节内容失败: GZIP解析异常，请手动更新设备信息");
-                    }
-                    if (parseEmpty) {
-                        log.warn("检测到空响应导致解析失败，建议手动更新设备信息。attempt={}, error={}", attempt, message);
-                        return FQNovelResponse.error("批量获取章节内容失败: 空响应，请手动更新设备信息");
+                    if (isEmptyResponseError(e)) {
+                        log.warn("检测到空响应，attempt={}/{}, deviceId={}, deviceCacheKey={}, key_register_ts={}, fixedDevice={}",
+                            attempt,
+                            maxAttempts,
+                            currentDevice != null ? currentDevice.getDeviceId() : null,
+                            deviceCacheKey,
+                            registerKeyService.getKeyRegisterTs(currentDevice),
+                            requestedDevice != null);
+
+                        if (requestedDevice != null) {
+                            refreshRegisterKeyForFixedDeviceRetry(currentDevice, "empty_response", attempt, maxAttempts);
+                        } else {
+                            devicePoolService.removeAndReplenish(currentDevice, "batch_full empty response");
+                        }
+                        continue;
                     }
 
-                    log.error("批量获取章节内容失败 - itemIds: {}", itemIds, e);
+                    if (message.contains("Not in GZIP format")) {
+                        log.warn("检测到GZIP解析异常，attempt={}, error={}, deviceId={}",
+                            attempt,
+                            message,
+                            currentDevice != null ? currentDevice.getDeviceId() : null);
+                        return FQNovelResponse.error("批量获取章节内容失败: GZIP解析异常，请手动更新设备信息");
+                    }
+
+                    log.error("批量获取章节内容失败 - itemIds: {}, attempt={}, deviceId={}",
+                        itemIds,
+                        attempt,
+                        currentDevice != null ? currentDevice.getDeviceId() : null,
+                        e);
                     return FQNovelResponse.error("批量获取章节内容失败: " + message);
                 }
             }
-            return FQNovelResponse.error("批量获取章节内容失败: 超过最大重试次数");
+
+            return FQNovelResponse.error("批量获取章节内容失败: 设备池重试后仍失败(空响应/ILLEGAL_ACCESS/无效载荷)");
         });
+    }
+
+    private String decodeResponseBody(ResponseEntity<byte[]> response) throws Exception {
+        byte[] body = response.getBody();
+        if (body == null || body.length == 0) {
+            return "";
+        }
+
+        boolean gzipEncoded = false;
+        List<String> contentEncoding = response.getHeaders().get("Content-Encoding");
+        if (contentEncoding != null) {
+            gzipEncoded = contentEncoding.stream().anyMatch(v -> v != null && v.toLowerCase().contains("gzip"));
+        }
+        if (!gzipEncoded && body.length >= 2 && body[0] == (byte) 0x1f && body[1] == (byte) 0x8b) {
+            gzipEncoded = true;
+        }
+
+        if (!gzipEncoded) {
+            return new String(body, StandardCharsets.UTF_8);
+        }
+
+        try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(body))) {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = gzipInputStream.read(buffer)) != -1) {
+                byteArrayOutputStream.write(buffer, 0, length);
+            }
+            return new String(byteArrayOutputStream.toByteArray(), StandardCharsets.UTF_8);
+        }
+    }
+
+    private boolean isEmptyResponseError(Exception e) {
+        String message = e.getMessage();
+        return "EMPTY_RESPONSE".equals(message)
+            || (message != null && message.contains("No content to map due to end-of-input"));
+    }
+
+    private String previewContent(String content) {
+        if (content == null) {
+            return "null";
+        }
+        String normalized = content.replaceAll("[\\r\\n\\t]", " ");
+        return normalized.length() <= 64 ? normalized : normalized.substring(0, 64) + "...";
+    }
+
+    private boolean containsInvalidItemPayload(FqIBatchFullResponse batchResponse, DeviceInfo currentDevice, long keyRegisterTs) {
+        if (batchResponse == null || batchResponse.getData() == null || batchResponse.getData().isEmpty()) {
+            return false;
+        }
+
+        String deviceCacheKey = FQRegisterKeyService.buildDeviceCacheKey(currentDevice);
+        String deviceId = currentDevice != null ? currentDevice.getDeviceId() : null;
+
+        for (Map.Entry<String, ItemContent> entry : batchResponse.getData().entrySet()) {
+            ItemContent item = entry.getValue();
+            if (item == null) {
+                continue;
+            }
+            String content = item.getContent();
+            if (content == null) {
+                continue;
+            }
+            if ("Invalid".equalsIgnoreCase(content.trim())) {
+                log.warn("检测到无效章节项 - itemId={}, keyVersion={}, cryptStatus={}, compressStatus={}, contentPreview={}, deviceId={}, deviceCacheKey={}, key_register_ts={}",
+                    entry.getKey(),
+                    item.getKeyVersion(),
+                    item.getCryptStatus(),
+                    item.getCompressStatus(),
+                    previewContent(content),
+                    deviceId,
+                    deviceCacheKey,
+                    keyRegisterTs);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void refreshRegisterKeyForFixedDeviceRetry(DeviceInfo currentDevice, String trigger, int attempt, int maxAttempts) {
+        String deviceCacheKey = FQRegisterKeyService.buildDeviceCacheKey(currentDevice);
+        try {
+            registerKeyService.refreshRegisterKey(currentDevice);
+            long refreshedKeyRegisterTs = registerKeyService.getKeyRegisterTs(currentDevice);
+            log.info("fixedDevice触发registerkey刷新后重试，trigger={}, attempt={}/{}, deviceId={}, deviceCacheKey={}, key_register_ts={}",
+                trigger,
+                attempt,
+                maxAttempts,
+                currentDevice != null ? currentDevice.getDeviceId() : null,
+                deviceCacheKey,
+                refreshedKeyRegisterTs);
+        } catch (Exception refreshEx) {
+            log.warn("fixedDevice触发registerkey刷新失败，trigger={}, attempt={}/{}, deviceId={}, deviceCacheKey={}",
+                trigger,
+                attempt,
+                maxAttempts,
+                currentDevice != null ? currentDevice.getDeviceId() : null,
+                deviceCacheKey,
+                refreshEx);
+        }
     }
 
 /*
@@ -364,16 +494,21 @@ public class FQNovelService {
     public CompletableFuture<FQNovelResponse<List<Map.Entry<String, String>>>> getDecryptedContents(String itemIds, String bookId, boolean download) {
         return CompletableFuture.supplyAsync(() -> {
             try {
+                DeviceInfo requestedDevice = resolveRequestDevice(null, "getDecryptedContents");
+                AtomicReference<DeviceInfo> successfulDeviceRef = new AtomicReference<>(requestedDevice);
+
                 // 先获取批量内容
-                FQNovelResponse<FqIBatchFullResponse> batchResponse = batchFull(itemIds, bookId, download).get();
+                FQNovelResponse<FqIBatchFullResponse> batchResponse = batchFull(itemIds, bookId, download, requestedDevice, successfulDeviceRef).get();
 
                 if (batchResponse.getCode() != 0 || batchResponse.getData() == null) {
                     return FQNovelResponse.error("获取批量内容失败: " + batchResponse.getMessage());
                 }
 
+                DeviceInfo effectiveDevice = successfulDeviceRef.get();
+
                 // 解密内容
                 List<Map.Entry<String, String>> decryptedContents =
-                    batchResponse.getData().getDecryptContents(registerKeyService);
+                    batchResponse.getData().getDecryptContents(registerKeyService, effectiveDevice);
 
                 return FQNovelResponse.success(decryptedContents);
 
@@ -397,9 +532,12 @@ public class FQNovelService {
                     return FQNovelResponse.error("书籍ID和章节ID不能为空");
                 }
 
+                DeviceInfo requestedDevice = resolveRequestDevice(request.getDeviceId(), "getChapterContent");
+                AtomicReference<DeviceInfo> successfulDeviceRef = new AtomicReference<>(requestedDevice);
+
                 // 使用batch_full API获取完整响应数据
                 String itemIds = request.getChapterId();
-                FQNovelResponse<FqIBatchFullResponse> batchResponse = batchFull(itemIds, request.getBookId(), false).get();
+                FQNovelResponse<FqIBatchFullResponse> batchResponse = batchFull(itemIds, request.getBookId(), false, requestedDevice, successfulDeviceRef).get();
 
                 if (batchResponse.getCode() != 0 || batchResponse.getData() == null) {
                     return FQNovelResponse.error("获取章节内容失败: " + batchResponse.getMessage());
@@ -426,14 +564,32 @@ public class FQNovelService {
                     return FQNovelResponse.error("未找到章节内容");
                 }
 
+                DeviceInfo effectiveDevice = successfulDeviceRef.get();
+
                 // 解密章节内容
                 String decryptedContent = "";
+                String encryptedContent = itemContent.getContent();
                 try {
+                    log.info("章节解密诊断 - chapterId={}, keyVersion={}, cryptStatus={}, compressStatus={}, contentLength={}, contentPreview={}",
+                        chapterId,
+                        itemContent.getKeyVersion(),
+                        itemContent.getCryptStatus(),
+                        itemContent.getCompressStatus(),
+                        encryptedContent == null ? -1 : encryptedContent.length(),
+                        previewContent(encryptedContent));
+
                     Long contentKeyver = itemContent.getKeyVersion();
-                    String key = registerKeyService.getDecryptionKey(contentKeyver);
-                    decryptedContent = FqCrypto.decryptAndDecompressContent(itemContent.getContent(), key);
+                    String key = registerKeyService.getDecryptionKey(effectiveDevice, contentKeyver);
+                    decryptedContent = FqCrypto.decryptAndDecompressContent(encryptedContent, key);
                 } catch (Exception e) {
-                    log.error("解密章节内容失败 - chapterId: {}", chapterId, e);
+                    log.error("解密章节内容失败 - chapterId={}, keyVersion={}, cryptStatus={}, compressStatus={}, contentLength={}, contentPreview={}",
+                        chapterId,
+                        itemContent.getKeyVersion(),
+                        itemContent.getCryptStatus(),
+                        itemContent.getCompressStatus(),
+                        encryptedContent == null ? -1 : encryptedContent.length(),
+                        previewContent(encryptedContent),
+                        e);
                     return FQNovelResponse.error("解密章节内容失败: " + e.getMessage());
                 }
 
@@ -540,6 +696,9 @@ public class FQNovelService {
                     return FQNovelResponse.error("章节范围或章节ids不能为空");
                 }
 
+                DeviceInfo requestedDevice = resolveRequestDevice(request.getDeviceId(), "getBatchChapterContent");
+                AtomicReference<DeviceInfo> successfulDeviceRef = new AtomicReference<>(requestedDevice);
+
                 List<String> itemIds = new ArrayList<>();
                 List<String> chapterIds;
 
@@ -571,7 +730,7 @@ public class FQNovelService {
 
                 // 调用批量获取API
                 String itemIdsStr = String.join(",", itemIds);
-                FQNovelResponse<FqIBatchFullResponse> batchResponse = batchFull(itemIdsStr, request.getBookId(), true).get();
+                FQNovelResponse<FqIBatchFullResponse> batchResponse = batchFull(itemIdsStr, request.getBookId(), true, requestedDevice, successfulDeviceRef).get();
 
                 if (batchResponse.getCode() != 0 || batchResponse.getData() == null) {
                     return FQNovelResponse.error("获取批量章节内容失败: " + batchResponse.getMessage());
@@ -616,6 +775,7 @@ public class FQNovelService {
                 // 处理每个章节
                 Map<String, FQBatchChapterInfo> chaptersMap = new LinkedHashMap<>();
                 int successCount = 0;
+                DeviceInfo effectiveDevice = successfulDeviceRef.get();
 
                 for (String itemId : itemIds) {
                     try {
@@ -628,12 +788,28 @@ public class FQNovelService {
 
                         // 解密章节内容
                         String decryptedContent = "";
+                        String encryptedContent = itemContent.getContent();
                         try {
+                            log.info("批量章节解密诊断 - itemId={}, keyVersion={}, cryptStatus={}, compressStatus={}, contentLength={}, contentPreview={}",
+                                itemId,
+                                itemContent.getKeyVersion(),
+                                itemContent.getCryptStatus(),
+                                itemContent.getCompressStatus(),
+                                encryptedContent == null ? -1 : encryptedContent.length(),
+                                previewContent(encryptedContent));
+
                             Long contentKeyver = itemContent.getKeyVersion();
-                            String key = registerKeyService.getDecryptionKey(contentKeyver);
-                            decryptedContent = FqCrypto.decryptAndDecompressContent(itemContent.getContent(), key);
+                            String key = registerKeyService.getDecryptionKey(effectiveDevice, contentKeyver);
+                            decryptedContent = FqCrypto.decryptAndDecompressContent(encryptedContent, key);
                         } catch (Exception e) {
-                            log.error("解密章节内容失败 - itemId: {}", itemId, e);
+                            log.error("解密章节内容失败 - itemId={}, keyVersion={}, cryptStatus={}, compressStatus={}, contentLength={}, contentPreview={}",
+                                itemId,
+                                itemContent.getKeyVersion(),
+                                itemContent.getCryptStatus(),
+                                itemContent.getCompressStatus(),
+                                encryptedContent == null ? -1 : encryptedContent.length(),
+                                previewContent(encryptedContent),
+                                e);
                             continue;
                         }
 
@@ -695,6 +871,26 @@ public class FQNovelService {
                 return FQNovelResponse.error("批量获取章节内容失败: " + e.getMessage());
             }
         });
+    }
+
+    private int resolveMaxAttempts(DeviceInfo requestedDevice) {
+        return requestedDevice != null ? 2 : Math.max(2, devicePoolService.getTargetPoolSize() + 1);
+    }
+
+    private DeviceInfo resolveRequestDevice(String requestDeviceId, String scene) {
+        if (requestDeviceId == null || requestDeviceId.trim().isEmpty()) {
+            log.debug("{} 未指定deviceId，使用设备池轮询重试策略", scene);
+            return null;
+        }
+
+        DeviceInfo matchedDevice = devicePoolService.findDeviceById(requestDeviceId);
+        if (matchedDevice != null) {
+            log.info("{} 使用请求设备上下文，deviceId={}", scene, matchedDevice.getDeviceId());
+            return matchedDevice;
+        }
+
+        log.warn("{} 请求指定deviceId未命中设备池，使用设备池轮询重试策略。requestDeviceId={}", scene, requestDeviceId);
+        return null;
     }
 
     /**

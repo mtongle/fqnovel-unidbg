@@ -1,5 +1,5 @@
 server:
-  port: 9999
+  port: 8099
   address: 0.0.0.0
 application:
   unidbg:
@@ -8,28 +8,16 @@ application:
     async: false
 fq:
   api:
-    cookie: store-region=cn-zj; store-region-src=did; install_id=8774420107280631;
-    device:
-      host-abi: armeabi-v7a
-      version-name: 6.8.1.32
-      update-version-code: '68132'
-      install-id: '8774420107280631'
-      rom-version: V394IR+release-keys
-      device-brand: Xiaomi
-      device-id: '6244598671428456'
-      resolution: 2400*1080
-      cdid: b9b3e287-ed63-42fa-8665-5fc7ca8cedff
-      device-type: M2007J1SC
-      version-code: '68132'
-      dpi: '480'
-      aid: '1967'
-    user-agent: com.dragon.read.oversea.gp/68132 (Linux; U; Android 11; zh_CN; M2007J1SC;
-      Build/V394IR;tt-ok/3.12.13.4-tiktok)
+    base-url: https://api5-normal-sinfonlineb.fqnovel.com
+    cookie: store-region=cn-zj; store-region-src=did; install_id=2420480337007787;
+    device-pool:
+      enabled: true
+      size: 5
 spring:
   application:
     name: unidbg-boot-server
   profiles:
-    active: dev
+    active: prod
   task:
     execution:
       pool:
@@ -38,7 +26,7 @@ spring:
         keep-alive: 60s
         max-size: 8
   redis:
-    host: 60.205.188.67
+    host: 0.0.0.0
     port: 26586
     password: HT5aRYBK2HpReaQuYkLcg
     database: 0

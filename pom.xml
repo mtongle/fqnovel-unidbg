@@ -146,7 +146,7 @@
                     <version>${jib-maven-plugin.version}</version>
                     <configuration>
                         <from>
-                            <image>anjia0532/openjdk-8-alpine-lib:3.2.0</image>
+                            <image>anjia0532/openjdk-17-alpine-lib:3.2.0</image>
                         </from>
                         <extraDirectories>
                             <paths>

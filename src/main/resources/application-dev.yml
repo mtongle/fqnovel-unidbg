@@ -1,8 +1,14 @@
 server:
-  port: 9999
+  port: 8099
 
 application:
   unidbg:
     dynarmic: false
     verbose: false
     async: false
+
+fq:
+  api:
+    device-pool:
+      enabled: true
+      size: 5

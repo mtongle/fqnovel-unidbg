@@ -150,32 +150,52 @@ public class DeviceGeneratorService {
             String clientudid = generateUUID();
             String ipv6Address = generateIPv6();
             
+            String release = (String) androidInfo.get("release");
+            String romVersion = String.format("%s+release-keys", release);
+            String romVersionForUserAgent = romVersion.split("\\+")[0];
+            String resolution = (String) screenInfo.get("resolution");
+            String hostAbi = CPU_ABIS.get(ThreadLocalRandom.current().nextInt(CPU_ABIS.size()));
+            String cpuAbi = CPU_ABIS.get(ThreadLocalRandom.current().nextInt(CPU_ABIS.size()));
+            String rom = ROM_VERSIONS.get(ThreadLocalRandom.current().nextInt(ROM_VERSIONS.size()));
+            String reqId = generateUUID();
+
             // 构建User-Agent
             String userAgent = String.format(
                 "com.dragon.read.oversea.gp/68132 (Linux; U; Android %s; zh_CN; %s; Build/%s;tt-ok/3.12.13.4-tiktok)",
                 androidInfo.get("version"),
                 deviceType,
-                androidInfo.get("release")
+                romVersionForUserAgent
             );
-            
+
             // 构建Cookie
-            String cookie = String.format("store-region=cn-zj; store-region-src=did; install_id=%s;", installId);
-            
-            // 构建ROM版本
-            String romVersion = String.format("%s+release-keys", androidInfo.get("release"));
-            
+            String cookie = String.format("store-region=cn-zj; store-region-src=did; install_id=%s", installId);
+
             return DeviceInfo.builder()
+                .androidId(androidId)
+                .openudid(openudid)
                 .deviceBrand(deviceBrand)
+                .deviceManufacturer(deviceBrand)
                 .deviceType(deviceType)
-                .deviceId(deviceId)
-                .installId(installId)
-                .cdid(cdid)
-                .resolution((String) screenInfo.get("resolution"))
-                .dpi(String.valueOf(screenInfo.get("density_dpi")))
-                .hostAbi(CPU_ABIS.get(ThreadLocalRandom.current().nextInt(CPU_ABIS.size())))
-                .romVersion(romVersion)
                 .osVersion((String) androidInfo.get("version"))
                 .osApi((Integer) androidInfo.get("api"))
+                .releaseBuild(release + "_20171120")
+                .romVersion(romVersion)
+                .resolution(resolution)
+                .dpi(String.valueOf(screenInfo.get("density_dpi")))
+                .displayDensity((String) screenInfo.get("display_density"))
+                .cpuAbi(cpuAbi)
+                .hostAbi(hostAbi)
+                .rom(rom)
+                .cdid(cdid)
+                .sigHash(sigHash)
+                .clientudid(clientudid)
+                .ipv6Address(ipv6Address)
+                .deviceId(deviceId)
+                .installId(installId)
+                .reqId(reqId)
+                .apkFirstInstallTime(installTime)
+                .genTime(currentTime)
+                .rticket(currentTime)
                 .userAgent(userAgent)
                 .cookie(cookie)
                 .aid("1967")

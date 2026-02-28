@@ -77,6 +77,21 @@ public class FqVariable {
     }
 
     /**
+     * 从设备信息构造
+     */
+    public FqVariable(DeviceInfo deviceInfo) {
+        if (deviceInfo != null) {
+            this.installId = deviceInfo.getInstallId();
+            this.serverDeviceId = deviceInfo.getDeviceId();
+            this.aid = deviceInfo.getAid() != null ? deviceInfo.getAid() : "1967";
+            this.updateVersionCode = deviceInfo.getUpdateVersionCode() != null ? deviceInfo.getUpdateVersionCode() : "68132";
+            initializeFromDeviceInfo(deviceInfo);
+        } else {
+            initializeDefaults();
+        }
+    }
+
+    /**
      * 构造函数
      */
     public FqVariable(String installId, String serverDeviceId, String aid, String updateVersionCode) {
@@ -127,6 +142,40 @@ public class FqVariable {
         this.isAndroidPadScreen = "0";
         this.romVersion = device.getRomVersion();
         this.cdid = device.getCdid();
+    }
+
+    /**
+     * 从设备信息初始化
+     */
+    private void initializeFromDeviceInfo(DeviceInfo deviceInfo) {
+        this.keyRegisterTs = "0";
+        this.deviceId = deviceInfo.getDeviceId();
+        this.ac = "wifi";
+        this.channel = "googleplay";
+        this.appName = "novelapp";
+        this.versionCode = deviceInfo.getVersionCode() != null ? deviceInfo.getVersionCode() : "68132";
+        this.versionName = deviceInfo.getVersionName() != null ? deviceInfo.getVersionName() : "6.8.1.32";
+        this.devicePlatform = "android";
+        this.os = "android";
+        this.ssmix = "a";
+        this.deviceType = deviceInfo.getDeviceType();
+        this.deviceBrand = deviceInfo.getDeviceBrand();
+        this.language = "zh";
+        this.osApi = deviceInfo.getOsApi() != null ? String.valueOf(deviceInfo.getOsApi()) : "32";
+        this.osVersion = deviceInfo.getOsVersion() != null ? deviceInfo.getOsVersion() : "13";
+        this.manifestVersionCode = this.versionCode;
+        this.resolution = deviceInfo.getResolution();
+        this.dpi = deviceInfo.getDpi();
+        this.rticket = "";
+        this.hostAbi = deviceInfo.getHostAbi();
+        this.dragonDeviceType = "phone";
+        this.pvPlayer = this.versionCode;
+        this.complianceStatus = "0";
+        this.needPersonalRecommend = "1";
+        this.playerSoLoad = "1";
+        this.isAndroidPadScreen = "0";
+        this.romVersion = deviceInfo.getRomVersion();
+        this.cdid = deviceInfo.getCdid();
     }
 
     /**

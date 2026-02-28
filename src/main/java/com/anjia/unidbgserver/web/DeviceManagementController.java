@@ -165,8 +165,26 @@ public class DeviceManagementController {
     }
 
     /**
+     * 获取设备池状态
+     */
+    @GetMapping("/pool/status")
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> getDevicePoolStatus() {
+        return deviceManagementService.getDevicePoolStatus()
+            .thenApply(ResponseEntity::ok);
+    }
+
+    /**
+     * 重建设备池
+     */
+    @PostMapping("/pool/rebuild")
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> rebuildDevicePool() {
+        return deviceManagementService.rebuildDevicePool()
+            .thenApply(ResponseEntity::ok);
+    }
+
+    /**
      * 健康检查接口
-     * 
+     *
      * @return 服务状态
      */
     @GetMapping("/health")

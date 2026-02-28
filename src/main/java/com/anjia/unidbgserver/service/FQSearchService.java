@@ -1,6 +1,5 @@
 package com.anjia.unidbgserver.service;
 
-import com.anjia.unidbgserver.config.FQApiProperties;
 import com.anjia.unidbgserver.dto.*;
 import com.anjia.unidbgserver.utils.FQApiUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,26 +30,13 @@ public class FQSearchService {
     private FQEncryptServiceWorker fqEncryptServiceWorker;
 
     @Resource
-    private FQApiProperties fqApiProperties;
+    private FQApiUtils fqApiUtils;
 
     @Resource
-    private FQApiUtils fqApiUtils;
+    private DevicePoolService devicePoolService;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    // 默认FQ变量配置
-    private FqVariable defaultFqVariable;
-
-    /**
-     * 获取默认FQ变量（延迟初始化）
-     */
-    private FqVariable getDefaultFqVariable() {
-        if (defaultFqVariable == null) {
-            defaultFqVariable = new FqVariable(fqApiProperties);
-        }
-        return defaultFqVariable;
-    }
 
     /**
      * 搜索书籍 - 增强版，支持两阶段搜索
@@ -214,47 +200,56 @@ public class FQSearchService {
      * 执行实际的搜索请求
      */
     private FQNovelResponse<FQSearchResponse> performSearchInternal(FQSearchRequest searchRequest) {
-        try {
-            FqVariable var = getDefaultFqVariable();
+        int maxAttempts = Math.max(2, devicePoolService.getTargetPoolSize() + 1);
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            DeviceInfo currentDevice = devicePoolService.nextDevice();
+            try {
+                FqVariable var = new FqVariable(currentDevice);
 
-            // 构建搜索URL和参数
-            String url = fqApiUtils.getBaseUrl().replace("api5-normal-sinfonlineb", "api5-normal-sinfonlinec")
-                + "/reading/bookapi/search/tab/v";
-            Map<String, String> params = fqApiUtils.buildSearchParams(var, searchRequest);
-            String fullUrl = fqApiUtils.buildUrlWithParams(url, params);
+                String url = fqApiUtils.getBaseUrl().replace("api5-normal-sinfonlineb", "api5-normal-sinfonlinec")
+                    + "/reading/bookapi/search/tab/v";
+                Map<String, String> params = fqApiUtils.buildSearchParams(var, searchRequest);
+                String fullUrl = fqApiUtils.buildUrlWithParams(url, params);
 
-            // 构建请求头
-            Map<String, String> headers = fqApiUtils.buildCommonHeaders();
-            headers.put("Authorization","Bearer");
+                Map<String, String> headers = fqApiUtils.buildCommonHeaders(currentDevice);
+                headers.put("Authorization", "Bearer");
 
-            // 生成签名
-            Map<String, String> signedHeaders = fqEncryptServiceWorker.generateSignatureHeaders(fullUrl, headers).get();
+                Map<String, String> signedHeaders = fqEncryptServiceWorker.generateSignatureHeaders(fullUrl, headers).get();
 
-            // 发起API请求
-            HttpHeaders httpHeaders = new HttpHeaders();
-            signedHeaders.forEach(httpHeaders::set);
-            headers.forEach(httpHeaders::set);
+                HttpHeaders httpHeaders = new HttpHeaders();
+                signedHeaders.forEach(httpHeaders::set);
+                headers.forEach(httpHeaders::set);
 
-            HttpEntity<String> entity = new HttpEntity<>(httpHeaders);
-            URI uri = URI.create(fullUrl);
+                HttpEntity<String> entity = new HttpEntity<>(httpHeaders);
+                URI uri = URI.create(fullUrl);
 
-            ResponseEntity<byte[]> response = restTemplate.exchange(uri, HttpMethod.GET, entity, byte[].class);
+                ResponseEntity<byte[]> response = restTemplate.exchange(uri, HttpMethod.GET, entity, byte[].class);
+                String responseBody = decompressGzipResponse(response.getBody());
 
-            // 解压缩 GZIP 响应体
-            String responseBody = decompressGzipResponse(response.getBody());
+                if (responseBody.trim().isEmpty()) {
+                    throw new RuntimeException("EMPTY_RESPONSE");
+                }
 
-            // 解析响应
-            JsonNode jsonResponse = objectMapper.readTree(responseBody);
+                JsonNode jsonResponse = objectMapper.readTree(responseBody);
+                int tabType = searchRequest.getTabType();
+                FQSearchResponse searchResponse = parseSearchResponse(jsonResponse, tabType);
+                return FQNovelResponse.success(searchResponse);
+            } catch (Exception e) {
+                if (isEmptyResponseError(e)) {
+                    log.warn("搜索接口空响应，剔除并补充设备后重试。attempt={}/{}, deviceId={}",
+                        attempt,
+                        maxAttempts,
+                        currentDevice != null ? currentDevice.getDeviceId() : null);
+                    devicePoolService.removeAndReplenish(currentDevice, "search empty response");
+                    continue;
+                }
 
-            int tabType = searchRequest.getTabType(); // 从请求获取需要的tab_type
-            FQSearchResponse searchResponse = parseSearchResponse(jsonResponse, tabType);
-
-            return FQNovelResponse.success(searchResponse);
-
-        } catch (Exception e) {
-            log.error("搜索请求失败 - query: {}", searchRequest.getQuery(), e);
-            return FQNovelResponse.error("搜索请求失败: " + e.getMessage());
+                log.error("搜索请求失败 - query: {}, attempt={}", searchRequest.getQuery(), attempt, e);
+                return FQNovelResponse.error("搜索请求失败: " + e.getMessage());
+            }
         }
+
+        return FQNovelResponse.error("搜索请求失败: 设备池重试后仍为空响应");
     }
 
     /**
@@ -264,51 +259,7 @@ public class FQSearchService {
      * @return 搜索结果
      */
     public CompletableFuture<FQNovelResponse<FQSearchResponse>> searchBooks(FQSearchRequest searchRequest) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                FqVariable var = getDefaultFqVariable();
-
-                // 构建搜索URL和参数
-                String url = fqApiUtils.getBaseUrl().replace("api5-normal-sinfonlineb", "api5-normal-sinfonlinec")
-                    + "/reading/bookapi/search/tab/v";
-                Map<String, String> params = fqApiUtils.buildSearchParams(var, searchRequest);
-                String fullUrl = fqApiUtils.buildUrlWithParams(url, params);
-
-                // 构建请求头
-                Map<String, String> headers = fqApiUtils.buildCommonHeaders();
-
-                headers.put("Authorization","Bearer");
-
-                // 生成签名
-                Map<String, String> signedHeaders = fqEncryptServiceWorker.generateSignatureHeaders(fullUrl, headers).get();
-
-                // 发起API请求
-                HttpHeaders httpHeaders = new HttpHeaders();
-                signedHeaders.forEach(httpHeaders::set);
-                headers.forEach(httpHeaders::set);
-
-                HttpEntity<String> entity = new HttpEntity<>(httpHeaders);
-
-                URI uri = URI.create(fullUrl);
-
-                ResponseEntity<byte[]> response = restTemplate.exchange(uri, HttpMethod.GET, entity, byte[].class);
-
-                // 解压缩 GZIP 响应体
-                String responseBody = decompressGzipResponse(response.getBody());
-
-                // 解析响应
-                JsonNode jsonResponse = objectMapper.readTree(responseBody);
-
-                int tabType = searchRequest.getTabType(); // 从请求获取需要的tab_type
-                FQSearchResponse searchResponse = parseSearchResponse(jsonResponse,tabType);
-
-                return FQNovelResponse.success(searchResponse);
-
-            } catch (Exception e) {
-                log.error("搜索书籍失败 - query: {}", searchRequest.getQuery(), e);
-                return FQNovelResponse.error("搜索书籍失败: " + e.getMessage());
-            }
-        });
+        return CompletableFuture.supplyAsync(() -> performSearchInternal(searchRequest));
     }
 
     /**
@@ -319,46 +270,54 @@ public class FQSearchService {
      */
     public CompletableFuture<FQNovelResponse<FQDirectoryResponse>> getBookDirectory(FQDirectoryRequest directoryRequest) {
         return CompletableFuture.supplyAsync(() -> {
-            try {
-                FqVariable var = getDefaultFqVariable();
+            int maxAttempts = Math.max(2, devicePoolService.getTargetPoolSize() + 1);
+            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                DeviceInfo currentDevice = devicePoolService.nextDevice();
+                try {
+                    FqVariable var = new FqVariable(currentDevice);
 
-                // 构建目录URL和参数
-                String url = fqApiUtils.getBaseUrl().replace("api5-normal-sinfonlineb", "api5-normal-sinfonlinec")
-                    + "/reading/bookapi/directory/all_items/v";
-                Map<String, String> params = fqApiUtils.buildDirectoryParams(var, directoryRequest);
-                String fullUrl = fqApiUtils.buildUrlWithParams(url, params);
+                    String url = fqApiUtils.getBaseUrl().replace("api5-normal-sinfonlineb", "api5-normal-sinfonlinec")
+                        + "/reading/bookapi/directory/all_items/v";
+                    Map<String, String> params = fqApiUtils.buildDirectoryParams(var, directoryRequest);
+                    String fullUrl = fqApiUtils.buildUrlWithParams(url, params);
 
-                // 构建请求头
-                Map<String, String> headers = fqApiUtils.buildCommonHeaders();
+                    Map<String, String> headers = fqApiUtils.buildCommonHeaders(currentDevice);
+                    Map<String, String> signedHeaders = fqEncryptServiceWorker.generateSignatureHeaders(fullUrl, headers).get();
 
-                // 生成签名
-                Map<String, String> signedHeaders = fqEncryptServiceWorker.generateSignatureHeaders(fullUrl, headers).get();
+                    HttpHeaders httpHeaders = new HttpHeaders();
+                    signedHeaders.forEach(httpHeaders::set);
+                    headers.forEach(httpHeaders::set);
 
-                // 发起API请求
-                HttpHeaders httpHeaders = new HttpHeaders();
-                signedHeaders.forEach(httpHeaders::set);
-                headers.forEach(httpHeaders::set);
+                    HttpEntity<String> entity = new HttpEntity<>(httpHeaders);
+                    ResponseEntity<byte[]> response = restTemplate.exchange(fullUrl, HttpMethod.GET, entity, byte[].class);
 
-                HttpEntity<String> entity = new HttpEntity<>(httpHeaders);
-                ResponseEntity<byte[]> response = restTemplate.exchange(fullUrl, HttpMethod.GET, entity, byte[].class);
+                    String responseBody = decompressGzipResponse(response.getBody());
+                    if (responseBody.trim().isEmpty()) {
+                        throw new RuntimeException("EMPTY_RESPONSE");
+                    }
 
-                // 解压缩 GZIP 响应体
-                String responseBody = decompressGzipResponse(response.getBody());
+                    JsonNode rootNode = objectMapper.readTree(responseBody);
+                    JsonNode dataNode = rootNode.get("data");
+                    FQDirectoryResponse directoryResponse = objectMapper.treeToValue(dataNode, FQDirectoryResponse.class);
 
-                JsonNode rootNode = objectMapper.readTree(responseBody);
-                JsonNode dataNode = rootNode.get("data");
+                    enhanceChapterList(directoryResponse);
+                    return FQNovelResponse.success(directoryResponse);
+                } catch (Exception e) {
+                    if (isEmptyResponseError(e)) {
+                        log.warn("目录接口空响应，剔除并补充设备后重试。attempt={}/{}, deviceId={}",
+                            attempt,
+                            maxAttempts,
+                            currentDevice != null ? currentDevice.getDeviceId() : null);
+                        devicePoolService.removeAndReplenish(currentDevice, "directory empty response");
+                        continue;
+                    }
 
-                FQDirectoryResponse directoryResponse = objectMapper.treeToValue(dataNode, FQDirectoryResponse.class);
-
-                // 增强章节列表数据
-                enhanceChapterList(directoryResponse);
-
-                return FQNovelResponse.success(directoryResponse);
-
-            } catch (Exception e) {
-                log.error("获取书籍目录失败 - bookId: {}", directoryRequest.getBookId(), e);
-                return FQNovelResponse.error("获取书籍目录失败: " + e.getMessage());
+                    log.error("获取书籍目录失败 - bookId: {}, attempt={}", directoryRequest.getBookId(), attempt, e);
+                    return FQNovelResponse.error("获取书籍目录失败: " + e.getMessage());
+                }
             }
+
+            return FQNovelResponse.error("获取书籍目录失败: 设备池重试后仍为空响应");
         });
     }
 
@@ -415,6 +374,18 @@ public class FQSearchService {
      * 解压缩GZIP响应
      */
     private String decompressGzipResponse(byte[] gzipData) throws Exception {
+        if (gzipData == null || gzipData.length == 0) {
+            return "";
+        }
+
+        boolean isGzip = gzipData.length >= 2
+            && gzipData[0] == (byte) 0x1f
+            && gzipData[1] == (byte) 0x8b;
+
+        if (!isGzip) {
+            return new String(gzipData, StandardCharsets.UTF_8);
+        }
+
         try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(gzipData))) {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             byte[] buffer = new byte[1024];
@@ -424,6 +395,12 @@ public class FQSearchService {
             }
             return new String(byteArrayOutputStream.toByteArray(), StandardCharsets.UTF_8);
         }
+    }
+
+    private boolean isEmptyResponseError(Exception e) {
+        String message = e.getMessage();
+        return "EMPTY_RESPONSE".equals(message)
+            || (message != null && message.contains("No content to map due to end-of-input"));
     }
 
     /**

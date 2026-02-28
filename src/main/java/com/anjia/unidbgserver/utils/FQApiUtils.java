@@ -1,6 +1,7 @@
 package com.anjia.unidbgserver.utils;
 
 import com.anjia.unidbgserver.config.FQApiProperties;
+import com.anjia.unidbgserver.dto.DeviceInfo;
 import com.anjia.unidbgserver.dto.FQSearchRequest;
 import com.anjia.unidbgserver.dto.FqVariable;
 import lombok.RequiredArgsConstructor;
@@ -95,7 +96,7 @@ public class FQApiUtils {
      * @return 请求头映射
      */
     public Map<String, String> buildCommonHeaders() {
-        return buildCommonHeaders(System.currentTimeMillis());
+        return buildCommonHeaders(null, System.currentTimeMillis());
     }
 
     /**
@@ -106,13 +107,28 @@ public class FQApiUtils {
      * @return 请求头映射
      */
     public Map<String, String> buildCommonHeaders(long currentTime) {
+        return buildCommonHeaders(null, currentTime);
+    }
+
+    /**
+     * 构建通用请求头（指定设备）
+     */
+    public Map<String, String> buildCommonHeaders(DeviceInfo deviceInfo) {
+        return buildCommonHeaders(deviceInfo, System.currentTimeMillis());
+    }
+
+    /**
+     * 构建通用请求头（指定设备和时间戳）
+     */
+    public Map<String, String> buildCommonHeaders(DeviceInfo deviceInfo, long currentTime) {
         Map<String, String> headers = new HashMap<>();
 
-        // 从配置获取Cookie和User-Agent
-        headers.put("Cookie", fqApiProperties.getCookie());
-        headers.put("User-Agent", fqApiProperties.getUserAgent());
+        String cookie = firstNonBlank(deviceInfo != null ? deviceInfo.getCookie() : null, fqApiProperties.getCookie());
+        String userAgent = firstNonBlank(deviceInfo != null ? deviceInfo.getUserAgent() : null, fqApiProperties.getUserAgent());
 
-        // 标准请求头
+        headers.put("Cookie", cookie);
+        headers.put("User-Agent", userAgent);
+
         headers.put("Accept", "application/json; charset=utf-8,application/x-protobuf");
         headers.put("Accept-Encoding", "gzip");
         headers.put("x-xs-from-web", "0");
@@ -135,7 +151,7 @@ public class FQApiUtils {
      * @return 请求头映射
      */
     public Map<String, String> buildRegisterKeyHeaders() {
-        return buildRegisterKeyHeaders(System.currentTimeMillis());
+        return buildRegisterKeyHeaders(null, System.currentTimeMillis());
     }
 
     /**
@@ -146,11 +162,22 @@ public class FQApiUtils {
      * @return 请求头映射
      */
     public Map<String, String> buildRegisterKeyHeaders(long currentTime) {
-        Map<String, String> headers = buildCommonHeaders(currentTime);
+        return buildRegisterKeyHeaders(null, currentTime);
+    }
 
-        // RegisterKey特定头部
+    /**
+     * 构建RegisterKey请求头（指定设备）
+     */
+    public Map<String, String> buildRegisterKeyHeaders(DeviceInfo deviceInfo) {
+        return buildRegisterKeyHeaders(deviceInfo, System.currentTimeMillis());
+    }
+
+    /**
+     * 构建RegisterKey请求头（指定设备和时间戳）
+     */
+    public Map<String, String> buildRegisterKeyHeaders(DeviceInfo deviceInfo, long currentTime) {
+        Map<String, String> headers = buildCommonHeaders(deviceInfo, currentTime);
         headers.put("Content-Type", "application/json");
-
         return headers;
     }
 
@@ -311,5 +338,17 @@ public Map<String, String> buildSearchParams(FqVariable var, FQSearchRequest sea
      */
     public String getBaseUrl() {
         return fqApiProperties.getBaseUrl();
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) {
+                return value;
+            }
+        }
+        return "";
     }
 }

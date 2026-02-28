@@ -31,7 +31,7 @@ public class FQEncryptService {
     public Map<String, String> generateSignatureHeaders(String url, String headers) {
         try {
             log.debug("准备生成FQ签名 - URL: {}", url);
-            log.debug("准备生成FQ签名 - Headers: {}", headers);
+//            log.debug("准备生成FQ签名 - Headers: {}", headers);
 
             // 调用IdleFQ的签名生成方法
             String signatureResult = idleFQ.generateSignature(url, headers);

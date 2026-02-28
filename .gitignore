@@ -36,10 +36,8 @@ build/
 # Added by automation
 .DS_Store
 .idea/
-*.iml
 *.log
 /tmp/
-target/
 __pycache__/
 *.pyc
 results/novels/

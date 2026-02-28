@@ -28,6 +28,12 @@ public class DeviceManagementService {
     @Autowired
     private DeviceGeneratorService deviceGeneratorService;
 
+    @Autowired
+    private DeviceRegisterClientService deviceRegisterClientService;
+
+    @Autowired
+    private DevicePoolService devicePoolService;
+
     @Value("${spring.config.location:classpath:application.yml}")
     private String configLocation;
 
@@ -39,20 +45,26 @@ public class DeviceManagementService {
     public CompletableFuture<DeviceRegisterResponse> registerDevice(DeviceRegisterRequest request) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                log.info("开始注册设备 - 品牌: {}, 型号: {}", request.getDeviceBrand(), request.getDeviceType());
-                
-                // 生成设备信息
-                DeviceInfo deviceInfo = deviceGeneratorService.generateDeviceInfo(request);
-                
+                DeviceRegisterRequest safeRequest = request != null
+                    ? request
+                    : DeviceRegisterRequest.builder().build();
+
+                log.info("开始注册设备 - 品牌: {}, 型号: {}", safeRequest.getDeviceBrand(), safeRequest.getDeviceType());
+
+                DeviceInfo deviceInfo = deviceGeneratorService.generateDeviceInfo(safeRequest);
                 if (deviceInfo == null) {
                     return DeviceRegisterResponse.error("设备信息生成失败");
                 }
-                
-                log.info("设备信息生成成功 - 设备ID: {}, 安装ID: {}", 
+
+                boolean registerSuccess = deviceRegisterClientService.registerDevice(deviceInfo);
+                if (!registerSuccess) {
+                    return DeviceRegisterResponse.error("设备注册接口请求失败");
+                }
+
+                log.info("设备注册成功 - 设备ID: {}, 安装ID: {}",
                     deviceInfo.getDeviceId(), deviceInfo.getInstallId());
-                
+
                 return DeviceRegisterResponse.success(deviceInfo);
-                
             } catch (Exception e) {
                 log.error("设备注册失败", e);
                 return DeviceRegisterResponse.error("设备注册失败: " + e.getMessage());
@@ -335,60 +347,29 @@ public class DeviceManagementService {
      * 注册设备并自动更新配置和重启项目
      */
     public CompletableFuture<DeviceManagementResult> registerDeviceAndRestart(DeviceRegisterRequest request) {
-        // 如果未提供任何参数，则走与 tools/batch_device_register_xml.py 一致的随机注册流程
-        boolean noExplicitParams = request == null || (
-            request.getDeviceBrand() == null &&
-            request.getDeviceType() == null &&
-            request.getUseRealAlgorithm() == null &&
-            request.getUseRealBrand() == null &&
-            request.getAutoUpdateConfig() == null &&
-            request.getAutoRestart() == null
-        );
+        DeviceRegisterRequest safeRequest = request != null
+            ? request
+            : DeviceRegisterRequest.builder().build();
 
-        if (noExplicitParams) {
-            return CompletableFuture.supplyAsync(() -> {
-                try {
-                    log.info("未提供设备参数，使用脚本随机注册设备并同步配置");
-                    // 1) 运行脚本生成设备
-                    Path latestYaml = runPythonBatchRegisterAndGetLatestYaml();
-                    if (latestYaml == null) {
-                        return DeviceManagementResult.error("运行设备注册脚本失败或未生成配置");
-                    }
-
-                    // 2) 从 YAML 解析设备信息
-                    DeviceInfo deviceInfo = parseDeviceInfoFromIndividualYaml(latestYaml);
-                    if (deviceInfo == null) {
-                        return DeviceManagementResult.error("解析设备配置失败: " + latestYaml);
-                    }
-
-                    // 3) 更新 application.yml
-                    boolean configUpdated = updateDeviceConfig(deviceInfo).get();
-                    if (!configUpdated) {
-                        log.warn("脚本设备配置写入 application.yml 失败，请检查配置文件路径");
-                    }
-
-                    // 不在此处重启，交由外部脚本处理
-                    return DeviceManagementResult.success("设备注册成功，已更新配置。请执行外部重启脚本。", deviceInfo);
-                } catch (Exception e) {
-                    log.error("脚本方式注册并重启失败", e);
-                    return DeviceManagementResult.error("脚本方式注册失败: " + e.getMessage());
-                }
-            }, executorService);
-        }
-
-        return registerDevice(request)
+        return registerDevice(safeRequest)
             .thenCompose(registerResponse -> {
                 if (!registerResponse.getSuccess()) {
                     return CompletableFuture.completedFuture(
                         DeviceManagementResult.error("设备注册失败: " + registerResponse.getMessage())
                     );
                 }
-                
+
                 DeviceInfo deviceInfo = registerResponse.getDeviceInfo();
-                log.info("设备注册成功，开始更新配置 - 设备ID: {}, 品牌: {}, 型号: {}", 
+                log.info("设备注册成功，开始更新配置 - 设备ID: {}, 品牌: {}, 型号: {}",
                     deviceInfo.getDeviceId(), deviceInfo.getDeviceBrand(), deviceInfo.getDeviceType());
-                
-                // 更新配置
+
+                boolean autoUpdate = safeRequest.getAutoUpdateConfig() == null || safeRequest.getAutoUpdateConfig();
+                if (!autoUpdate) {
+                    return CompletableFuture.completedFuture(
+                        DeviceManagementResult.success("设备注册成功，未更新配置（autoUpdateConfig=false）", deviceInfo)
+                    );
+                }
+
                 return updateDeviceConfig(deviceInfo)
                     .thenCompose(configSuccess -> {
                         if (!configSuccess) {
@@ -396,11 +377,8 @@ public class DeviceManagementService {
                             return CompletableFuture.completedFuture(
                                 DeviceManagementResult.error("设备注册成功但更新配置失败")
                             );
-                        } else {
-                            log.info("设备配置更新成功");
                         }
 
-                        // 不在此处重启，交由外部脚本处理
                         return CompletableFuture.completedFuture(
                             DeviceManagementResult.success("设备注册成功，已更新配置。请执行外部重启脚本。", deviceInfo)
                         );
@@ -409,95 +387,20 @@ public class DeviceManagementService {
     }
 
     /**
-     * 调用 tools/batch_device_register_xml.py 并返回最新 individual YAML 路径
+     * 获取设备池状态
      */
-    private Path runPythonBatchRegisterAndGetLatestYaml() {
-        try {
-            String userDir = System.getProperty("user.dir");
-            File projectRoot = new File(userDir);
-            File script = new File(projectRoot, "tools/batch_device_register_xml.py");
-            if (!script.exists()) {
-                log.error("设备注册脚本不存在: {}", script.getAbsolutePath());
-                return null;
-            }
-
-            ProcessBuilder pb = new ProcessBuilder("python3", script.getAbsolutePath());
-            pb.directory(projectRoot);
-            pb.redirectErrorStream(true);
-            Process p = pb.start();
-
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    log.info("设备注册脚本输出: {}", line);
-                }
-            }
-
-            int code = p.waitFor();
-            if (code != 0) {
-                log.error("设备注册脚本退出码非0: {}", code);
-                return null;
-            }
-
-            // 定位 results/individual 下最新的 yaml
-            Path individualDir = Paths.get(userDir, "results", "individual");
-            if (!Files.exists(individualDir)) {
-                log.error("设备配置目录不存在: {}", individualDir);
-                return null;
-            }
-            try {
-                return Files.list(individualDir)
-                    .filter(p2 -> p2.getFileName().toString().endsWith(".yaml"))
-                    .max(Comparator.comparingLong(p2 -> p2.toFile().lastModified()))
-                    .orElse(null);
-            } catch (IOException e) {
-                log.error("遍历设备配置目录失败", e);
-                return null;
-            }
-        } catch (Exception e) {
-            log.error("运行设备注册脚本失败", e);
-            return null;
-        }
+    public CompletableFuture<Map<String, Object>> getDevicePoolStatus() {
+        return CompletableFuture.supplyAsync(devicePoolService::getPoolStatus, executorService);
     }
 
     /**
-     * 从 individual YAML 解析 DeviceInfo
+     * 重建设备池
      */
-    @SuppressWarnings("unchecked")
-    private DeviceInfo parseDeviceInfoFromIndividualYaml(Path yamlPath) {
-        try (FileInputStream fis = new FileInputStream(yamlPath.toFile())) {
-            Yaml yaml = new Yaml();
-            Map<String, Object> root = yaml.load(fis);
-            Map<String, Object> fq = (Map<String, Object>) root.get("fq");
-            Map<String, Object> api = fq != null ? (Map<String, Object>) fq.get("api") : null;
-            if (api == null) return null;
-            Map<String, Object> device = (Map<String, Object>) api.get("device");
-            if (device == null) return null;
-
-            String cookie = (String) api.get("cookie");
-            String userAgent = (String) api.get("user-agent");
-
-            return DeviceInfo.builder()
-                .aid((String) device.get("aid"))
-                .cdid((String) device.get("cdid"))
-                .deviceBrand((String) device.get("device-brand"))
-                .deviceId((String) device.get("device-id"))
-                .deviceType((String) device.get("device-type"))
-                .dpi((String) device.get("dpi"))
-                .hostAbi((String) device.get("host-abi"))
-                .installId((String) device.get("install-id"))
-                .resolution((String) device.get("resolution"))
-                .romVersion((String) device.get("rom-version"))
-                .updateVersionCode((String) device.get("update-version-code"))
-                .versionCode((String) device.get("version-code"))
-                .versionName((String) device.get("version-name"))
-                .cookie(cookie)
-                .userAgent(userAgent)
-                .build();
-        } catch (Exception e) {
-            log.error("解析 individual YAML 失败: {}", yamlPath, e);
-            return null;
-        }
+    public CompletableFuture<Map<String, Object>> rebuildDevicePool() {
+        return CompletableFuture.supplyAsync(() -> {
+            devicePoolService.rebuildPool();
+            return devicePoolService.getPoolStatus();
+        }, executorService);
     }
 
     /**
