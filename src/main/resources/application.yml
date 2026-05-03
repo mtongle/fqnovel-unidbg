@@ -5,7 +5,12 @@ application:
   unidbg:
     dynarmic: false
     verbose: false
-    async: false
+    async: true
+  http-client:
+    connect-timeout-ms: 5000
+    read-timeout-ms: 15000
+    max-connections: 50
+    max-connections-per-route: 20
 fq:
   api:
     base-url: https://api5-normal-sinfonlineb.fqnovel.com
