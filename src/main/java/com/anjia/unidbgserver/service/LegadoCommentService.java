@@ -50,6 +50,7 @@ public class LegadoCommentService {
     private List<String> extractComments(JsonNode root) {
         List<String> comments = new ArrayList<>();
         JsonNode items = findFirstArray(root,
+            "/data/data_list",
             "/data/comment_list",
             "/data/list",
             "/data/comments",
@@ -62,6 +63,7 @@ public class LegadoCommentService {
 
         for (JsonNode item : items) {
             String text = firstText(item,
+                "/comment/common/content/text",
                 "/comment_info/text",
                 "/comment_info/content",
                 "/text",
@@ -77,6 +79,7 @@ public class LegadoCommentService {
 
     private Boolean extractHasMore(JsonNode root) {
         JsonNode hasMoreNode = findFirst(root,
+            "/data/common_list_info/has_more",
             "/data/has_more",
             "/has_more",
             "/data/hasMore",
@@ -95,6 +98,7 @@ public class LegadoCommentService {
 
     private String extractNextCursor(JsonNode root) {
         return firstText(root,
+            "/data/common_list_info/cursor",
             "/data/cursor",
             "/cursor",
             "/data/next_cursor",
