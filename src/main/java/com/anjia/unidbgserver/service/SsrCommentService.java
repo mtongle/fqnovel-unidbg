@@ -134,7 +134,8 @@ public class SsrCommentService {
                          firstInt(common, "/digg_count", "/like_count");
         int replyCount = stat != null ? firstInt(stat, "/reply_count") :
                           firstInt(common, "/reply_count");
-        String avatarUrl = firstText(common, "/user_info/base_info/user_avatar", "/user_info/user_avatar", "/avatar");
+        String rawAvatarUrl = firstText(common, "/user_info/base_info/user_avatar", "/user_info/user_avatar", "/avatar");
+        String avatarUrl = rawAvatarUrl != null ? rawAvatarUrl.replace("http://", "https://") : null;
         String stickerName = firstText(common, "/user_info/user_tag/sticker/sticker/name");
         boolean isAuthor = firstBool(common, "/user_info/user_tag/is_author", "/is_author");
 
@@ -185,7 +186,8 @@ public class SsrCommentService {
 
         html.append("<div class=\"comment-footer\">\n")
             .append("<span class=\"stat\"><i class=\"far fa-heart\"></i> <span>").append(likeCount).append("</span></span>\n")
-            .append("<span class=\"stat\"><i class=\"far fa-comment\"></i> <span>").append(replyCount).append("</span></span>\n")
+            .append("<span class=\"stat\"><i class=\"far fa-comment\"></i> <span>").append(replyCount).append("</span>")
+            .append(replyCount > 0 ? "条回复" : "").append("</span>\n")
             .append("</div>\n</div>\n");
     }
 
