@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<title>段评</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,PingFang SC,Noto Sans SC,sans-serif;background:#f5f5f5;padding:12px;color:#333;line-height:1.6}
+.empty,.error{text-align:center;padding:80px 20px;color:#999;font-size:15px}
+.error{color:#e74c3c}
+@media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#e0e0e0}}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" title="切换主题"><i class="fas fa-moon"></i></button>
+<div class="error">加载评论失败</div>
+<script>
+(function(){var t=localStorage.getItem('theme'),d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(t==='dark'||(!t&&d))document.body.classList.add('dark')})();
+function toggleTheme(){document.body.classList.toggle('dark');localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light')}
+</script>
+</body>
+</html>

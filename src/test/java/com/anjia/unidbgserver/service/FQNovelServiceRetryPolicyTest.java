@@ -15,7 +15,7 @@ class FQNovelServiceRetryPolicyTest {
 
     @Test
     void resolveMaxAttemptsUsesPoolSizeWhenNoRequestedDevice() throws Exception {
-        FQNovelService service = new FQNovelService();
+        FQNovelService service = new FQNovelService(mock(org.springframework.web.client.RestTemplate.class), mock(com.fasterxml.jackson.databind.ObjectMapper.class));
         DevicePoolService devicePoolService = mock(DevicePoolService.class);
         when(devicePoolService.getTargetPoolSize()).thenReturn(5);
         ReflectionTestUtils.setField(service, "devicePoolService", devicePoolService);
@@ -30,7 +30,7 @@ class FQNovelServiceRetryPolicyTest {
 
     @Test
     void resolveRequestDeviceReturnsNullWhenRequestDeviceIdMissing() throws Exception {
-        FQNovelService service = new FQNovelService();
+        FQNovelService service = new FQNovelService(mock(org.springframework.web.client.RestTemplate.class), mock(com.fasterxml.jackson.databind.ObjectMapper.class));
         DevicePoolService devicePoolService = mock(DevicePoolService.class);
         ReflectionTestUtils.setField(service, "devicePoolService", devicePoolService);
 
@@ -45,7 +45,7 @@ class FQNovelServiceRetryPolicyTest {
 
     @Test
     void resolveRequestDeviceReturnsNullWhenSpecifiedDeviceNotFound() throws Exception {
-        FQNovelService service = new FQNovelService();
+        FQNovelService service = new FQNovelService(mock(org.springframework.web.client.RestTemplate.class), mock(com.fasterxml.jackson.databind.ObjectMapper.class));
         DevicePoolService devicePoolService = mock(DevicePoolService.class);
         when(devicePoolService.findDeviceById("not-found")).thenReturn(null);
         ReflectionTestUtils.setField(service, "devicePoolService", devicePoolService);
@@ -60,7 +60,7 @@ class FQNovelServiceRetryPolicyTest {
     }
     @Test
     void illegalAccessRecoveryTriggersTripleActionsWhenThresholdReached() throws Exception {
-        FQNovelService service = new FQNovelService();
+        FQNovelService service = new FQNovelService(mock(org.springframework.web.client.RestTemplate.class), mock(com.fasterxml.jackson.databind.ObjectMapper.class));
         FQRegisterKeyService registerKeyService = mock(FQRegisterKeyService.class);
         DevicePoolService devicePoolService = mock(DevicePoolService.class);
         FQEncryptServiceWorker encryptServiceWorker = mock(FQEncryptServiceWorker.class);
@@ -97,7 +97,7 @@ class FQNovelServiceRetryPolicyTest {
 
     @Test
     void nonIllegalAccessResponseDoesNotTriggerRecovery() throws Exception {
-        FQNovelService service = new FQNovelService();
+        FQNovelService service = new FQNovelService(mock(org.springframework.web.client.RestTemplate.class), mock(com.fasterxml.jackson.databind.ObjectMapper.class));
         FQRegisterKeyService registerKeyService = mock(FQRegisterKeyService.class);
         DevicePoolService devicePoolService = mock(DevicePoolService.class);
         FQEncryptServiceWorker encryptServiceWorker = mock(FQEncryptServiceWorker.class);

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<title>段评</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,PingFang SC,Noto Sans SC,sans-serif;background:#f5f5f5;padding:12px;color:#333;line-height:1.6}
+.comment-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.comment-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#fff;flex-shrink:0;overflow:hidden}
+.avatar-img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.user-info{flex:1;min-width:0}
+.user-name-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.user-name{font-size:14px;font-weight:600;color:#333}
+.tag-author{display:inline-block;font-size:11px;background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:3px;font-weight:500}
+.tag-sticker{display:inline-block;font-size:10px;background:#fff3e0;color:#e65100;padding:1px 5px;border-radius:3px}
+.comment-time{font-size:11px;color:#bbb;margin-top:2px}
+.comment-text{font-size:15px;color:#222;line-height:1.7;word-break:break-word;margin-bottom:6px}
+.comment-text.collapsed{overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
+.expand-btn{font-size:13px;color:#4a90d9;cursor:pointer;display:inline-block;margin-bottom:4px}
+.comment-footer{display:flex;align-items:center;gap:16px;margin-top:8px;padding-top:10px;border-top:1px solid #f0f0f0}
+.comment-footer .stat{font-size:13px;color:#999;display:flex;align-items:center;gap:4px}
+.comment-footer .stat i{font-size:14px}
+.load-more{display:block;text-align:center;padding:14px;margin:20px 0;color:#4a90d9;text-decoration:none;font-size:14px;border-radius:24px;background:#fff;border:1px solid #ddd;font-weight:500}
+.theme-toggle{position:fixed;top:12px;right:12px;z-index:100;width:36px;height:36px;border-radius:50%;border:none;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:#666}
+.empty,.error{text-align:center;padding:80px 20px;color:#999;font-size:15px}
+.empty i{font-size:48px;margin-bottom:16px;opacity:.3}
+.error{color:#e74c3c}
+@media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#e0e0e0}.comment-card{background:#2d2d2d;box-shadow:0 1px 4px rgba(0,0,0,.3)}.user-name{color:#e0e0e0}.comment-text{color:#ccc}.comment-footer{border-top-color:#3d3d3d}.comment-footer .stat{color:#777}.load-more{background:#2d2d2d;border-color:#3d3d3d;color:#5b9bd5}.tag-author{background:#1b4332;color:#4caf50}.tag-sticker{background:#3e2723;color:#ff9800}}
+@media(min-width:768px){body{padding:20px;max-width:700px;margin:0 auto}.comment-card{padding:20px 24px;border-radius:14px}}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" title="切换主题"><i class="fas fa-moon"></i></button>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/0f80ffd51eb04eb6b56633ab261ade61~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782665685&amp;x-signature=X0i7VoDDnw53DyLvNZraLG2f%2FwE%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#e67e22">月</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">月明帘下转身难</span>
+<span class="tag-sticker">烂尾督察员</span>
+</div>
+<div class="comment-time">67个月前</div>
+</div>
+</div>
+<div class="comment-text">果然，系统标配都是女友分手，像我这样的女孩子手都没牵过的岂不是毫无希望。唉，这黑暗的世界</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>402</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>36</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-0000/068ec15bb0234ce28de891391668b4fb~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782667602&amp;x-signature=Ge3o5hGwEdPqxXjRmZ8vAPDC5yY%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#8e44ad">老</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">老实人。。。</span>
+</div>
+<div class="comment-time">60个月前</div>
+</div>
+</div>
+<div class="comment-text">熟悉的剧情 熟悉的开头</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>154</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>13</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="https://p3-novel.byteimg.com/img/novel-static/3abe6a50e39b4bf1ba7c29f33074e1a8~tplv-1yzifmftcy-expand:200:0:0.heic" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#3498db">喜</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">喜欢硒砂瓜的钱羽</span>
+</div>
+<div class="comment-time">30个月前</div>
+</div>
+</div>
+<div class="comment-text">。</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>0</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>1</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/f91975af10184af4aae3cd5794b92983~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782669212&amp;x-signature=08mHdlwPUD%2FuLKDDGIGHQbME6tA%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#2980b9">近</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">近视眼的鹰</span>
+</div>
+<div class="comment-time">20个月前</div>
+</div>
+</div>
+<div class="comment-text">经典开局🤔</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>1</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>0</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/user-avatar/59747059b77ca74a2be265f8889ac7c7~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782672152&amp;x-signature=ZksOvPMRym4qBRW8iXQ2RUEGZ5E%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#27ae60">情</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">情落之殇</span>
+</div>
+<div class="comment-time">64个月前</div>
+</div>
+</div>
+<div class="comment-text">也不知道有多少小说里的女的这样说了，一个比一个后悔</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>23</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>17</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="https://p3-novel.byteimg.com/img/novel-static/8b91e01a7b0242389b43128fe854e4b7~tplv-1yzifmftcy-expand:200:0:0.heic" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#16a085">镇</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">镇定道的张罗</span>
+</div>
+<div class="comment-time">32个月前</div>
+</div>
+</div>
+<div class="comment-text">爽文启动</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>2</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>0</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/15089185ced643e8a935cb20e55c5b87~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782664416&amp;x-signature=1sE5%2B8k4OKJB4SJLiIqeJcIx5bY%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#2ecc71">修</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">修罗殿一一神罚</span>
+</div>
+<div class="comment-time">64个月前</div>
+</div>
+</div>
+<div class="comment-text">熟悉的开局熟悉的我，熟悉的王成一直说～</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>62</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>9</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/9751e08de5d74b6d9540c0223f095c44~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782671898&amp;x-signature=B0OLH2f1Q4ai0hLn8PUUf0qeJJ8%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#7f8c8d">X</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">xx🌞呀</span>
+</div>
+<div class="comment-time">64个月前</div>
+</div>
+</div>
+<div class="comment-text">自从读了这烈小说，几十万在我看来已经非常渺小了😀😀</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>26</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>3</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/c18cfc3797714c81950077db7c05c8e5~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782671713&amp;x-signature=flhO3qCwUEiu0e6g1aq7hohWtpA%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#9b59b6">骇</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">骇宝18</span>
+</div>
+<div class="comment-time">35个月前</div>
+</div>
+</div>
+<div class="comment-text">😊</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>2</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>0</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="https://p3-novel.byteimg.com/img/novel-static/51cdc818263941cb8985f97b486ddd11~tplv-obj.heic" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#2c3e50">王</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">王先生;-)</span>
+</div>
+<div class="comment-time">60个月前</div>
+</div>
+</div>
+<div class="comment-text">终于有一个姓王的猪脚了</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>33</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>4</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-0000/3abe6a50e39b4bf1ba7c29f33074e1a8~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782664050&amp;x-signature=%2FLzRJCOxp8dZIcNeENcpfyZlV%2Bk%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#c0392b">龙</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">龙国九少爷</span>
+<span class="tag-sticker">元气满满</span>
+</div>
+<div class="comment-time">66个月前</div>
+</div>
+</div>
+<div class="comment-text">我是王成，我是王成，向我开炮！向我开炮！熊烟滚～东逝水，诸君停马侧耳听，侧耳听……</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>11</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>1</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/2e3054b783af4754aaeaa86a18d62766~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782671010&amp;x-signature=QF6ciTc5bggqZBr5cXSsJsPXSSk%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#e74c3c">斩</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">斩妹苏Su</span>
+<span class="tag-sticker">前排催更</span>
+</div>
+<div class="comment-time">59个月前</div>
+</div>
+</div>
+<div class="comment-text collapsed">一：主角是个忍者神龟 ，强行尬装最为致命； 二：百亿集团二公子开5、60万宝马就觉得很叼了这种降智情节比比皆是； 三：剧情单一，前后一个模子，不表明身份装逼打脸，连自己老丈人一家也不放过； 四：又当又立，明明是个渣男非要描述成好男人，纯纯来恶心人的； 五：这书我看了三十章就顶不住了，各位神农欢迎试毒…</div>
+<span class="expand-btn" onclick="toggleExpand(this)">展开全文</span>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>4</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>0</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/d843a5f06bd6495d8d7f1ed34d0319c3~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782662803&amp;x-signature=jIqJ%2BW5Q1Mn%2BesvMMcXi48PYqrE%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#2ecc71">战</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">战场不炖豆腐</span>
+</div>
+<div class="comment-time">69个月前</div>
+</div>
+</div>
+<div class="comment-text">熟悉的开局。</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>22</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>2</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-0000/51cdc818263941cb8985f97b486ddd11~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782667584&amp;x-signature=2u3FN71D%2FiFwX%2BHAMa23dPKatw0%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#27ae60">笔</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">笔生画</span>
+</div>
+<div class="comment-time">67个月前</div>
+</div>
+</div>
+<div class="comment-text">中国小说 都市神豪类的小说 大多数开头 我们分手 第二句 你们会付出代价的</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>28</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>0</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/f620bfab074340f898f8e9f2812b51aa~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782663026&amp;x-signature=P%2Bb9XO08ta%2B58SzXoS31Y9DLtEo%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#e74c3c">梦</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">梦忆故人</span>
+<span class="tag-sticker">烂尾督察员</span>
+</div>
+<div class="comment-time">69个月前</div>
+</div>
+</div>
+<div class="comment-text">爽文开头范例，小本本记下来，嗯……，不用记了，全都是，这种类型的书全是这个，以后写书千万不要用这个类型的开头，一个开头走了大半人</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>37</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>2</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/77bf6fcf70ab4352b3f92b8301dcaffd~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782663388&amp;x-signature=Mn6Dqlz7uAz1IpXXdGC9KKaQQdo%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#3498db">玫</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">玫瑰泪落</span>
+<span class="tag-sticker">永不书荒</span>
+</div>
+<div class="comment-time">54个月前</div>
+</div>
+</div>
+<div class="comment-text">我是个总逛在男频的女孩子，看了这句话，我突然想找个男朋友，然后跟他分手🌚🌚</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>2</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>1</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/8980bcb3bb1944e493247a189fddfa74~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782668959&amp;x-signature=DneFoPy1kv2yuWEkvOUCvjxWlpk%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#2980b9">幻</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">幻樱凝</span>
+<span class="tag-sticker">前排催更</span>
+</div>
+<div class="comment-time">59个月前</div>
+</div>
+</div>
+<div class="comment-text">王家成员集结 ฅ( ̳• ◡ • ̳)ฅ</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>2</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>1</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/f57b897caf164f8ab2b04c91479ab277~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782666706&amp;x-signature=ucNnirxmOzkz9XsSyuMXmvbq8cM%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#d35400">炸</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">炸天帮﹏花无缺</span>
+</div>
+<div class="comment-time">58个月前</div>
+</div>
+</div>
+<div class="comment-text">我TM就叫王成😂</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>1</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>0</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-0000/1437c63bc45b464bb1cc6cd6a7b0d4f1~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782662448&amp;x-signature=ME61oPvS84l5%2BESwyW2DvZFi5n8%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#2c3e50">微</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">微不可察的天虚帝子</span>
+<span class="tag-sticker">前排催更</span>
+</div>
+<div class="comment-time">58个月前</div>
+</div>
+</div>
+<div class="comment-text">老子就叫王成。。</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>1</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>1</span></span>
+</div>
+</div>
+<div class="comment-card">
+<div class="comment-header">
+<div class="avatar">
+<img class="avatar-img" src="http://p3-reading-sign.fqnovelpic.com/tos-cn-i-1yzifmftcy/2f903da739374478b035cf38ecc67a9e~tplv-s85hriknmn-jpeg-v1:144:0.heic?lk3s=9b9bd2b1&amp;x-expires=1782670953&amp;x-signature=73Cr%2BSXiBWoZ%2Bz7ZBWT6tT1ywDw%3D" onerror="this.style.display='none'" alt="" />
+<div class="avatar-letter" style="background:#7f8c8d">十</div>
+</div>
+<div class="user-info">
+<div class="user-name-row">
+<span class="user-name">十五星古神---叶缺</span>
+<span class="tag-sticker">永不书荒</span>
+</div>
+<div class="comment-time">55个月前</div>
+</div>
+</div>
+<div class="comment-text">梦开始的地方</div>
+<div class="comment-footer">
+<span class="stat"><i class="far fa-heart"></i> <span>3</span></span>
+<span class="stat"><i class="far fa-comment"></i> <span>0</span></span>
+</div>
+</div>
+<a class="load-more" href="?bookId=6707112755507235848&chapterId=6707197312789119502&paraIndex=0&cursor=20">加载更多</a>
+<script>
+(function(){var t=localStorage.getItem('theme'),d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(t==='dark'||(!t&&d))document.body.classList.add('dark')})();
+function toggleTheme(){document.body.classList.toggle('dark');localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light')}
+function toggleExpand(b){var t=b.previousElementSibling;t.classList.toggle('collapsed');b.textContent=t.classList.contains('collapsed')?'展开全文':'收起'}
+</script>
+</body>
+</html>

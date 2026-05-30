@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<title>段评</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,PingFang SC,Noto Sans SC,sans-serif;background:#f5f5f5;padding:12px;color:#333;line-height:1.6}
+.comment-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.comment-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#fff;flex-shrink:0;overflow:hidden}
+.avatar-img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.user-info{flex:1;min-width:0}
+.user-name-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.user-name{font-size:14px;font-weight:600;color:#333}
+.tag-author{display:inline-block;font-size:11px;background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:3px;font-weight:500}
+.tag-sticker{display:inline-block;font-size:10px;background:#fff3e0;color:#e65100;padding:1px 5px;border-radius:3px}
+.comment-time{font-size:11px;color:#bbb;margin-top:2px}
+.comment-text{font-size:15px;color:#222;line-height:1.7;word-break:break-word;margin-bottom:6px}
+.comment-text.collapsed{overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical}
+.expand-btn{font-size:13px;color:#4a90d9;cursor:pointer;display:inline-block;margin-bottom:4px}
+.comment-footer{display:flex;align-items:center;gap:16px;margin-top:8px;padding-top:10px;border-top:1px solid #f0f0f0}
+.comment-footer .stat{font-size:13px;color:#999;display:flex;align-items:center;gap:4px}
+.comment-footer .stat i{font-size:14px}
+.load-more{display:block;text-align:center;padding:14px;margin:20px 0;color:#4a90d9;text-decoration:none;font-size:14px;border-radius:24px;background:#fff;border:1px solid #ddd;font-weight:500}
+.theme-toggle{position:fixed;top:12px;right:12px;z-index:100;width:36px;height:36px;border-radius:50%;border:none;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:#666}
+.empty,.error{text-align:center;padding:80px 20px;color:#999;font-size:15px}
+.empty i{font-size:48px;margin-bottom:16px;opacity:.3}
+.error{color:#e74c3c}
+@media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#e0e0e0}.comment-card{background:#2d2d2d;box-shadow:0 1px 4px rgba(0,0,0,.3)}.user-name{color:#e0e0e0}.comment-text{color:#ccc}.comment-footer{border-top-color:#3d3d3d}.comment-footer .stat{color:#777}.load-more{background:#2d2d2d;border-color:#3d3d3d;color:#5b9bd5}.tag-author{background:#1b4332;color:#4caf50}.tag-sticker{background:#3e2723;color:#ff9800}}
+@media(min-width:768px){body{padding:20px;max-width:700px;margin:0 auto}.comment-card{padding:20px 24px;border-radius:14px}}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="toggleTheme()" title="切换主题"><i class="fas fa-moon"></i></button>
+<div class="empty">此段落暂无评论</div>
+<script>
+(function(){var t=localStorage.getItem('theme'),d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(t==='dark'||(!t&&d))document.body.classList.add('dark')})();
+function toggleTheme(){document.body.classList.toggle('dark');localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light')}
+function toggleExpand(b){var t=b.previousElementSibling;t.classList.toggle('collapsed');b.textContent=t.classList.contains('collapsed')?'展开全文':'收起'}
+</script>
+</body>
+</html>
