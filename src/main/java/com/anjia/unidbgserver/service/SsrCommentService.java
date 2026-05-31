@@ -1,6 +1,7 @@
 package com.anjia.unidbgserver.service;
 
 import com.anjia.unidbgserver.dto.FQCommentListRequest;
+import com.anjia.unidbgserver.dto.FQCommentReplyListRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,133 @@ public class SsrCommentService {
             }
             return renderHtml(response.getData(), bookId, chapterId, paraIndex);
         });
+    }
+
+    public CompletableFuture<String> renderReplyListHtml(String commentId, String bookId, String chapterId) {
+        FQCommentReplyListRequest request = new FQCommentReplyListRequest();
+        request.setCommentId(commentId);
+        request.setBookId(bookId);
+        request.setChapterId(chapterId);
+        request.setCount(20);
+
+        return fqCommentService.getReplyList(request)
+                .thenApply(response -> {
+                    if (response == null || response.getCode() == null || response.getCode() != 0
+                            || response.getData() == null) {
+                        log.warn("段评回复加载失败 - commentId: {}, code: {}, message: {}",
+                                commentId,
+                                response != null ? response.getCode() : null,
+                                response != null ? response.getMessage() : "null response");
+                        return "<div class=\"reply-error\">加载回复失败</div>";
+                    }
+                    String html = renderReplyHtml(response.getData());
+                    log.debug("段评回复渲染完成 - commentId: {}, html长度: {}", commentId, html.length());
+                    return html;
+                })
+                .exceptionally(e -> {
+                    log.error("段评回复渲染异常 - commentId: {}", commentId, e);
+                    return "<div class=\"reply-error\">加载回复异常: " + escapeHtml(e.getMessage()) + "</div>";
+                });
+    }
+
+    private String renderReplyHtml(JsonNode root) {
+        JsonNode replyList = findFirstArray(root,
+                "/data/reply_list", "/reply_list");
+        if (replyList == null || !replyList.isArray() || replyList.size() == 0) {
+            return "<div class=\"reply-empty\">暂无回复</div>";
+        }
+
+        StringBuilder html = new StringBuilder();
+        for (JsonNode reply : replyList) {
+            renderReplyCard(html, reply);
+        }
+
+        JsonNode clInfo = root.at("/data/comment_list_info");
+        if (!clInfo.isMissingNode()) {
+            boolean hasMore = clInfo.has("has_more") ? clInfo.get("has_more").asBoolean(false) : false;
+            String cursor = clInfo.has("cursor") ? clInfo.get("cursor").asText("") : "";
+        }
+
+        return html.toString();
+    }
+
+    private void renderReplyCard(StringBuilder html, JsonNode reply) {
+        JsonNode common = reply.has("Common") ? reply.get("Common") : reply.has("common") ? reply.get("common") : reply;
+        if (common == null || !common.has("content")) return;
+
+        String text = firstText(common, "/content/text", "/text", "/content");
+        String userName = firstText(common, "/user_info/base_info/user_name", "/user_info/user_name", "/user_name");
+        long createTime = firstLong(common, "/create_timestamp", "/create_time", "/time");
+        int diggCount = firstInt(reply, "/stat/digg_count", "/stat/like_count");
+        String rawAvatarUrl = firstText(common, "/user_info/base_info/user_avatar", "/user_info/user_avatar", "/avatar");
+        String avatarUrl = rawAvatarUrl != null ? rawAvatarUrl.replace("http://", "https://") : null;
+        String replyID = reply.has("reply_id") ? reply.get("reply_id").asText("") : "";
+
+        // reply_to_user_info is at reply level (not inside common) in actual API response
+        String replyToUserName = firstText(reply, "/reply_to_user_info/base_info/user_name", "/reply_to_user_info/user_name");
+        if (replyToUserName == null || replyToUserName.isEmpty()) {
+            replyToUserName = firstText(common, "/reply_to_user_info/base_info/user_name", "/reply_to_user_info/user_name");
+        }
+
+        if (text == null || text.trim().isEmpty()) return;
+
+        String displayName = (userName != null && !userName.trim().isEmpty()) ? userName.trim() : "匿名";
+        String avatarLetter = displayName.substring(0, 1).toUpperCase();
+        String avatarColor = getAvatarColor(avatarLetter);
+        String displayTime = formatTime(createTime);
+
+        html.append("<div class=\"reply-card\" data-reply-id=\"").append(escapeHtml(replyID)).append("\">\n")
+                .append("<div class=\"reply-header\">\n")
+                .append("<div class=\"reply-avatar\">\n");
+
+        if (avatarUrl != null && !avatarUrl.isEmpty()) {
+            html.append("<img class=\"reply-avatar-img\" src=\"").append(escapeHtml(avatarUrl))
+                    .append("\" onerror=\"this.style.display='none'\" alt=\"\" />\n");
+        }
+        html.append("<span style=\"background:").append(avatarColor).append("\">")
+                .append(escapeHtml(avatarLetter)).append("</span>\n")
+                .append("</div>\n")
+                .append("<span class=\"reply-user-name\">").append(escapeHtml(displayName)).append("</span>\n");
+
+        if (replyToUserName != null && !replyToUserName.isEmpty()) {
+            html.append("<span class=\"reply-to\">回复 <span class=\"at-user\">@")
+                    .append(escapeHtml(replyToUserName)).append("</span></span>\n");
+        }
+
+        html.append("<span class=\"reply-time\">").append(escapeHtml(displayTime)).append("</span>\n")
+                .append("</div>\n")
+                .append("<div class=\"reply-text\">").append(convertEmoji(escapeHtml(text.trim()))).append("</div>\n");
+
+        // Sub-replies
+        JsonNode subReplyList = reply.has("sub_reply") ? reply.get("sub_reply") : null;
+        if (subReplyList != null && subReplyList.isArray() && subReplyList.size() > 0) {
+            html.append("<div class=\"sub-reply\">\n");
+            int subCount = subReplyList.size();
+            int showCount = Math.min(subCount, 3);
+            for (int i = 0; i < showCount; i++) {
+                JsonNode sr = subReplyList.get(i);
+                JsonNode srCommon = sr.has("common") ? sr.get("common") : sr;
+                String srText = firstText(srCommon, "/content/text", "/text");
+                String srUser = firstText(srCommon, "/user_info/base_info/user_name", "/user_info/user_name");
+                String srReplyTo = firstText(sr, "/reply_to_user_info/base_info/user_name", "/reply_to_user_info/user_name");
+                if (srText != null && !srText.trim().isEmpty()) {
+                    html.append("<div class=\"sub-reply-card\">")
+                            .append(escapeHtml(srUser != null ? srUser : "匿名"))
+                            .append(srReplyTo != null && !srReplyTo.isEmpty() ? " 回复 @" + escapeHtml(srReplyTo) : "")
+                            .append(": ").append(convertEmoji(escapeHtml(srText.trim())))
+                            .append("</div>\n");
+                }
+            }
+            if (subCount > 3) {
+                html.append("<span class=\"sub-reply-more\">查看全部").append(subCount).append("条子回复</span>\n");
+            }
+            html.append("</div>\n");
+        }
+
+        html.append("<div class=\"reply-footer\">\n")
+                .append("<span class=\"stat\"><i class=\"far fa-heart\"></i> ").append(diggCount).append("</span>\n")
+                .append("</div>\n")
+                .append("</div>\n");
     }
 
     private String renderErrorHtml(String message) {
