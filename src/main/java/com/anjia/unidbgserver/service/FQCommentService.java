@@ -86,6 +86,31 @@ public class FQCommentService {
         });
     }
 
+    public CompletableFuture<FQNovelResponse<JsonNode>> getReplyList(FQCommentReplyListRequest request) {
+        return CompletableFuture.supplyAsync(() -> {
+            DeviceInfo device = devicePoolService.nextDevice();
+            String path = "/novel/commentapi/reply/list/" + request.getCommentId() + "/v1";
+            Map<String, String> queryParams = fqApiUtils.buildCommonApiParams(new FqVariable(device));
+
+            Map<String, Object> businessParam = new LinkedHashMap<>();
+            businessParam.put("book_id", request.getBookId());
+            businessParam.put("need_count", true);
+
+            Map<String, Object> bodyMap = new LinkedHashMap<>();
+            bodyMap.put("comment_id", request.getCommentId());
+            bodyMap.put("group_id", request.getChapterId());
+            bodyMap.put("group_type", request.getGroupType() != null ? request.getGroupType() : 15);
+            bodyMap.put("comment_source", request.getCommentSource() != null ? request.getCommentSource() : 502);
+            bodyMap.put("business_param", businessParam);
+            bodyMap.put("count", request.getCount() != null ? request.getCount() : 20);
+            if (request.getCursor() != null && !request.getCursor().isEmpty()) {
+                bodyMap.put("cursor", request.getCursor());
+            }
+
+            return executeCommentPost(path, queryParams, bodyMap, "段评回复列表", request.getCommentId());
+        });
+    }
+
     private FQNovelResponse<JsonNode> executeCommentPost(
             String path,
             Map<String, String> queryParams,
