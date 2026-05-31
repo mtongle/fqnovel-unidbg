@@ -214,6 +214,27 @@ public class SsrCommentService {
             .append(".error{color:#e74c3c}\n")
             .append("@media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#e0e0e0}.comment-card{background:#2d2d2d;box-shadow:0 1px 4px rgba(0,0,0,.3)}.user-name{color:#e0e0e0}.comment-text{color:#ccc}.comment-footer{border-top-color:#3d3d3d}.comment-footer .stat{color:#777}.load-more{background:#2d2d2d;border-color:#3d3d3d;color:#5b9bd5}.tag-author{background:#1b4332;color:#4caf50}.tag-sticker{background:#3e2723;color:#ff9800}}\n")
             .append("@media(min-width:768px){body{padding:20px;max-width:700px;margin:0 auto}.comment-card{padding:20px 24px;border-radius:14px}}\n")
+            .append(".reply-section{margin-top:10px;padding-left:52px}\n")
+            .append(".reply-toggle{font-size:13px;color:#4a90d9;cursor:pointer;background:none;border:none;padding:6px 0;display:flex;align-items:center;gap:4px}\n")
+            .append(".reply-toggle:hover{color:#357abd}\n")
+            .append(".reply-list{display:none;margin-top:8px}\n")
+            .append(".reply-card{padding:10px 12px;margin-bottom:6px;background:#f8f8f8;border-radius:8px;border-left:3px solid #e0e0e0}\n")
+            .append(".reply-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}\n")
+            .append(".reply-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;overflow:hidden}\n")
+            .append(".reply-avatar-img{width:100%;height:100%;object-fit:cover;border-radius:50%}\n")
+            .append(".reply-user-name{font-size:13px;font-weight:600;color:#333}\n")
+            .append(".reply-to{font-size:12px;color:#999}\n")
+            .append(".reply-to .at-user{color:#4a90d9}\n")
+            .append(".reply-time{font-size:11px;color:#bbb;margin-left:auto}\n")
+            .append(".reply-text{font-size:14px;color:#222;line-height:1.6;word-break:break-word}\n")
+            .append(".reply-footer{display:flex;align-items:center;gap:12px;margin-top:4px}\n")
+            .append(".reply-footer .stat{font-size:12px;color:#999;display:flex;align-items:center;gap:3px}\n")
+            .append(".sub-reply{margin-top:6px;padding-left:16px;border-left:2px solid #eee}\n")
+            .append(".sub-reply-card{padding:6px 8px;margin-bottom:4px;font-size:13px;color:#555;background:#f0f0f0;border-radius:6px}\n")
+            .append(".sub-reply-more{font-size:12px;color:#4a90d9;cursor:pointer;padding:4px 0;display:inline-block}\n")
+            .append(".reply-empty,.reply-error{font-size:13px;color:#999;padding:8px}\n")
+            .append(".reply-error{color:#e74c3c}\n")
+            .append("@media(prefers-color-scheme:dark){.reply-card{background:#3a3a3a;border-left-color:#555}.reply-user-name{color:#e0e0e0}.reply-text{color:#ccc}.sub-reply-card{background:#444;color:#aaa}}\n")
             .append("</style>\n</head>\n<body>\n")
             .append("<button class=\"theme-toggle\" onclick=\"toggleTheme()\" title=\"切换主题\"><i class=\"fas fa-moon\"></i></button>\n");
 
@@ -225,7 +246,7 @@ public class SsrCommentService {
             html.append("<div class=\"empty\">此段落暂无评论</div>\n");
         } else {
             for (JsonNode item : items) {
-                renderCommentCard(html, item);
+                renderCommentCard(html, item, bookId, chapterId);
             }
         }
 
@@ -244,12 +265,30 @@ public class SsrCommentService {
             .append("(function(){var t=localStorage.getItem('theme'),d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(t==='dark'||(!t&&d))document.body.classList.add('dark')})();\n")
             .append("function toggleTheme(){document.body.classList.toggle('dark');localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light')}\n")
             .append("function toggleExpand(b){var t=b.previousElementSibling;t.classList.toggle('collapsed');b.textContent=t.classList.contains('collapsed')?'展开全文':'收起'}\n")
+            .append("async function loadReplies(btn){")
+            .append("if(btn.disabled)return;")
+            .append("var sec=btn.closest('.reply-section');")
+            .append("var list=sec.querySelector('.reply-list');")
+            .append("if(list.innerHTML.trim()){list.style.display=list.style.display==='none'?'block':'none';")
+            .append("btn.innerHTML=list.style.display==='block'?'<i class=\"far fa-comment-dots\"></i> 收起回复':'<i class=\"far fa-comment-dots\"></i> '+btn.getAttribute('data-label')||'查看回复';return;}")
+            .append("btn.disabled=true;")
+            .append("var origLabel=btn.textContent.trim();")
+            .append("btn.setAttribute('data-label',origLabel);")
+            .append("btn.innerHTML='<i class=\"fas fa-spinner fa-spin\"></i> 加载中...';")
+            .append("try{")
+            .append("var r=await fetch('/api/ssr/comment-replies?commentId='+sec.dataset.commentId+'&bookId='+sec.dataset.bookId+'&chapterId='+sec.dataset.chapterId);")
+            .append("if(!r.ok)throw new Error('HTTP '+r.status);")
+            .append("var h=await r.text();")
+            .append("list.innerHTML=h;list.style.display='block';")
+            .append("btn.innerHTML='<i class=\"far fa-comment-dots\"></i> 收起回复';")
+            .append("}catch(e){list.innerHTML='<div class=\"reply-error\">加载回复失败</div>';list.style.display='block';}")
+            .append("finally{btn.disabled=false;}}")
             .append("</script>\n")
             .append("</body>\n</html>");
         return html.toString();
     }
 
-    private void renderCommentCard(StringBuilder html, JsonNode item) {
+    private void renderCommentCard(StringBuilder html, JsonNode item, String bookId, String chapterId) {
         JsonNode common = getCommentNode(item);
         if (common == null) return;
 
@@ -276,7 +315,16 @@ public class SsrCommentService {
 
         boolean needsExpand = text != null && text.trim().length() > 150;
 
-        html.append("<div class=\"comment-card\">\n")
+        // Get comment_id from different possible locations
+        String commentId = item.has("comment_id") ? item.get("comment_id").asText("") : "";
+        if (commentId.isEmpty() && item.has("comment")) {
+            commentId = item.get("comment").has("comment_id") ? item.get("comment").get("comment_id").asText("") : "";
+        }
+        if (commentId.isEmpty() && common != null) {
+            commentId = common.has("comment_id") ? common.get("comment_id").asText("") : "";
+        }
+
+        html.append("<div class=\"comment-card\" data-comment-id=\"").append(escapeHtml(commentId)).append("\">\n")
             .append("<div class=\"comment-header\">\n")
             .append("<div class=\"avatar\">\n");
 
@@ -316,7 +364,24 @@ public class SsrCommentService {
             .append("<span class=\"stat\"><i class=\"far fa-heart\"></i> <span>").append(likeCount).append("</span></span>\n")
             .append("<span class=\"stat\"><i class=\"far fa-comment\"></i> <span>").append(replyCount).append("</span>")
             .append(replyCount > 0 ? "条回复" : "").append("</span>\n")
-            .append("</div>\n</div>\n");
+            .append("</div>\n");
+
+        if (replyCount > 0) {
+            html.append("<div class=\"reply-section\" data-comment-id=\"")
+                .append(escapeHtml(commentId))
+                .append("\" data-book-id=\"")
+                .append(escapeHtml(bookId != null ? bookId : ""))
+                .append("\" data-chapter-id=\"")
+                .append(escapeHtml(chapterId != null ? chapterId : ""))
+                .append("\">\n")
+                .append("<button class=\"reply-toggle\" onclick=\"loadReplies(this)\">\n")
+                .append("<i class=\"far fa-comment-dots\"></i> 查看").append(replyCount).append("条回复\n")
+                .append("</button>\n")
+                .append("<div class=\"reply-list\"></div>\n")
+                .append("</div>\n");
+        }
+
+        html.append("</div>\n");
     }
 
     private static JsonNode getCommentNode(JsonNode item) {
