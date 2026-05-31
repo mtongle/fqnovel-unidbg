@@ -28,12 +28,13 @@ public class SsrCommentController {
     public CompletableFuture<String> getCommentReplies(
             @RequestParam String commentId,
             @RequestParam(required = false) String bookId,
-            @RequestParam(required = false) String chapterId) {
+            @RequestParam(required = false) String chapterId,
+            @RequestParam(required = false) String cursor) {
 
         if (commentId == null || commentId.trim().isEmpty()) {
             return CompletableFuture.completedFuture("<div class=\"reply-error\">评论ID不能为空</div>");
         }
 
-        return ssrCommentService.renderReplyListHtml(commentId, bookId, chapterId);
+        return ssrCommentService.renderReplyListHtml(commentId, bookId, chapterId, cursor);
     }
 }

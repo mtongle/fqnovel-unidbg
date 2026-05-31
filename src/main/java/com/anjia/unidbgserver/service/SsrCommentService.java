@@ -34,13 +34,18 @@ public class SsrCommentService {
         });
     }
 
-    public CompletableFuture<String> renderReplyListHtml(String commentId, String bookId, String chapterId) {
+    public CompletableFuture<String> renderReplyListHtml(String commentId, String bookId, String chapterId, String cursor) {
         FQCommentReplyListRequest request = new FQCommentReplyListRequest();
         request.setCommentId(commentId);
         request.setBookId(bookId);
         request.setChapterId(chapterId);
-        request.setCount(20);
+        request.setCount(5);
+        if (cursor != null && !cursor.trim().isEmpty()) {
+            request.setCursor(cursor);
+        }
 
+        String finalBookId = bookId;
+        String finalChapterId = chapterId;
         return fqCommentService.getReplyList(request)
                 .thenApply(response -> {
                     if (response == null || response.getCode() == null || response.getCode() != 0
@@ -51,7 +56,7 @@ public class SsrCommentService {
                                 response != null ? response.getMessage() : "null response");
                         return "<div class=\"reply-error\">加载回复失败</div>";
                     }
-                    String html = renderReplyHtml(response.getData());
+                    String html = renderReplyHtml(response.getData(), commentId, finalBookId, finalChapterId);
                     log.debug("段评回复渲染完成 - commentId: {}, html长度: {}", commentId, html.length());
                     return html;
                 })
@@ -61,7 +66,7 @@ public class SsrCommentService {
                 });
     }
 
-    private String renderReplyHtml(JsonNode root) {
+    private String renderReplyHtml(JsonNode root, String commentId, String bookId, String chapterId) {
         JsonNode replyList = findFirstArray(root,
                 "/data/reply_list", "/reply_list");
         if (replyList == null || !replyList.isArray() || replyList.size() == 0) {
@@ -77,6 +82,14 @@ public class SsrCommentService {
         if (!clInfo.isMissingNode()) {
             boolean hasMore = clInfo.has("has_more") ? clInfo.get("has_more").asBoolean(false) : false;
             String cursor = clInfo.has("cursor") ? clInfo.get("cursor").asText("") : "";
+            if (hasMore && cursor != null && !cursor.isEmpty()) {
+                html.append("<button class=\"reply-load-more\" onclick=\"loadMoreReplies(this)\"")
+                    .append(" data-comment-id=\"").append(escapeHtml(commentId))
+                    .append("\" data-book-id=\"").append(escapeHtml(bookId != null ? bookId : ""))
+                    .append("\" data-chapter-id=\"").append(escapeHtml(chapterId != null ? chapterId : ""))
+                    .append("\" data-cursor=\"").append(escapeHtml(cursor))
+                    .append("\"><i class=\"fas fa-chevron-down\"></i> 加载更多回复</button>\n");
+            }
         }
 
         return html.toString();
@@ -234,7 +247,9 @@ public class SsrCommentService {
             .append(".sub-reply-more{font-size:12px;color:#4a90d9;cursor:pointer;padding:4px 0;display:inline-block}\n")
             .append(".reply-empty,.reply-error{font-size:13px;color:#999;padding:8px}\n")
             .append(".reply-error{color:#e74c3c}\n")
-            .append("@media(prefers-color-scheme:dark){.reply-card{background:#3a3a3a;border-left-color:#555}.reply-user-name{color:#e0e0e0}.reply-text{color:#ccc}.sub-reply-card{background:#444;color:#aaa}}\n")
+            .append(".reply-load-more{display:block;width:100%;text-align:center;padding:8px;margin-top:8px;color:#4a90d9;background:#f0f0f0;border:none;border-radius:6px;font-size:13px;cursor:pointer;transition:background .2s}\n")
+            .append(".reply-load-more:hover{background:#e0e0e0}\n")
+            .append("@media(prefers-color-scheme:dark){.reply-card{background:#3a3a3a;border-left-color:#555}.reply-user-name{color:#e0e0e0}.reply-text{color:#ccc}.sub-reply-card{background:#444;color:#aaa}.reply-load-more{background:#333;color:#5b9bd5}.reply-load-more:hover{background:#444}}\n")
             .append("</style>\n</head>\n<body>\n")
             .append("<button class=\"theme-toggle\" onclick=\"toggleTheme()\" title=\"切换主题\"><i class=\"fas fa-moon\"></i></button>\n");
 
@@ -282,6 +297,23 @@ public class SsrCommentService {
             .append("list.innerHTML=h;list.style.display='block';")
             .append("btn.innerHTML='<i class=\"far fa-comment-dots\"></i> 收起回复';")
             .append("}catch(e){list.innerHTML='<div class=\"reply-error\">加载回复失败</div>';list.style.display='block';}")
+            .append("finally{btn.disabled=false;}}")
+            .append("async function loadMoreReplies(btn){")
+            .append("if(btn.disabled)return;")
+            .append("btn.disabled=true;")
+            .append("var orig=btn.innerHTML;")
+            .append("btn.innerHTML='<i class=\"fas fa-spinner fa-spin\"></i> 加载中...';")
+            .append("try{")
+            .append("var r=await fetch('/api/ssr/comment-replies?commentId='+btn.dataset.commentId+'&bookId='+btn.dataset.bookId+'&chapterId='+btn.dataset.chapterId+'&cursor='+btn.dataset.cursor);")
+            .append("if(!r.ok)throw new Error('HTTP '+r.status);")
+            .append("var h=await r.text();")
+            .append("var list=btn.closest('.reply-section')?btn.closest('.reply-section').querySelector('.reply-list'):null;")
+            .append("if(list){var tmp=document.createElement('div');tmp.innerHTML=h;")
+            .append("var newBtn=tmp.querySelector('.reply-load-more');")
+            .append("if(newBtn){btn.dataset.cursor=newBtn.dataset.cursor;btn.innerHTML=newBtn.innerHTML;")
+            .append("Array.from(tmp.children).forEach(function(c){if(!c.classList.contains('reply-load-more'))list.appendChild(c);});")
+            .append("}else{btn.remove();Array.from(tmp.children).forEach(function(c){list.appendChild(c);});}")
+            .append("}}catch(e){btn.innerHTML=orig;console.error('loadMoreReplies error',e);}")
             .append("finally{btn.disabled=false;}}")
             .append("</script>\n")
             .append("</body>\n</html>");
