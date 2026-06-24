@@ -6,6 +6,7 @@ import com.anjia.unidbgserver.dto.FQNovelRequest;
 import com.anjia.unidbgserver.dto.FQNovelResponse;
 import com.anjia.unidbgserver.dto.FQBatchChapterRequest;
 import com.anjia.unidbgserver.dto.FQBatchChapterResponse;
+import com.anjia.unidbgserver.service.CommentEnrichmentService;
 import com.anjia.unidbgserver.service.FQNovelService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class FQNovelController {
 
     @Autowired
     private FQNovelService fqNovelService;
+
+    @Autowired
+    private CommentEnrichmentService commentEnrichmentService;
 
     /**
      * 获取书籍信息
@@ -131,7 +135,45 @@ public class FQNovelController {
         return fqNovelService.getChapterContent(request);
     }
 
+    /**
+     * 获取段评增强的章节内容
+     * 在章节正文中插入段评 SVG 徽章图标，点击可查看段评
+     * 对应 fqnovel-tongle-comments.json 书源 chapterUrl
+     *
+     * @param bookId 书籍ID
+     * @param chapterId 章节ID
+     * @return 段评增强后的章节内容
+     */
+    @GetMapping("/chapter/enriched/{bookId}/{chapterId}")
+    public CompletableFuture<FQNovelResponse<FQNovelChapterInfo>> getEnrichedChapterContent(
+            @PathVariable String bookId,
+            @PathVariable String chapterId) {
 
+        if (log.isDebugEnabled()) {
+            log.debug("获取段评增强章节内容请求 - bookId: {}, chapterId: {}", bookId, chapterId);
+        }
+
+        if (bookId == null || bookId.trim().isEmpty()) {
+            return CompletableFuture.completedFuture(
+                FQNovelResponse.error("书籍ID不能为空")
+            );
+        }
+
+        if (chapterId == null || chapterId.trim().isEmpty()) {
+            return CompletableFuture.completedFuture(
+                FQNovelResponse.error("章节ID不能为空")
+            );
+        }
+
+        // 先获取原始章节内容
+        FQNovelRequest request = new FQNovelRequest();
+        request.setBookId(bookId.trim());
+        request.setChapterId(chapterId.trim());
+
+        return fqNovelService.getChapterContent(request)
+                .thenCompose(response ->
+                    commentEnrichmentService.enrichChapter(response, bookId, chapterId));
+    }
 
     /**
      * 批量获取章节内容 (新功能)
