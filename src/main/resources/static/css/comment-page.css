@@ -1,0 +1,321 @@
+/* Comment Page — Ink & Parchment
+   Visual sibling of the admin panel, reading-focused */
+
+:root {
+  --bg-canvas: #141322;
+  --bg-surface: #1D1C33;
+  --bg-raised: #26254A;
+  --bg-hover: #2A2950;
+  --bg-active: #2F2E5A;
+  --bg-input: #1D1C33;
+  --text-primary: #EEE8D8;
+  --text-secondary: #A89A86;
+  --text-muted: #7A6E5E;
+  --accent-gold: #C4A84A;
+  --accent-gold-bg: rgba(196, 168, 74, 0.10);
+  --accent-gold-dim: #8A7E4A;
+  --accent-green: #5AAA78;
+  --accent-green-bg: rgba(90, 170, 120, 0.10);
+  --accent-red: #D45A5A;
+  --accent-red-bg: rgba(212, 90, 90, 0.10);
+  --accent-orange: #D4A04A;
+  --accent-orange-bg: rgba(212, 160, 74, 0.10);
+  --accent-blue: #5A8CB4;
+  --accent-blue-bg: rgba(90, 140, 180, 0.10);
+  --border-color: #2D2C4A;
+  --border-light: #252442;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-elevated: 0 6px 24px rgba(0, 0, 0, 0.35);
+  --transition: 0.2s ease;
+  --font-display: "Noto Serif SC", "Source Han Serif SC", "STSong", serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", "Fira Code", monospace;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============ HEADER ============ */
+.page-header {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 18px 14px;
+}
+
+.page-header h1 {
+  font-family: var(--font-display);
+  font-size: 17px; font-weight: 600;
+  color: var(--text-primary);
+}
+
+.page-header .header-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: auto;
+  font-family: var(--font-mono);
+}
+
+/* ============ STATES ============ */
+.loading, .empty, .error {
+  text-align: center; padding: 80px 20px;
+  color: var(--text-muted); font-size: 15px;
+}
+
+.loading .spinner {
+  display: inline-block; width: 26px; height: 26px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent-gold);
+  border-radius: 50%;
+  animation: spin .8s linear infinite; margin-bottom: 12px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error { color: var(--accent-red); }
+
+.empty .icon {
+  font-size: 40px; margin-bottom: 10px;
+  opacity: 0.4;
+}
+
+/* ============ COMMENT LIST ============ */
+.comment-list { padding: 0 16px 24px; max-width: 720px; margin: 0 auto; }
+
+.comment-item,
+.comment-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin: 12px 0;
+  box-shadow: var(--shadow-card);
+}
+
+/* SSR comment card overrides */
+.comment-card > .comment-text { font-size: 15px; }
+.comment-card > .comment-footer { border-top: 0; margin-top: 8px; padding-top: 0; }
+
+.comment-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600; flex-shrink: 0;
+  font-family: var(--font-mono);
+  overflow: hidden; position: relative;
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  position: absolute; inset: 0;
+  z-index: 1;
+  width: 100%; height: 100%;
+  object-fit: cover; border-radius: 50%;
+}
+
+.avatar-letter {
+  display: flex;
+  align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+}
+
+.user-info { flex: 1; min-width: 0; }
+
+.user-name {
+  font-size: 14px; font-weight: 600; color: var(--text-primary);
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+
+.user-name .badge {
+  display: inline-block; font-size: 10px;
+  padding: 1px 7px; border-radius: 10px;
+  font-weight: 600; letter-spacing: 0.3px;
+}
+
+/* SSR name row */
+.user-name-row {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+
+.tag-author {
+  display: inline-block; font-size: 10px;
+  padding: 1px 7px; border-radius: 10px;
+  font-weight: 600; letter-spacing: 0.3px;
+  background: var(--accent-orange-bg); color: var(--accent-orange);
+}
+
+.tag-sticker {
+  display: inline-block; font-size: 10px;
+  padding: 1px 7px; border-radius: 10px;
+  font-weight: 600; letter-spacing: 0.3px;
+  background: var(--accent-gold-bg); color: var(--accent-gold-dim);
+}
+
+.badge.author { background: var(--accent-orange-bg); color: var(--accent-orange); }
+.badge.vip { background: var(--accent-blue-bg); color: var(--accent-blue); }
+
+.comment-time {
+  font-size: 11px; color: var(--text-muted);
+  margin-top: 2px; font-family: var(--font-mono);
+}
+
+.comment-text {
+  font-size: 15px; color: var(--text-primary);
+  line-height: 1.7; word-break: break-word;
+}
+
+.comment-text.collapsed {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.expand-btn {
+  font-size: 13px; color: var(--accent-gold);
+  cursor: pointer; display: inline-block; margin: 4px 0;
+  font-family: var(--font-body);
+}
+
+.comment-text .reply-to {
+  color: var(--accent-gold); font-weight: 500;
+}
+
+.comment-footer {
+  display: flex; align-items: center; gap: 16px;
+  margin-top: 10px; padding-top: 8px;
+  border-top: 1px solid var(--border-light);
+}
+
+.comment-footer .stat {
+  font-size: 12px; color: var(--text-muted);
+  display: flex; align-items: center; gap: 4px;
+}
+
+.comment-footer .stat .num { color: var(--text-secondary); font-family: var(--font-mono); }
+
+/* ============ LOAD MORE ============ */
+.load-more-wrap { text-align: center; padding: 8px 0 24px; }
+
+.load-more {
+  display: inline-block;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 8px 28px;
+  font-family: var(--font-body);
+  font-size: 14px; color: var(--accent-gold);
+  cursor: pointer; transition: all var(--transition);
+  text-decoration: none;
+}
+
+.load-more:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-gold-dim);
+}
+
+.load-more:active { background: var(--bg-active); }
+
+/* ============ TOAST ============ */
+.toast {
+  position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary); padding: 10px 24px;
+  border-radius: 20px; font-size: 14px; z-index: 100;
+  opacity: 0; transition: opacity .3s;
+  box-shadow: var(--shadow-elevated);
+}
+
+.toast.show { opacity: 1; }
+
+/* ============ REPLY SECTION ============ */
+.reply-section{margin-top:12px;padding-left:0; /* offset by avatar width+gap */}
+.reply-toggle{font-size:13px;color:var(--accent-gold);cursor:pointer;background:none;border:none;padding:6px 0;display:flex;align-items:center;gap:4px;font-family:var(--font-body)}
+.reply-toggle:hover{color:#DDC060}
+.reply-list{display:none;margin-top:10px}
+.reply-card{padding:12px 14px;margin-bottom:8px;background:var(--bg-raised);border-radius:var(--radius-sm);border-left:3px solid var(--border-color)}
+.reply-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.reply-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;overflow:hidden;position:relative;font-family:var(--font-mono)}
+.reply-avatar-img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.reply-user-name{font-size:13px;font-weight:600;color:var(--text-primary)}
+.reply-to{font-size:12px;color:var(--text-muted)}
+.reply-to .at-user{color:var(--accent-gold)}
+.reply-time{font-size:11px;color:var(--text-muted);margin-left:auto;font-family:var(--font-mono)}
+.reply-text{font-size:14px;color:var(--text-primary);line-height:1.6;word-break:break-word}
+.reply-footer{display:flex;align-items:center;gap:12px;margin-top:4px}
+.reply-footer .stat{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:3px}
+.sub-reply{margin-top:6px;padding-left:16px;border-left:2px solid var(--border-color)}
+.sub-reply-card{padding:6px 10px;margin-bottom:4px;font-size:13px;color:var(--text-secondary);background:var(--bg-surface);border-radius:4px}
+.sub-reply-more{font-size:12px;color:var(--accent-gold);cursor:pointer;padding:4px 0;display:inline-block}
+.reply-empty,.reply-error{font-size:13px;color:var(--text-muted);padding:8px}
+.reply-error{color:var(--accent-red)}
+.reply-load-more{display:block;width:100%;text-align:center;padding:8px;margin-top:8px;color:var(--accent-gold);background:var(--bg-raised);border:1px solid var(--border-color);border-radius:6px;font-size:13px;cursor:pointer;font-family:var(--font-body);transition:background var(--transition)}
+.reply-load-more:hover{background:var(--bg-hover)}
+
+/* ============ THEME TOGGLE ============ */
+.theme-toggle {
+  position: fixed; top: 12px; right: 12px; z-index: 100;
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-elevated);
+  cursor: pointer; display: flex; align-items: center;
+  justify-content: center; font-size: 16px; color: var(--accent-gold);
+  transition: all var(--transition);
+}
+.theme-toggle:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-gold-dim);
+}
+
+/* ============ LIGHT THEME ============ */
+body.light {
+  --bg-canvas: #F7F3EC;
+  --bg-surface: #FFFFFF;
+  --bg-raised: #F0ECE4;
+  --bg-hover: #E8E3D8;
+  --bg-active: #E0DACF;
+  --bg-input: #FFFFFF;
+  --text-primary: #2C2420;
+  --text-secondary: #6B6258;
+  --text-muted: #9C9285;
+  --accent-gold: #A08A3A;
+  --accent-gold-bg: rgba(160, 138, 58, 0.10);
+  --accent-gold-dim: #7A6830;
+  --accent-green: #4A8E68;
+  --accent-green-bg: rgba(74, 142, 104, 0.10);
+  --accent-red: #B84A4A;
+  --accent-red-bg: rgba(184, 74, 74, 0.10);
+  --accent-orange: #B88A3A;
+  --accent-orange-bg: rgba(184, 138, 58, 0.10);
+  --accent-blue: #4A7A9E;
+  --accent-blue-bg: rgba(74, 122, 158, 0.10);
+  --border-color: #E5DDD0;
+  --border-light: #EDE7DD;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ============ DESKTOP ============ */
+@media(min-width:768px){
+  body{padding:0;}
+  .page-header{padding:18px 24px;max-width:768px;margin:0 auto}
+  .comment-list{padding:0 20px 32px}
+  .comment-item{padding:20px 22px;border-radius:var(--radius-lg)}
+}
