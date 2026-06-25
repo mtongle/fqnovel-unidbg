@@ -20,6 +20,14 @@
     }
   })();
 
+  // Theme toggle
+  var adminTheme = localStorage.getItem('admin-theme');
+  if (adminTheme === 'light') document.body.classList.add('light');
+  window.toggleAdminTheme = function() {
+    document.body.classList.toggle('light');
+    localStorage.setItem('admin-theme', document.body.classList.contains('light') ? 'light' : 'dark');
+  };
+
   const API_BASE = '/api/admin';
 
   const state = {
@@ -251,6 +259,67 @@
     var div = document.createElement('div');
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
+  }
+
+  function normalizeImageUrl(url) {
+    if (!url) return '';
+    return url.replace('http://', 'https://');
+  }
+
+  function fixHeicImg(img) {
+    if (img._heicFixed) return;
+    img._heicFixed = true;
+    var src = img.src || '';
+    if (!src) return;
+
+    loadHeic2Any().then(function() {
+      return fetch(src);
+    }).then(function(r) {
+      if (!r.ok) throw new Error(r.status);
+      var ct = (r.headers.get('content-type') || '').toLowerCase();
+      return r.blob().then(function(blob) { return { blob: blob, ct: ct }; });
+    }).then(function(info) {
+      if (info.ct.indexOf('heic') !== -1 || info.ct.indexOf('heif') !== -1) {
+        return heic2any({ blob: info.blob, toType: 'image/jpeg', quality: 1 }).then(function(result) {
+          var b = Array.isArray(result) ? result[0] : result;
+          img.src = URL.createObjectURL(b);
+          img.style.display = '';
+          img.onerror = null;
+          var container = img.closest('.avatar, .comment-avatar, .reply-avatar');
+          if (container) {
+            var letter = container.querySelector('.avatar-letter, .reply-avatar > span');
+            if (letter) letter.style.display = 'none';
+          }
+        });
+      } else {
+        img.src = URL.createObjectURL(info.blob);
+        img.style.display = '';
+        img.onerror = null;
+      }
+    }).catch(function(e) {
+      console.warn('HEIC fail:', e);
+      showFallbackAvatar(img);
+    });
+  }
+
+  function showFallbackAvatar(img) {
+    img.style.display = 'none';
+    var container = img.closest('.avatar, .comment-avatar');
+    if (container) {
+      var letter = container.querySelector('.avatar-letter');
+      if (letter) letter.style.display = 'flex';
+    }
+  }
+
+  function loadHeic2Any() {
+    if (typeof heic2any === 'function') return Promise.resolve();
+    return new Promise(function(resolve) {
+      var s = document.createElement('script');
+      s.src = '/js/heic2any.min.js';
+      s.onload = resolve;
+      s.onerror = resolve;
+      document.head.appendChild(s);
+    });
   }
 
   function formatBytes(bytes) {
@@ -687,9 +756,9 @@
     }
 
     body.innerHTML = books.map(function(b) {
-      var coverSrc = b.coverUrl || '';
+      var coverSrc = normalizeImageUrl(b.coverUrl || '');
       var coverImg = coverSrc
-        ? '<img src="' + escapeHtml(coverSrc) + '" onerror="this.style.display=\'none\'" style="width:32px;height:44px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:6px;">'
+        ? '<img src="' + escapeHtml(coverSrc) + '" onerror="fixHeicImg(this)" style="width:32px;height:44px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:6px;">'
         : '';
       return '<tr>' +
         '<td>' + coverImg + '<span>' + escapeHtml(b.bookName || '--') + '</span></td>' +
@@ -745,8 +814,9 @@
     var bid = _bsDetailBookId;
     var fch = d.firstChapterItemId || '';
 
-    var coverHtml = d.coverUrl
-      ? '<img class="book-detail-cover" src="' + escapeHtml(d.coverUrl) + '" alt="cover" onerror="this.style.display=\'none\'" style="width:140px;border-radius:var(--radius-sm);box-shadow:0 2px 12px rgba(0,0,0,0.3);">'
+    var coverUrl = normalizeImageUrl(d.coverUrl);
+    var coverHtml = coverUrl
+      ? '<img class="book-detail-cover" src="' + escapeHtml(coverUrl) + '" alt="cover" onerror="fixHeicImg(this)" style="width:140px;border-radius:var(--radius-sm);box-shadow:0 2px 12px rgba(0,0,0,0.3);">'
       : '<div style="width:140px;height:200px;background:var(--bg-tertiary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:2rem;">📖</div>';
 
     var vipHtml = '';
@@ -1101,7 +1171,7 @@
       id: common.comment_id || item.comment_id || '',
       userId: baseInfo.user_id || '',
       userName: baseInfo.user_name || baseInfo.nickname || baseInfo.name || item.user_name || '匿名',
-      avatarUrl: baseInfo.user_avatar || baseInfo.avatar_url || baseInfo.avatar || item.user_avatar || '',
+      avatarUrl: normalizeImageUrl(baseInfo.user_avatar || baseInfo.avatar_url || baseInfo.avatar || item.user_avatar || ''),
       description: baseInfo.description || userInfo.description || '',
       content: content.text || content.content || common.content_text || item.content || '(无内容)',
       quoteText: expand.para_src_content || '',
@@ -1156,7 +1226,7 @@
       var e = extractComment(c);
 
       var avatarHtml = e.avatarUrl
-        ? '<img src="' + escapeHtml(e.avatarUrl) + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" style="width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;"><div style="display:none;width:42px;height:42px;border-radius:50%;background:var(--accent-blue-bg);color:var(--accent-blue);align-items:center;justify-content:center;font-size:1rem;font-weight:600;flex-shrink:0;">' + escapeHtml((e.userName.charAt(0) || '?').toUpperCase()) + '</div>'
+        ? '<img src="' + escapeHtml(e.avatarUrl) + '" onerror="fixHeicImg(this)" style="width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;"><div style="display:none;width:42px;height:42px;border-radius:50%;background:var(--accent-blue-bg);color:var(--accent-blue);align-items:center;justify-content:center;font-size:1rem;font-weight:600;flex-shrink:0;">' + escapeHtml((e.userName.charAt(0) || '?').toUpperCase()) + '</div>'
         : '<div style="width:42px;height:42px;border-radius:50%;background:var(--accent-blue-bg);color:var(--accent-blue);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:600;flex-shrink:0;">' + escapeHtml((e.userName.charAt(0) || '?').toUpperCase()) + '</div>';
 
       var genderIcon = e.gender === 1 ? '♂️' : e.gender === 2 ? '♀️' : '';
@@ -1366,6 +1436,13 @@
         dom.toastContainer.innerHTML = '';
       }
     });
+    // Global HEIC image error handler (capture phase, runs before inline onerror)
+    document.addEventListener('error', function(e) {
+      if (e.target && e.target.tagName === 'IMG') {
+        fixHeicImg(e.target);
+      }
+    }, true);
+
   }
 
   if (document.readyState === 'loading') {

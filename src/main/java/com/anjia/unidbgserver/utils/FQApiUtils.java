@@ -7,7 +7,8 @@ import com.anjia.unidbgserver.dto.FqVariable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.io.UnsupportedEncodingException;
+import static com.anjia.unidbgserver.utils.CommonUtils.firstNonBlank;
+
 import java.net.URLEncoder;
 import java.util.*;
 
@@ -340,15 +341,16 @@ public Map<String, String> buildSearchParams(FqVariable var, FQSearchRequest sea
         return fqApiProperties.getBaseUrl();
     }
 
+    /**
+     * 获取搜索/目录API基础URL
+     * 某些API使用独立的域名后缀
+     */
+    public String getSearchBaseUrl() {
+        String searchUrl = fqApiProperties.getSearchApiBaseUrl();
+        return searchUrl != null && !searchUrl.isEmpty() ? searchUrl : fqApiProperties.getBaseUrl();
+    }
+
     private String firstNonBlank(String... values) {
-        if (values == null) {
-            return "";
-        }
-        for (String value : values) {
-            if (value != null && !value.trim().isEmpty()) {
-                return value;
-            }
-        }
-        return "";
+        return com.anjia.unidbgserver.utils.CommonUtils.firstNonBlank(values);
     }
 }

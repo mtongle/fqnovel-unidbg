@@ -3,6 +3,7 @@ package com.anjia.unidbgserver.service;
 import com.anjia.unidbgserver.config.FQApiProperties;
 import com.anjia.unidbgserver.dto.DeviceInfo;
 import com.anjia.unidbgserver.dto.DeviceRegisterRequest;
+import com.anjia.unidbgserver.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +13,6 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * 设备池服务
@@ -34,6 +34,13 @@ public class DevicePoolService {
     private final List<DeviceInfo> devicePool = new CopyOnWriteArrayList<>();
     private final AtomicInteger roundRobinIndex = new AtomicInteger(0);
     private final Object poolLock = new Object();
+
+    /**
+     * 最近一次调用 nextDevice() 返回的设备
+     * 用于图片代理：代理 URL 的签名基于此次调用使用的设备，
+     * 需用同一设备的 Cookie/UA 才能通过 CDN 校验
+     */
+    private volatile DeviceInfo lastUsedDevice;
 
     @PostConstruct
     public void initDevicePool() {
@@ -57,11 +64,23 @@ public class DevicePoolService {
         }
 
         int idx = Math.abs(roundRobinIndex.getAndIncrement());
-        return devicePool.get(idx % devicePool.size());
+        DeviceInfo device = devicePool.get(idx % devicePool.size());
+        this.lastUsedDevice = device;
+        return device;
     }
 
+    /**
+     * 获取上次 nextDevice() 返回的设备
+     * 图片代理在取 CDN 图片时需使用同一设备的 Cookie/UA
+     */
+    public DeviceInfo getLastUsedDevice() {
+        DeviceInfo device = lastUsedDevice;
+        return device != null ? device : buildFallbackDevice();
+    }
+
+
     public DeviceInfo findDeviceById(String deviceId) {
-        if (!notBlank(deviceId)) {
+        if (!CommonUtils.isNotBlank(deviceId)) {
             return null;
         }
 
@@ -109,7 +128,7 @@ public class DevicePoolService {
     }
 
     public boolean removeDeviceById(String deviceId) {
-        if (!isEnabled() || !notBlank(deviceId)) {
+        if (!isEnabled() || !CommonUtils.isNotBlank(deviceId)) {
             return false;
         }
         synchronized (poolLock) {
@@ -220,9 +239,9 @@ public class DevicePoolService {
             return false;
         }
 
-        boolean byDeviceId = notBlank(left.getDeviceId()) && left.getDeviceId().equals(right.getDeviceId());
-        boolean byInstallId = notBlank(left.getInstallId()) && left.getInstallId().equals(right.getInstallId());
-        boolean byCdid = notBlank(left.getCdid()) && left.getCdid().equals(right.getCdid());
+        boolean byDeviceId = CommonUtils.isNotBlank(left.getDeviceId()) && left.getDeviceId().equals(right.getDeviceId());
+        boolean byInstallId = CommonUtils.isNotBlank(left.getInstallId()) && left.getInstallId().equals(right.getInstallId());
+        boolean byCdid = CommonUtils.isNotBlank(left.getCdid()) && left.getCdid().equals(right.getCdid());
 
         return byDeviceId || byInstallId || byCdid;
     }
@@ -254,20 +273,11 @@ public class DevicePoolService {
     }
 
     private String extractAndroidVersion(String userAgent) {
-        if (!notBlank(userAgent)) {
+        if (!CommonUtils.isNotBlank(userAgent)) {
             return "13";
         }
 
-        Pattern pattern = Pattern.compile("Android\\s+([^;\\s]+)");
-        Matcher matcher = pattern.matcher(userAgent);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-
-        return "13";
-    }
-
-    private boolean notBlank(String value) {
-        return value != null && !value.trim().isEmpty();
+        Matcher matcher = CommonUtils.ANDROID_VERSION_PATTERN.matcher(userAgent);
+        return matcher.find() ? matcher.group(1) : "13";
     }
 }

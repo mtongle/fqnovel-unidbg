@@ -37,6 +37,12 @@ public class FQApiProperties {
     private String commentApiBaseUrl = "https://api.fqnovel.com";
 
     /**
+     * 搜索和目录API的替代域名后缀
+     * 某些API需要用 api5-normal-sinfonlinec 替代默认的 api5-normal-sinfonlineb
+     */
+    private String searchApiBaseUrl = "https://api5-normal-sinfonlinec.fqnovel.com";
+
+    /**
      * 设备池配置
      */
     private DevicePool devicePool = new DevicePool();

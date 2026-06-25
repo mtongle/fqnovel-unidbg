@@ -192,6 +192,23 @@ body {
   font-family: var(--font-body);
 }
 
+/* ============ COMMENT IMAGES ============ */
+.comment-images {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 10px;
+}
+
+.comment-image {
+  max-width: 100%; max-height: 400px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  cursor: pointer;
+  transition: opacity var(--transition);
+  background: var(--bg-raised);
+}
+
+.comment-image:hover { opacity: 0.9; }
+
 .comment-text .reply-to {
   color: var(--accent-gold); font-weight: 500;
 }

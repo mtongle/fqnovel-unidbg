@@ -3,38 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>fqnovel-unidbg Admin</title>
-<link rel="stylesheet" href="/admin/css/admin.css">
+<title>fqnovel-unidbg · 管理面板</title>
+<link rel="stylesheet" href="/admin/css/admin.css?v=0.0.3">
 </head>
 <body>
 
 <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu">☰</button>
+<button class="theme-toggle-admin" id="adminThemeToggle" onclick="toggleAdminTheme()" title="切换主题">✦</button>
 <aside class="sidebar">
   <div class="sidebar-header">
     <h1>fqnovel-unidbg</h1>
     <span class="sidebar-subtitle">管理面板</span>
   </div>
   <nav class="sidebar-nav">
-    <button class="nav-item active" data-section="dashboard">概览仪表盘</button>
-    <button class="nav-item" data-section="config">配置编辑器</button>
-    <button class="nav-item" data-section="device-pool">设备池管理</button>
-    <button class="nav-item" data-section="system">系统监控</button>
-    <button class="nav-item" data-section="book-search">书籍搜索</button>
-    <button class="nav-item" data-section="chapter-viewer">章节阅读</button>
-    <button class="nav-item" data-section="comment-viewer">段评查询</button>
+    <button class="nav-item active" data-section="dashboard"><span class="nav-icon">📊</span>概览仪表盘</button>
+    <button class="nav-item" data-section="config"><span class="nav-icon">⚙️</span>配置编辑器</button>
+    <button class="nav-item" data-section="device-pool"><span class="nav-icon">📱</span>设备池管理</button>
+    <button class="nav-item" data-section="system"><span class="nav-icon">🖥️</span>系统监控</button>
+    <button class="nav-item" data-section="book-search"><span class="nav-icon">📚</span>书籍搜索</button>
+    <button class="nav-item" data-section="chapter-viewer"><span class="nav-icon">📖</span>章节阅读</button>
+    <button class="nav-item" data-section="comment-viewer"><span class="nav-icon">💬</span>段评查询</button>
   </nav>
   <div class="sidebar-footer">
-    <button class="btn btn-sm btn-outline" id="btn-lock" title="锁定面板">锁定</button>
-    <button class="btn btn-sm btn-outline" id="btn-restart">重启应用</button>
+    <button class="btn btn-sm btn-outline" id="btn-lock" title="锁定面板">✦ 锁定</button>
+    <button class="btn btn-sm btn-outline" id="btn-restart">⟳ 重启</button>
   </div>
 </aside>
 
 <main class="content">
 
+  <!-- ========== 概览仪表盘 ========== -->
   <section id="section-dashboard" class="section active">
     <div class="section-header">
       <h2>概览仪表盘</h2>
-      <button class="btn btn-sm" id="btn-refresh-dashboard">刷新</button>
+      <button class="btn btn-sm" id="btn-refresh-dashboard">⟳ 刷新</button>
     </div>
     <div class="dashboard-grid">
       <div class="card">
@@ -88,12 +90,13 @@
     </div>
   </section>
 
+  <!-- ========== 配置编辑器 ========== -->
   <section id="section-config" class="section">
     <div class="section-header">
       <h2>配置编辑器</h2>
       <div class="section-header-actions">
-        <button class="btn btn-sm" id="btn-load-config">加载配置</button>
-        <button class="btn btn-sm btn-primary" id="btn-save-config">保存配置</button>
+        <button class="btn btn-sm" id="btn-load-config">⟳ 加载</button>
+        <button class="btn btn-sm btn-primary" id="btn-save-config">✦ 保存</button>
       </div>
     </div>
     <div class="card">
@@ -103,19 +106,20 @@
         </div>
         <div class="config-actions">
           <div id="config-message" class="message hidden"></div>
-          <button class="btn btn-accent" id="btn-hot-reload">热重载</button>
+          <button class="btn btn-accent" id="btn-hot-reload">⟳ 热重载</button>
         </div>
       </div>
     </div>
   </section>
 
+  <!-- ========== 设备池管理 ========== -->
   <section id="section-device-pool" class="section">
     <div class="section-header">
       <h2>设备池管理</h2>
       <div class="section-header-actions">
-        <button class="btn btn-sm" id="btn-refresh-pool">刷新</button>
-        <button class="btn btn-sm btn-primary" id="btn-add-device">添加设备</button>
-        <button class="btn btn-sm btn-accent" id="btn-rebuild-pool">重建设备池</button>
+        <button class="btn btn-sm" id="btn-refresh-pool">⟳ 刷新</button>
+        <button class="btn btn-sm btn-primary" id="btn-add-device">✦ 添加设备</button>
+        <button class="btn btn-sm btn-accent" id="btn-rebuild-pool">⟳ 重建</button>
       </div>
     </div>
     <div class="card">
@@ -140,10 +144,11 @@
     </div>
   </section>
 
+  <!-- ========== 系统监控 ========== -->
   <section id="section-system" class="section">
     <div class="section-header">
       <h2>系统监控</h2>
-      <button class="btn btn-sm" id="btn-refresh-system">刷新</button>
+      <button class="btn btn-sm" id="btn-refresh-system">⟳ 刷新</button>
     </div>
     <div class="system-grid">
       <div class="card">
@@ -176,7 +181,7 @@
   <!-- ========== 书籍搜索 ========== -->
   <section id="section-book-search" class="section">
     <div class="section-header">
-      <h2>📚 书籍搜索</h2>
+      <h2>✦ 书籍搜索</h2>
     </div>
     <div class="card mb-12">
       <div class="card-body">
@@ -187,7 +192,7 @@
             <option value="5">全文</option>
           </select>
           <input type="text" id="bs-query" class="search-input" placeholder="输入书名/作者关键词" autocomplete="off">
-          <button class="btn btn-primary" id="btn-bs-search">搜索</button>
+          <button class="btn btn-primary" id="btn-bs-search">✦ 搜索</button>
         </div>
       </div>
     </div>
@@ -197,18 +202,15 @@
         <div class="table-wrapper">
           <table class="data-table" id="bs-result-table">
             <thead><tr><th>书名</th><th>作者</th><th>状态</th><th>字数</th><th>评分</th><th>分类</th><th>操作</th></tr></thead>
-            <tbody id="bs-result-body"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px;">输入关键词开始搜索</td></tr></tbody>
+            <tbody id="bs-result-body"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px;">✦ 输入关键词开始搜索</td></tr></tbody>
           </table>
         </div>
         <div class="pagination" id="bs-pagination"></div>
       </div>
     </div>
-    <!-- Detail & Directory container -->
     <div id="bs-detail-container"></div>
-    </div>
-    <!-- Directory Panel -->
     <div class="card mt-12 hidden" id="bs-directory-card">
-      <div class="card-header">章节目录</div>
+      <div class="card-header">✦ 章节目录</div>
       <div class="card-body">
         <div class="table-wrapper">
           <table class="data-table" id="bs-dir-table">
@@ -224,24 +226,24 @@
   <!-- ========== 章节阅读 ========== -->
   <section id="section-chapter-viewer" class="section">
     <div class="section-header">
-      <h2>📖 章节阅读</h2>
+      <h2>✦ 章节阅读</h2>
     </div>
     <div class="card mb-12">
       <div class="card-body">
         <div class="search-bar">
           <input type="text" id="cv-book-id" class="search-input" style="max-width:180px;" placeholder="Book ID" autocomplete="off">
           <input type="text" id="cv-chapter-id" class="search-input" style="max-width:180px;" placeholder="Chapter ID" autocomplete="off">
-          <button class="btn btn-primary" id="btn-cv-load">加载章节</button>
-          <button class="btn btn-sm" id="btn-cv-prev" disabled>上一章</button>
-          <button class="btn btn-sm" id="btn-cv-next" disabled>下一章</button>
-          <button class="btn btn-sm btn-accent" id="btn-cv-comments" disabled>查看段评</button>
+          <button class="btn btn-primary" id="btn-cv-load">✦ 加载</button>
+          <button class="btn btn-sm" id="btn-cv-prev" disabled>← 上一章</button>
+          <button class="btn btn-sm" id="btn-cv-next" disabled>下一章 →</button>
+          <button class="btn btn-sm btn-accent" id="btn-cv-comments" disabled>💬 段评</button>
         </div>
       </div>
     </div>
     <div class="card">
-      <div class="card-header" id="cv-title">章节标题</div>
+      <div class="card-header" id="cv-title">✦ 章节标题</div>
       <div class="card-body">
-        <div class="chapter-content" id="cv-content"><div class="detail-empty">输入 Book ID 和 Chapter ID 加载章节</div></div>
+        <div class="chapter-content" id="cv-content"><div class="detail-empty">✦ 输入 Book ID 和 Chapter ID 加载章节</div></div>
       </div>
     </div>
   </section>
@@ -249,7 +251,7 @@
   <!-- ========== 段评查询 ========== -->
   <section id="section-comment-viewer" class="section">
     <div class="section-header">
-      <h2>💬 段评查询</h2>
+      <h2>✦ 段评查询</h2>
     </div>
     <div class="card mb-12">
       <div class="card-body">
@@ -257,18 +259,18 @@
           <input type="text" id="cm-book-id" class="search-input" style="max-width:180px;" placeholder="Book ID" autocomplete="off">
           <input type="text" id="cm-chapter-id" class="search-input" style="max-width:180px;" placeholder="Chapter ID" autocomplete="off">
           <input type="number" id="cm-para-idx" class="search-input" style="max-width:100px;" placeholder="段落索引" value="0">
-          <button class="btn btn-primary" id="btn-cm-idea">查询统计</button>
-          <button class="btn btn-accent" id="btn-cm-list">查询段评</button>
+          <button class="btn btn-primary" id="btn-cm-idea">✦ 统计</button>
+          <button class="btn btn-accent" id="btn-cm-list">✦ 查询</button>
         </div>
       </div>
     </div>
     <div class="card mb-12">
       <div class="card-header">段评列表 <span id="cm-list-count" class="text-muted"></span></div>
-      <div class="card-body" id="cm-list-result"><div class="detail-empty">暂无数据</div></div>
+      <div class="card-body" id="cm-list-result"><div class="detail-empty">✦ 暂无数据</div></div>
     </div>
     <div class="card">
       <div class="card-header">段落评论统计</div>
-      <div class="card-body" id="cm-idea-result"><div class="detail-empty">暂无数据</div></div>
+      <div class="card-body" id="cm-idea-result"><div class="detail-empty">✦ 暂无数据</div></div>
     </div>
   </section>
 
@@ -279,6 +281,6 @@
   <div class="loading-spinner"></div>
 </div>
 
-<script src="/admin/js/admin.js"></script>
+<script src="/admin/js/admin.js?v=0.0.3"></script>
 </body>
 </html>

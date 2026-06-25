@@ -14,7 +14,6 @@ application:
 fq:
   api:
     base-url: https://api5-normal-sinfonlineb.fqnovel.com
-    comment-api-base-url: https://api.fqnovel.com
     cookie: store-region=cn-zj; store-region-src=did; install_id=2420480337007787;
     device-pool:
       enabled: true

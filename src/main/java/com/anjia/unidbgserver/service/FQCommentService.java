@@ -1,7 +1,9 @@
 package com.anjia.unidbgserver.service;
 
 import com.anjia.unidbgserver.dto.*;
+import com.anjia.unidbgserver.utils.CommonUtils;
 import com.anjia.unidbgserver.utils.FQApiUtils;
+import com.anjia.unidbgserver.utils.GzipUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -10,12 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.zip.GZIPInputStream;
 
 @Slf4j
 @Service
@@ -169,30 +167,10 @@ public class FQCommentService {
     }
 
     private String decompressGzipResponse(byte[] gzipData) throws Exception {
-        if (gzipData == null || gzipData.length == 0) {
-            return "";
-        }
-        boolean isGzip = gzipData.length >= 2
-            && gzipData[0] == (byte) 0x1f
-            && gzipData[1] == (byte) 0x8b;
-
-        if (!isGzip) {
-            return new String(gzipData, StandardCharsets.UTF_8);
-        }
-        try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(gzipData))) {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = gzipInputStream.read(buffer)) != -1) {
-                byteArrayOutputStream.write(buffer, 0, length);
-            }
-            return new String(byteArrayOutputStream.toByteArray(), StandardCharsets.UTF_8);
-        }
+        return GzipUtils.decodeBody(gzipData);
     }
 
     private boolean isEmptyResponseError(Exception e) {
-        String message = e.getMessage();
-        return "EMPTY_RESPONSE".equals(message)
-            || (message != null && message.contains("No content to map due to end-of-input"));
+        return CommonUtils.isEmptyResponseError(e);
     }
 }

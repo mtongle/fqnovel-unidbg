@@ -4,6 +4,7 @@ import com.anjia.unidbgserver.dto.DeviceInfo;
 import com.anjia.unidbgserver.dto.FqRegisterKeyPayload;
 import com.anjia.unidbgserver.dto.FqRegisterKeyResponse;
 import com.anjia.unidbgserver.dto.FqVariable;
+import com.anjia.unidbgserver.utils.CommonUtils;
 import com.anjia.unidbgserver.utils.FQApiUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -241,9 +242,7 @@ public class FQRegisterKeyService {
     }
 
     private boolean isEmptyResponseError(Exception e) {
-        String message = e.getMessage();
-        return "EMPTY_RESPONSE".equals(message)
-            || (message != null && message.contains("No content to map due to end-of-input"));
+        return CommonUtils.isEmptyResponseError(e);
     }
 
     /**
@@ -386,7 +385,7 @@ public class FQRegisterKeyService {
     }
 
     private static boolean notBlank(String value) {
-        return value != null && !value.trim().isEmpty();
+        return CommonUtils.isNotBlank(value);
     }
 
     private long normalizeKeyRegisterTs(Long keyRegisterTs) {

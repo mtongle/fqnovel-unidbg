@@ -3,105 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>段评</title>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", sans-serif;
-    background: #f5f5f5; color: #333; line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-  .header {
-    position: sticky; top: 0; z-index: 10;
-    background: #fff; padding: 14px 16px 12px;
-    border-bottom: 1px solid #e8e8e8;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .header h1 { font-size: 17px; font-weight: 600; color: #1a1a1a; }
-  .header .meta { font-size: 13px; color: #999; margin-left: auto; }
-
-  .loading, .empty, .error {
-    text-align: center; padding: 60px 20px; color: #999; font-size: 15px;
-  }
-  .loading .spinner {
-    display: inline-block; width: 24px; height: 24px;
-    border: 3px solid #e0e0e0; border-top-color: #4A90D9;
-    border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 12px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .error { color: #e74c3c; }
-  .empty .icon { font-size: 40px; margin-bottom: 8px; }
-
-  .comment-list { padding: 0 16px; }
-  .comment-item {
-    background: #fff; border-radius: 10px; padding: 14px 16px; margin: 10px 0;
-    box-shadow: 0 1px 3px rgba(0,0,0,.06);
-  }
-  .comment-header {
-    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
-  }
-  .avatar {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: #e8f0fe; color: #4A90D9;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 600; flex-shrink: 0;
-  }
-  .user-info { flex: 1; min-width: 0; }
-  .user-name { font-size: 14px; font-weight: 500; color: #333; }
-  .user-name .badge {
-    display: inline-block; font-size: 10px; padding: 1px 5px;
-    border-radius: 3px; margin-left: 4px; vertical-align: middle;
-  }
-  .badge.author { background: #fff3e0; color: #e67e22; }
-  .badge.vip { background: #fce4ec; color: #e74c3c; }
-  .comment-time { font-size: 12px; color: #bbb; }
-  .comment-text { font-size: 15px; color: #2c2c2c; line-height: 1.7; word-break: break-word; }
-  .comment-text .reply-to {
-    color: #4A90D9; font-weight: 500;
-  }
-  .comment-footer {
-    display: flex; align-items: center; gap: 16px; margin-top: 10px;
-    padding-top: 8px; border-top: 1px solid #f0f0f0;
-  }
-  .comment-footer .stat {
-    font-size: 12px; color: #bbb; display: flex; align-items: center; gap: 3px;
-  }
-  .comment-footer .stat .num { color: #999; }
-
-  .load-more-wrap { text-align: center; padding: 16px 0 32px; }
-  .load-more {
-    background: #fff; border: 1px solid #ddd; border-radius: 20px;
-    padding: 8px 24px; font-size: 14px; color: #666; cursor: pointer;
-    transition: all .2s;
-  }
-  .load-more:active { background: #f5f5f5; }
-
-  .toast {
-    position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,.75); color: #fff; padding: 8px 20px;
-    border-radius: 20px; font-size: 14px; z-index: 100;
-    opacity: 0; transition: opacity .3s;
-  }
-  .toast.show { opacity: 1; }
-
-  @media (prefers-color-scheme: dark) {
-    body { background: #1c1c1e; color: #e5e5e5; }
-    .header { background: #2c2c2e; border-bottom-color: #3a3a3c; }
-    .header h1 { color: #f0f0f0; }
-    .comment-item { background: #2c2c2e; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
-    .comment-text { color: #e0e0e0; }
-    .comment-footer { border-top-color: #3a3a3c; }
-    .user-name { color: #e0e0e0; }
-    .load-more { background: #2c2c2e; border-color: #3a3a3c; color: #aaa; }
-    .load-more:active { background: #3a3a3c; }
-  }
-</style>
+<title>✦ 段评 · fqnovel-unidbg</title>
+<link rel="stylesheet" href="/css/comment-page.css?v=0.0.3">
 </head>
 <body>
 
-<div class="header">
-  <h1>💬 段评</h1>
-  <div class="meta" id="metaInfo"></div>
+<button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="切换主题">✦</button>
+
+<div class="page-header">
+  <h1>✦ 段评</h1>
+  <div class="header-meta" id="metaInfo"></div>
 </div>
 
 <div id="loading" class="loading">
@@ -110,12 +21,12 @@
 </div>
 <div id="error" class="error" style="display:none;"></div>
 <div id="empty" class="empty" style="display:none;">
-  <div class="icon">📭</div>
+  <div class="icon">✦</div>
   <div>此段落暂无评论</div>
 </div>
 <div id="commentList" class="comment-list" style="display:none;"></div>
 <div id="loadMoreWrap" class="load-more-wrap" style="display:none;">
-  <button class="load-more" onclick="loadMore()">加载更多</button>
+  <button class="load-more" onclick="loadMore()">✦ 加载更多</button>
 </div>
 <div id="toast" class="toast"></div>
 
@@ -128,7 +39,7 @@ const paraIndex = params.get('paraIndex') || '0';
 let cursor = '';
 let loading = false;
 
-function metaText() { return `第${parseInt(paraIndex)+1}段`; }
+function metaText() { return '第' + (parseInt(paraIndex)+1) + '段'; }
 document.getElementById('metaInfo').textContent = metaText();
 
 async function fetchComments(cursorVal) {
@@ -149,7 +60,6 @@ async function fetchComments(cursorVal) {
 }
 
 function renderComments(data, append) {
-  // Try various paths to find comment list
   const items = data?.data?.comment_list || data?.data?.data_list || data?.comment_list || data?.data?.comments || data?.comments || data?.data?.list || data?.list || [];
   const hasMore = data?.data?.has_more === 1 || data?.data?.has_more === true || data?.has_more === 1;
   const newCursor = data?.data?.cursor || data?.cursor || '';
@@ -197,8 +107,8 @@ function renderComments(data, append) {
       </div>
       <div class="comment-text">${escapeHtml(text)}</div>
       <div class="comment-footer">
-        <span class="stat">👍 <span class="num">${likeCount}</span></span>
-        <span class="stat">💬 <span class="num">${replyCount}</span></span>
+        <span class="stat">✦ <span class="num">${likeCount}</span></span>
+        <span class="stat">✦ <span class="num">${replyCount}</span></span>
       </div>
     `;
     container.appendChild(div);

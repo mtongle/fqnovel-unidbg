@@ -1,6 +1,6 @@
 [
     {
-        "bookSourceComment": "FQNovel-unidbg段评增强版(SSR) - 服务端渲染段评徽章，点击半屏弹出段评页面",
+        "bookSourceComment": "FQNovel-unidbg段评增强版(SSR) - 服务端渲染段评徽章，点击半屏弹出段评页面。新增分类发现页(男生/女生/出版/有声书+子分类列表)",
         "bookSourceGroup": "FQNovel",
         "bookSourceName": "FQNovel-unidbg",
         "bookSourceType": 0,
@@ -13,7 +13,7 @@
         "enabledExplore": true,
         "exploreUrl": "搜索::http://[替换为你的ip或域名]:[你的端口号]/api/fqsearch/books?query={{key}}&offset={{(page-1)*20}}&count=20\n热门推荐::http://[替换为你的ip或域名]:[你的端口号]/api/fqsearch/books?query=推荐&offset=0&count=20\n最近更新::http://[替换为你的ip或域名]:[你的端口号]/api/fqsearch/books?query=最新&offset=0&count=20",
         "header": "Content-Type: application/json\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "lastUpdateTime": 1779626121538,
+        "lastUpdateTime": 1782367057010,
         "respondTime": 180000,
         "ruleBookInfo": {
             "author": "$.data.author",
@@ -31,7 +31,7 @@
         },
         "ruleExplore": {
             "author": "$.author",
-            "bookList": "$.data.books[*]||$.data",
+            "bookList": "$.data.books[*]||$.data.book_info[*]",
             "bookUrl": "http://[替换为你的ip或域名]:[你的端口号]/api/fqnovel/book/{{$.bookId}}",
             "coverUrl": "$.coverUrl",
             "intro": "$.description",
@@ -59,6 +59,432 @@
             "updateTime": "{{$.volume_name}} | {{$.chapter_word_number}}字 | {{java.timeFormatUTC(java.getString(\"$.first_pass_time\") * 1000, 'yyyy-MM-dd HH:mm:ss', 8)}}##第一卷：默认\n@js:\nif (result.startsWith(\" |\")) result = result.slice(2)\nif (result.startsWith(\"| \")) result = result.slice(2)\nresult"
         },
         "searchUrl": "http://[替换为你的ip或域名]:[你的端口号]/api/fqsearch/books?query={{key}}&offset={{(page-1)*20}}&count=20&tabType=3@js:\nvar rawKey = String(java.get('key') || '').trim();\nif (/^\\d+$/.test(rawKey)) {\n    result = source.bookSourceUrl + '/api/fqnovel/book/' + rawKey;\n} else {\n    var currentPage = java.get('current_page') || '1';\n    java.put('current_page', (parseInt(currentPage) + 1).toString());\n    var searchId = java.get('search_id');\n    if (searchId && currentPage != '1') {\n        result = result + '&searchId=' + encodeURIComponent(searchId);\n    }\n}",
-        "weight": 0
+        "weight": 0,
+        "categories": [
+            {
+                "title": "男生",
+                "style": {
+                    "layout": 2
+                },
+                "categories": [
+                    {
+                        "title": "玄幻",
+                        "url": "/api/fqnovel/category/landing?categoryId=7&limit=20"
+                    },
+                    {
+                        "title": "都市",
+                        "url": "/api/fqnovel/category/landing?categoryId=1&limit=20"
+                    },
+                    {
+                        "title": "历史",
+                        "url": "/api/fqnovel/category/landing?categoryId=12&limit=20"
+                    },
+                    {
+                        "title": "穿越",
+                        "url": "/api/fqnovel/category/landing?categoryId=37&limit=20"
+                    },
+                    {
+                        "title": "重生",
+                        "url": "/api/fqnovel/category/landing?categoryId=36&limit=20"
+                    },
+                    {
+                        "title": "系统",
+                        "url": "/api/fqnovel/category/landing?categoryId=19&limit=20"
+                    },
+                    {
+                        "title": "修仙",
+                        "url": "/api/fqnovel/category/landing?categoryId=517&limit=20"
+                    },
+                    {
+                        "title": "悬疑",
+                        "url": "/api/fqnovel/category/landing?categoryId=10&limit=20"
+                    },
+                    {
+                        "title": "游戏",
+                        "url": "/api/fqnovel/category/landing?categoryId=17&limit=20"
+                    },
+                    {
+                        "title": "科幻",
+                        "url": "/api/fqnovel/category/landing?categoryId=9&limit=20"
+                    },
+                    {
+                        "title": "同人",
+                        "url": "/api/fqnovel/category/landing?categoryId=538&limit=20"
+                    },
+                    {
+                        "title": "武侠",
+                        "url": "/api/fqnovel/category/landing?categoryId=11&limit=20"
+                    },
+                    {
+                        "title": "灵异",
+                        "url": "/api/fqnovel/category/landing?categoryId=22&limit=20"
+                    },
+                    {
+                        "title": "竞技",
+                        "url": "/api/fqnovel/category/landing?categoryId=20&limit=20"
+                    },
+                    {
+                        "title": "军事",
+                        "url": "/api/fqnovel/category/landing?categoryId=15&limit=20"
+                    },
+                    {
+                        "title": "漫画",
+                        "url": "/api/fqnovel/category/landing?categoryId=14&limit=20"
+                    },
+                    {
+                        "title": "体育",
+                        "url": "/api/fqnovel/category/landing?categoryId=93&limit=20"
+                    },
+                    {
+                        "title": "二次元",
+                        "url": "/api/fqnovel/category/landing?categoryId=35&limit=20"
+                    },
+                    {
+                        "title": "变身",
+                        "url": "/api/fqnovel/category/landing?categoryId=248&limit=20"
+                    },
+                    {
+                        "title": "无敌",
+                        "url": "/api/fqnovel/category/landing?categoryId=82&limit=20"
+                    },
+                    {
+                        "title": "神豪",
+                        "url": "/api/fqnovel/category/landing?categoryId=89&limit=20"
+                    },
+                    {
+                        "title": "脑洞",
+                        "url": "/api/fqnovel/category/landing?categoryId=64&limit=20"
+                    },
+                    {
+                        "title": "直播",
+                        "url": "/api/fqnovel/category/landing?categoryId=120&limit=20"
+                    },
+                    {
+                        "title": "三国",
+                        "url": "/api/fqnovel/category/landing?categoryId=38&limit=20"
+                    },
+                    {
+                        "title": "召唤",
+                        "url": "/api/fqnovel/category/landing?categoryId=104&limit=20"
+                    },
+                    {
+                        "title": "盗墓",
+                        "url": "/api/fqnovel/category/landing?categoryId=119&limit=20"
+                    },
+                    {
+                        "title": "医生",
+                        "url": "/api/fqnovel/category/landing?categoryId=69&limit=20"
+                    },
+                    {
+                        "title": "导演",
+                        "url": "/api/fqnovel/category/landing?categoryId=258&limit=20"
+                    },
+                    {
+                        "title": "直播修仙",
+                        "url": "/api/fqnovel/category/landing?categoryId=542&limit=20"
+                    },
+                    {
+                        "title": "腹黑",
+                        "url": "/api/fqnovel/category/landing?categoryId=105&limit=20"
+                    },
+                    {
+                        "title": "学霸",
+                        "url": "/api/fqnovel/category/landing?categoryId=55&limit=20"
+                    },
+                    {
+                        "title": "职场",
+                        "url": "/api/fqnovel/category/landing?categoryId=49&limit=20"
+                    },
+                    {
+                        "title": "谍战",
+                        "url": "/api/fqnovel/category/landing?categoryId=179&limit=20"
+                    },
+                    {
+                        "title": "道士",
+                        "url": "/api/fqnovel/category/landing?categoryId=168&limit=20"
+                    },
+                    {
+                        "title": "国术",
+                        "url": "/api/fqnovel/category/landing?categoryId=95&limit=20"
+                    },
+                    {
+                        "title": "扮猪吃虎",
+                        "url": "/api/fqnovel/category/landing?categoryId=86&limit=20"
+                    },
+                    {
+                        "title": "后宫",
+                        "url": "/api/fqnovel/category/landing?categoryId=24&limit=20"
+                    },
+                    {
+                        "title": "逆袭",
+                        "url": "/api/fqnovel/category/landing?categoryId=56&limit=20"
+                    },
+                    {
+                        "title": "凡人流",
+                        "url": "/api/fqnovel/category/landing?categoryId=100&limit=20"
+                    },
+                    {
+                        "title": "家族",
+                        "url": "/api/fqnovel/category/landing?categoryId=99&limit=20"
+                    },
+                    {
+                        "title": "王朝争霸",
+                        "url": "/api/fqnovel/category/landing?categoryId=74&limit=20"
+                    },
+                    {
+                        "title": "异术超能",
+                        "url": "/api/fqnovel/category/landing?categoryId=147&limit=20"
+                    }
+                ]
+            },
+            {
+                "title": "女生",
+                "style": {
+                    "layout": 2
+                },
+                "categories": [
+                    {
+                        "title": "言情",
+                        "url": "/api/fqnovel/category/landing?categoryId=4&limit=20"
+                    },
+                    {
+                        "title": "古代言情",
+                        "url": "/api/fqnovel/category/landing?categoryId=6&limit=20"
+                    },
+                    {
+                        "title": "现代言情",
+                        "url": "/api/fqnovel/category/landing?categoryId=8&limit=20"
+                    },
+                    {
+                        "title": "穿越",
+                        "url": "/api/fqnovel/category/landing?categoryId=37&limit=20"
+                    },
+                    {
+                        "title": "总裁",
+                        "url": "/api/fqnovel/category/landing?categoryId=28&limit=20"
+                    },
+                    {
+                        "title": "宠文",
+                        "url": "/api/fqnovel/category/landing?categoryId=60&limit=20"
+                    },
+                    {
+                        "title": "快穿",
+                        "url": "/api/fqnovel/category/landing?categoryId=84&limit=20"
+                    },
+                    {
+                        "title": "重生",
+                        "url": "/api/fqnovel/category/landing?categoryId=36&limit=20"
+                    },
+                    {
+                        "title": "系统",
+                        "url": "/api/fqnovel/category/landing?categoryId=19&limit=20"
+                    },
+                    {
+                        "title": "种田",
+                        "url": "/api/fqnovel/category/landing?categoryId=72&limit=20"
+                    },
+                    {
+                        "title": "宫斗",
+                        "url": "/api/fqnovel/category/landing?categoryId=78&limit=20"
+                    },
+                    {
+                        "title": "宅斗",
+                        "url": "/api/fqnovel/category/landing?categoryId=73&limit=20"
+                    },
+                    {
+                        "title": "娱乐圈",
+                        "url": "/api/fqnovel/category/landing?categoryId=53&limit=20"
+                    },
+                    {
+                        "title": "豪门",
+                        "url": "/api/fqnovel/category/landing?categoryId=108&limit=20"
+                    },
+                    {
+                        "title": "军婚",
+                        "url": "/api/fqnovel/category/landing?categoryId=61&limit=20"
+                    },
+                    {
+                        "title": "青梅竹马",
+                        "url": "/api/fqnovel/category/landing?categoryId=62&limit=20"
+                    },
+                    {
+                        "title": "甜文",
+                        "url": "/api/fqnovel/category/landing?categoryId=81&limit=20"
+                    },
+                    {
+                        "title": "修仙",
+                        "url": "/api/fqnovel/category/landing?categoryId=517&limit=20"
+                    },
+                    {
+                        "title": "女强",
+                        "url": "/api/fqnovel/category/landing?categoryId=51&limit=20"
+                    },
+                    {
+                        "title": "灵异",
+                        "url": "/api/fqnovel/category/landing?categoryId=22&limit=20"
+                    },
+                    {
+                        "title": "搞笑",
+                        "url": "/api/fqnovel/category/landing?categoryId=63&limit=20"
+                    },
+                    {
+                        "title": "科幻",
+                        "url": "/api/fqnovel/category/landing?categoryId=9&limit=20"
+                    },
+                    {
+                        "title": "同人",
+                        "url": "/api/fqnovel/category/landing?categoryId=538&limit=20"
+                    },
+                    {
+                        "title": "悬疑",
+                        "url": "/api/fqnovel/category/landing?categoryId=10&limit=20"
+                    },
+                    {
+                        "title": "玄幻",
+                        "url": "/api/fqnovel/category/landing?categoryId=7&limit=20"
+                    },
+                    {
+                        "title": "奇幻",
+                        "url": "/api/fqnovel/category/landing?categoryId=16&limit=20"
+                    },
+                    {
+                        "title": "历史",
+                        "url": "/api/fqnovel/category/landing?categoryId=12&limit=20"
+                    },
+                    {
+                        "title": "游戏",
+                        "url": "/api/fqnovel/category/landing?categoryId=17&limit=20"
+                    },
+                    {
+                        "title": "竞技",
+                        "url": "/api/fqnovel/category/landing?categoryId=20&limit=20"
+                    }
+                ]
+            },
+            {
+                "title": "出版",
+                "style": {
+                    "layout": 2
+                },
+                "categories": [
+                    {
+                        "title": "经典",
+                        "url": "/api/fqnovel/category/landing?categoryId=44&limit=20"
+                    },
+                    {
+                        "title": "文学",
+                        "url": "/api/fqnovel/category/landing?categoryId=55&limit=20"
+                    },
+                    {
+                        "title": "小说",
+                        "url": "/api/fqnovel/category/landing?categoryId=52&limit=20"
+                    },
+                    {
+                        "title": "历史",
+                        "url": "/api/fqnovel/category/landing?categoryId=12&limit=20"
+                    },
+                    {
+                        "title": "哲学",
+                        "url": "/api/fqnovel/category/landing?categoryId=57&limit=20"
+                    },
+                    {
+                        "title": "心理学",
+                        "url": "/api/fqnovel/category/landing?categoryId=59&limit=20"
+                    },
+                    {
+                        "title": "经济",
+                        "url": "/api/fqnovel/category/landing?categoryId=121&limit=20"
+                    },
+                    {
+                        "title": "管理",
+                        "url": "/api/fqnovel/category/landing?categoryId=122&limit=20"
+                    },
+                    {
+                        "title": "传记",
+                        "url": "/api/fqnovel/category/landing?categoryId=123&limit=20"
+                    },
+                    {
+                        "title": "科普",
+                        "url": "/api/fqnovel/category/landing?categoryId=143&limit=20"
+                    },
+                    {
+                        "title": "文化",
+                        "url": "/api/fqnovel/category/landing?categoryId=144&limit=20"
+                    },
+                    {
+                        "title": "诗歌",
+                        "url": "/api/fqnovel/category/landing?categoryId=145&limit=20"
+                    },
+                    {
+                        "title": "散文",
+                        "url": "/api/fqnovel/category/landing?categoryId=146&limit=20"
+                    },
+                    {
+                        "title": "励志",
+                        "url": "/api/fqnovel/category/landing?categoryId=172&limit=20"
+                    },
+                    {
+                        "title": "教育",
+                        "url": "/api/fqnovel/category/landing?categoryId=226&limit=20"
+                    }
+                ]
+            },
+            {
+                "title": "有声书",
+                "style": {
+                    "layout": 2
+                },
+                "categories": [
+                    {
+                        "title": "有声小说",
+                        "url": "/api/fqnovel/category/landing?categoryId=13&limit=20"
+                    },
+                    {
+                        "title": "相声评书",
+                        "url": "/api/fqnovel/category/landing?categoryId=18&limit=20"
+                    },
+                    {
+                        "title": "少儿",
+                        "url": "/api/fqnovel/category/landing?categoryId=21&limit=20"
+                    },
+                    {
+                        "title": "广播剧",
+                        "url": "/api/fqnovel/category/landing?categoryId=68&limit=20"
+                    },
+                    {
+                        "title": "历史",
+                        "url": "/api/fqnovel/category/landing?categoryId=12&limit=20"
+                    },
+                    {
+                        "title": "悬疑",
+                        "url": "/api/fqnovel/category/landing?categoryId=10&limit=20"
+                    },
+                    {
+                        "title": "玄幻",
+                        "url": "/api/fqnovel/category/landing?categoryId=7&limit=20"
+                    },
+                    {
+                        "title": "言情",
+                        "url": "/api/fqnovel/category/landing?categoryId=4&limit=20"
+                    },
+                    {
+                        "title": "都市",
+                        "url": "/api/fqnovel/category/landing?categoryId=1&limit=20"
+                    },
+                    {
+                        "title": "武侠",
+                        "url": "/api/fqnovel/category/landing?categoryId=11&limit=20"
+                    },
+                    {
+                        "title": "科幻",
+                        "url": "/api/fqnovel/category/landing?categoryId=9&limit=20"
+                    },
+                    {
+                        "title": "仙侠",
+                        "url": "/api/fqnovel/category/landing?categoryId=3&limit=20"
+                    }
+                ]
+            }
+        ]
     }
 ]

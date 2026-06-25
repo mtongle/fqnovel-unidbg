@@ -2,7 +2,9 @@ package com.anjia.unidbgserver.service;
 
 import com.anjia.unidbgserver.dto.*;
 import com.anjia.unidbgserver.service.FqCrypto;
+import com.anjia.unidbgserver.utils.CommonUtils;
 import com.anjia.unidbgserver.utils.FQApiUtils;
+import com.anjia.unidbgserver.utils.GzipUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,22 +13,12 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.LinkedHashMap;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
 
 /**
  * FQNovel 小说内容获取服务
@@ -212,35 +204,11 @@ public class FQNovelService {
         if (body == null || body.length == 0) {
             return "";
         }
-
-        boolean gzipEncoded = false;
-        List<String> contentEncoding = response.getHeaders().get("Content-Encoding");
-        if (contentEncoding != null) {
-            gzipEncoded = contentEncoding.stream().anyMatch(v -> v != null && v.toLowerCase().contains("gzip"));
-        }
-        if (!gzipEncoded && body.length >= 2 && body[0] == (byte) 0x1f && body[1] == (byte) 0x8b) {
-            gzipEncoded = true;
-        }
-
-        if (!gzipEncoded) {
-            return new String(body, StandardCharsets.UTF_8);
-        }
-
-        try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(body))) {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = gzipInputStream.read(buffer)) != -1) {
-                byteArrayOutputStream.write(buffer, 0, length);
-            }
-            return new String(byteArrayOutputStream.toByteArray(), StandardCharsets.UTF_8);
-        }
+        return GzipUtils.decodeBody(body, response.getHeaders().get("Content-Encoding"));
     }
 
     private boolean isEmptyResponseError(Exception e) {
-        String message = e.getMessage();
-        return "EMPTY_RESPONSE".equals(message)
-            || (message != null && message.contains("No content to map due to end-of-input"));
+        return CommonUtils.isEmptyResponseError(e);
     }
 
     private int handleIllegalAccessRecoveryIfNeeded(
@@ -328,11 +296,7 @@ public class FQNovelService {
     }
 
     private String previewContent(String content) {
-        if (content == null) {
-            return "null";
-        }
-        String normalized = content.replaceAll("[\\r\\n\\t]", " ");
-        return normalized.length() <= 64 ? normalized : normalized.substring(0, 64) + "...";
+        return CommonUtils.preview(content);
     }
 
     private boolean containsInvalidItemPayload(FqIBatchFullResponse batchResponse, DeviceInfo currentDevice, long keyRegisterTs) {
@@ -691,8 +655,7 @@ public class FQNovelService {
                 String title = itemContent.getTitle();
                 if (title == null || title.trim().isEmpty()) {
                     // 如果title为空，尝试从HTML中提取标题
-                    Pattern titlePattern = Pattern.compile("<h1[^>]*>.*?<blk[^>]*>([^<]*)</blk>.*?</h1>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-                    Matcher titleMatcher = titlePattern.matcher(decryptedContent);
+                    Matcher titleMatcher = CommonUtils.H1_TITLE_PATTERN.matcher(decryptedContent);
                     if (titleMatcher.find()) {
                         title = titleMatcher.group(1).trim();
                     } else {
@@ -733,9 +696,7 @@ public class FQNovelService {
         StringBuilder textBuilder = new StringBuilder();
 
         try {
-            // 使用正则表达式提取 <blk> 标签中的文本内容
-            Pattern blkPattern = Pattern.compile("<blk[^>]*>([^<]*)</blk>", Pattern.CASE_INSENSITIVE);
-            Matcher matcher = blkPattern.matcher(htmlContent);
+            Matcher matcher = CommonUtils.BLK_PATTERN.matcher(htmlContent);
 
             while (matcher.find()) {
                 String text = matcher.group(1);
@@ -744,10 +705,8 @@ public class FQNovelService {
                 }
             }
 
-            // 如果没有找到 <blk> 标签，尝试提取所有文本内容
             if (textBuilder.length() == 0) {
-                // 简单的HTML标签移除，保留文本内容
-                String text = htmlContent.replaceAll("<[^>]+>", "").trim();
+                String text = CommonUtils.HTML_TAG_PATTERN.matcher(htmlContent).replaceAll("").trim();
                 if (!text.isEmpty()) {
                     textBuilder.append(text);
                 }
@@ -755,8 +714,7 @@ public class FQNovelService {
 
         } catch (Exception e) {
             log.warn("HTML文本提取失败，返回原始内容", e);
-            // 如果解析失败，返回去除HTML标签的简单文本
-            return htmlContent.replaceAll("<[^>]+>", "").trim();
+            return CommonUtils.HTML_TAG_PATTERN.matcher(htmlContent).replaceAll("").trim();
         }
 
         return textBuilder.toString().trim();
@@ -904,9 +862,7 @@ public class FQNovelService {
                         String title = itemContent.getTitle();
                         if (title == null || title.trim().isEmpty()) {
                             // 从HTML中提取标题
-                            Pattern titlePattern = Pattern.compile("<h1[^>]*>.*?<blk[^>]*>([^<]*)</blk>.*?</h1>",
-                                Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-                            Matcher titleMatcher = titlePattern.matcher(decryptedContent);
+                            Matcher titleMatcher = CommonUtils.H1_TITLE_PATTERN.matcher(decryptedContent);
                             if (titleMatcher.find()) {
                                 title = titleMatcher.group(1).trim();
                             } else {
@@ -1125,9 +1081,8 @@ public class FQNovelService {
         // 作者信息 - 转换为Map
         if (resp.getAuthorInfo() != null) {
             try {
-                ObjectMapper mapper = new ObjectMapper();
-                String authorInfoJson = mapper.writeValueAsString(resp.getAuthorInfo());
-                Map<String, Object> authorInfoMap = mapper.readValue(authorInfoJson, new TypeReference<Map<String, Object>>() {});
+                String authorInfoJson = objectMapper.writeValueAsString(resp.getAuthorInfo());
+                Map<String, Object> authorInfoMap = objectMapper.readValue(authorInfoJson, new TypeReference<Map<String, Object>>() {});
                 info.setAuthorInfo(authorInfoMap);
             } catch (Exception e) {
                 log.warn("转换作者信息失败", e);

@@ -48,3 +48,9 @@ results/individual/
 tools/results/
 *.json.bak
 /番茄四合一.json
+
+### Sisyphus work evidence ###
+.sisyphus/
+
+### Build artifacts ###
+/fqnovel-unidbg.jar

@@ -10,14 +10,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 @Slf4j
 public class TempFileUtils {
 
-    private static final Map<String, File> TEMP_FILES = new HashMap<>();
+    private static final Map<String, File> TEMP_FILES = new ConcurrentHashMap<>();
 
     /**
      * 获取临时文件。如果临时文件不存在，从classpath复制。
@@ -28,8 +28,9 @@ public class TempFileUtils {
     public static File getTempFile(String classpathFile) {
         try {
             String md5 = DigestUtils.md5DigestAsHex(classpathFile.getBytes());
-            if (TEMP_FILES.containsKey(md5)) {
-                return TEMP_FILES.get(md5);
+            File existing = TEMP_FILES.get(md5);
+            if (existing != null) {
+                return existing;
             }
 
             ClassPathResource resource = new ClassPathResource(classpathFile);
@@ -55,7 +56,16 @@ public class TempFileUtils {
                 StreamUtils.copy(is, fos);
             }
 
-            TEMP_FILES.put(md5, tempFile);
+            // 使用 putIfAbsent 处理并发创建同一文件的情况
+            File previous = TEMP_FILES.putIfAbsent(md5, tempFile);
+            if (previous != null) {
+                // 另一个线程已经创建了同名的临时文件，删除当前创建的
+                if (tempFile.exists() && !tempFile.delete()) {
+                    tempFile.deleteOnExit();
+                }
+                return previous;
+            }
+
             log.debug("临时文件创建成功: {} -> {}", classpathFile, tempFile.getAbsolutePath());
             return tempFile;
         } catch (IOException e) {

@@ -1,7 +1,9 @@
 package com.anjia.unidbgserver.service;
 
 import com.anjia.unidbgserver.dto.*;
+import com.anjia.unidbgserver.utils.CommonUtils;
 import com.anjia.unidbgserver.utils.FQApiUtils;
+import com.anjia.unidbgserver.utils.GzipUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -9,16 +11,11 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.zip.GZIPInputStream;
+import java.util.concurrent.*;
+import static java.util.concurrent.CompletableFuture.delayedExecutor;
 
 /**
  * FQ书籍搜索和目录服务
@@ -46,58 +43,76 @@ public class FQSearchService {
     @Resource
     private ObjectMapper objectMapper;
 
+    /** 用于非阻塞延迟的调度线程池 */
+    private final ScheduledExecutorService delayedExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "search-delay");
+        t.setDaemon(true);
+        return t;
+    });
+
     /**
      * 搜索书籍 - 增强版，支持两阶段搜索
+     * 第一阶段获取 search_id，延迟后第二阶段执行实际搜索
+     * 使用非阻塞延迟，避免 Thread.sleep 占用业务线程
      *
      * @param searchRequest 搜索请求参数
      * @return 搜索结果
      */
     public CompletableFuture<FQNovelResponse<FQSearchResponse>> searchBooksEnhanced(FQSearchRequest searchRequest) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                // 如果用户已经提供了search_id，直接进行搜索
-                if (searchRequest.getSearchId() != null && !searchRequest.getSearchId().trim().isEmpty()) {
-                    return performSearchWithId(searchRequest);
-                }
+        // 如果用户已经提供了search_id，直接进行搜索（无需两阶段）
+        if (searchRequest.getSearchId() != null && !searchRequest.getSearchId().trim().isEmpty()) {
+            return CompletableFuture.supplyAsync(() -> performSearchWithId(searchRequest), bizExecutor);
+        }
 
-                // 第一阶段：获取search_id
-                FQSearchRequest firstRequest = createFirstPhaseRequest(searchRequest);
-                FQNovelResponse<FQSearchResponse> firstResponse = performSearchInternal(firstRequest);
+        // 第一阶段：异步获取search_id
+        CompletableFuture<PhaseOneResult> phase1 = CompletableFuture.supplyAsync(() -> {
+            FQSearchRequest firstRequest = createFirstPhaseRequest(searchRequest);
+            FQNovelResponse<FQSearchResponse> response = performSearchInternal(firstRequest);
 
-                if (firstResponse.getCode() != 0 || firstResponse.getData() == null ||
-                    firstResponse.getData().getSearchId() == null) {
-                    log.warn("第一阶段搜索失败或未返回search_id");
-                    return firstResponse;
-                }
+            if (response.getCode() != 0 || response.getData() == null ||
+                response.getData().getSearchId() == null) {
+                return new PhaseOneResult(null, response, null);
+            }
 
-                String searchId = firstResponse.getData().getSearchId();
+            long delay = 1000 + (long)(Math.random() * 1000);
+            searchRequest.setLastSearchPageInterval((int) delay);
+            return new PhaseOneResult(response.getData().getSearchId(), null, delay);
+        }, bizExecutor);
 
-                // 随机延迟 1-2 秒
-                try {
-                    long delay = 1000 + (long)(Math.random() * 1000); // 1000-2000ms
-                    Thread.sleep(delay);
-                    searchRequest.setLastSearchPageInterval((int) delay); // 设置间隔时间
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    log.warn("延迟被中断", e);
-                }
+        // 延迟后执行第二阶段（非阻塞，使用调度线程池等待延迟）
+        return phase1.thenComposeAsync(phase1Result -> {
+            if (phase1Result.errorResponse != null) {
+                log.warn("第一阶段搜索失败或未返回search_id");
+                return CompletableFuture.completedFuture(phase1Result.errorResponse);
+            }
 
-                // 第二阶段：使用search_id进行搜索
-                FQSearchRequest secondRequest = createSecondPhaseRequest(searchRequest, searchId);
+            return CompletableFuture.supplyAsync(() -> {
+                FQSearchRequest secondRequest = createSecondPhaseRequest(searchRequest, phase1Result.searchId);
                 FQNovelResponse<FQSearchResponse> secondResponse = performSearchInternal(secondRequest);
 
-                // 确保返回结果包含search_id
-                if (secondResponse.getCode() == 0 && secondResponse.getData() != null ){
-                    secondResponse.getData().setSearchId(searchId);
+                if (secondResponse.getCode() == 0 && secondResponse.getData() != null) {
+                    secondResponse.getData().setSearchId(phase1Result.searchId);
                 }
-
                 return secondResponse;
-
-            } catch (Exception e) {
-                log.error("增强搜索失败 - query: {}", searchRequest.getQuery(), e);
-                return FQNovelResponse.error("增强搜索失败: " + e.getMessage());
-            }
+            }, CompletableFuture.delayedExecutor(phase1Result.delayMs, TimeUnit.MILLISECONDS, bizExecutor));
+        }, bizExecutor)
+        .exceptionally(e -> {
+            log.error("增强搜索失败 - query: {}", searchRequest.getQuery(), e);
+            return FQNovelResponse.error("增强搜索失败: " + e.getMessage());
         });
+    }
+
+    /** 第一阶段结果封装 */
+    private static class PhaseOneResult {
+        final String searchId;
+        final FQNovelResponse<FQSearchResponse> errorResponse;
+        final long delayMs;
+
+        PhaseOneResult(String searchId, FQNovelResponse<FQSearchResponse> errorResponse, Long delayMs) {
+            this.searchId = searchId;
+            this.errorResponse = errorResponse;
+            this.delayMs = delayMs != null ? delayMs : 1500;
+        }
     }
 
     /**
@@ -214,7 +229,7 @@ public class FQSearchService {
             try {
                 FqVariable var = new FqVariable(currentDevice);
 
-                String url = fqApiUtils.getBaseUrl().replace("api5-normal-sinfonlineb", "api5-normal-sinfonlinec")
+                String url = fqApiUtils.getSearchBaseUrl()
                     + "/reading/bookapi/search/tab/v";
                 Map<String, String> params = fqApiUtils.buildSearchParams(var, searchRequest);
                 String fullUrl = fqApiUtils.buildUrlWithParams(url, params);
@@ -284,7 +299,7 @@ public class FQSearchService {
                 try {
                     FqVariable var = new FqVariable(currentDevice);
 
-                    String url = fqApiUtils.getBaseUrl().replace("api5-normal-sinfonlineb", "api5-normal-sinfonlinec")
+                    String url = fqApiUtils.getSearchBaseUrl()
                         + "/reading/bookapi/directory/all_items/v";
                     Map<String, String> params = fqApiUtils.buildDirectoryParams(var, directoryRequest);
                     String fullUrl = fqApiUtils.buildUrlWithParams(url, params);
@@ -382,33 +397,11 @@ public class FQSearchService {
      * 解压缩GZIP响应
      */
     private String decompressGzipResponse(byte[] gzipData) throws Exception {
-        if (gzipData == null || gzipData.length == 0) {
-            return "";
-        }
-
-        boolean isGzip = gzipData.length >= 2
-            && gzipData[0] == (byte) 0x1f
-            && gzipData[1] == (byte) 0x8b;
-
-        if (!isGzip) {
-            return new String(gzipData, StandardCharsets.UTF_8);
-        }
-
-        try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(gzipData))) {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = gzipInputStream.read(buffer)) != -1) {
-                byteArrayOutputStream.write(buffer, 0, length);
-            }
-            return new String(byteArrayOutputStream.toByteArray(), StandardCharsets.UTF_8);
-        }
+        return GzipUtils.decodeBody(gzipData);
     }
 
     private boolean isEmptyResponseError(Exception e) {
-        String message = e.getMessage();
-        return "EMPTY_RESPONSE".equals(message)
-            || (message != null && message.contains("No content to map due to end-of-input"));
+        return CommonUtils.isEmptyResponseError(e);
     }
 
     /**
