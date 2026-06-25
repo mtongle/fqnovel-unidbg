@@ -30,9 +30,11 @@
 - **设备池轮询** — 多设备轮询调用，降低单设备风控概率
 - **自动重试与恢复** — 下载任务自动恢复，断点续传，失败自动重试
 - **全本下载** — 流式下载全书内容，支持进度查询与自动恢复
-- **9 大 API 模块** — 搜索、目录、章节、签名、段评、设备管理、Admin 后台等
+- **11 大 API 模块** — 搜索、目录、章节、签名、段评、设备管理、Admin 后台、SSR 段评页面、图片代理等
+- **段评全链路** — 统计→详情→回复分页→SSR 段评预览页 → 章节正文内联徽章
+- **图片代理** — 服务端直转图片（带 HEIC→JPEG），避免跨域问题
 - **Legado 书源** — 可直接配置为阅读 3 书源，手机端无缝阅读
-- **JVM 监控** — 内置 Admin 页面，实时查看内存、线程、设备池、Redis 等状态
+- **内置 Web 面板** — Admin 管理后台 + SSR 段评页面，开箱即用
 
 ## 🛠️ 技术栈
 
@@ -103,6 +105,7 @@ mvn package -T10 -DskipTests && java -jar target/unidbg-boot-server-0.0.1-SNAPSH
 | `GET /book/{bookId}` | 书籍信息 |
 | `GET /chapter/{bookId}/{chapterId}` | 单章内容 |
 | `POST /chapter` | POST 单章 |
+| `GET /chapter/enriched/{bookId}/{chapterId}` | ⭐ **段评增强章节**（正文内联评论徽章） |
 | `POST /chapters/batch` | ⭐ **批量章节（推荐）** |
 | `GET /health` | 健康检查 |
 
@@ -178,6 +181,7 @@ curl -X POST 'http://127.0.0.1:8099/api/fqnovel/chapters/batch' \
 |------|------|
 | `POST /idea` | 段评统计（各段落评论数） |
 | `POST /list` | 段评详情（具体评论内容） |
+| `POST /reply/list` | 段评回复列表 |
 
 ```bash
 # 段评统计
@@ -189,7 +193,37 @@ curl -X POST 'http://127.0.0.1:8099/api/fqcomment/idea' \
 curl -X POST 'http://127.0.0.1:8099/api/fqcomment/list' \
   -H 'Content-Type: application/json' \
   -d '{"chapterId":"6707197312789119502","bookId":"6707112755507235848","paraIndex":0}'
+
+# 段评回复列表
+curl -X POST 'http://127.0.0.1:8099/api/fqcomment/reply/list' \
+  -H 'Content-Type: application/json' \
+  -d '{"commentId":"...","bookId":"...","chapterId":"...","count":5}'
 ```
+
+### SSR 段评页面 `/api/ssr`
+
+服务端渲染的段评预览页面，可直接在浏览器中访问，支持明暗主题切换。
+
+| 端点 | 说明 |
+|------|------|
+| `GET /comment-page?bookId=&chapterId=&paraIndex=` | 段评列表页（HTML） |
+| `GET /comment-replies?commentId=&...` | 段评回复片段（HTML，支持分页） |
+
+章节正文中的 **段评增强**（`GET /api/fqnovel/chapter/enriched/{bookId}/{chapterId}`）会在有评论的段落末尾自动插入评论数徽章，点击跳转到对应的段评预览页。
+
+```bash
+# SSR 段评页面（浏览器访问）
+curl 'http://127.0.0.1:8099/api/ssr/comment-page?bookId=...&chapterId=...&paraIndex=0'
+```
+
+### 图片代理 `/api/img`
+
+服务端直转图片，使用设备池 Cookie/UA/Referer 获取图片，支持 HEIC→JPEG 转换，避免前端跨域问题。
+
+| 端点 | 说明 |
+|------|------|
+| `GET /proxy?url=` | 代理图片（返回 JPEG 字节） |
+| `GET /proxy/clear-cache` | 清除图片缓存 |
 
 ### Admin 管理后台 `/api/admin`
 
@@ -226,8 +260,8 @@ curl -X POST 'http://127.0.0.1:8099/api/legado/comment' \
 
 ```
 src/main/java/com/anjia/unidbgserver/
-├── web/          — Controller（9 个，对应 9 个路由前缀）
-├── service/      — Service（17 个）
+├── web/          — Controller（11 个，对应 11 个路由前缀）
+├── service/      — Service（19 个）
 ├── unidbg/       — Unidbg 核心引擎（IdleFQ）
 ├── config/       — Spring 配置类
 ├── dto/          — 请求/响应 DTO
@@ -236,8 +270,13 @@ src/main/java/com/anjia/unidbgserver/
 src/main/resources/
 ├── com/dragon/read/oversea/gp/  — Unidbg 运行时资源（APK、so、rootfs）
 ├── legado/fqnovel.json          — Legado 书源配置
-├── static/admin/                — Admin 管理页面
-└── application.yml              — 主配置
+├── static/
+│   ├── admin/        — Admin 管理页面
+│   ├── comment/      — SSR 段评页面
+│   ├── css/          — 段评页面样式
+│   ├── js/           — 段评页面脚本
+│   └── img/          — 静态图片资源
+├── application.yml   — 主配置
 
 tools/     — Python 辅助脚本
 docs/      — 项目文档
@@ -251,6 +290,19 @@ results/   — 全本下载输出
 - 若用于阅读器，请控制预加载与缓存频率
 - `application.unidbg.verbose=true` 会开启详细日志，**极慢**，生产务必关闭
 - `restart.sh` 硬编码了原作者本机路径，本地使用需修改
+- 图片代理 `/api/img/proxy` 会缓存转换后的 JPEG 至内存，最大 500 张，TTL 1 小时
+- SSR 段评页面可通过明暗主题切换按钮调整阅读配色
+
+## 📜 更新日志
+
+### v0.0.3 (待发布)
+- ✨ **段评增强章节内容** — 章节正文段落末尾自动插入评论数徽章
+- ✨ **SSR 段评预览页面** — 服务端渲染的段评列表页，支持明暗主题、展开全文、回复分页
+- ✨ **SSR 段评回复** — 支持分页加载回复，每页 5 条，滚动加载
+- ✨ **图片代理** — 服务端直转图片，HEIC→JPEG 自动转换
+- 💄 **段评徽章优化** — 固定按钮高度、自适应宽度，大数字不再被压扁
+- 🐛 **回复加载滚动修复** — 点击"加载更多"后自动滚动到新内容
+- 📚 **Legado 书源更新** — 新增段评书源配置 (`fqnovel-tongle-comments.json`)
 
 ## 📖 相关文档
 
