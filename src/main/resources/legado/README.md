@@ -4,24 +4,18 @@
 
 ## 书源文件
 
-### 1. fqnovel.json
+### fqnovel.json
 - **名称**: FQNovel-unidbg
-- **类型**: 标准书源
-- **功能**: 支持搜索、发现（热门推荐/最近更新）、详情获取、目录浏览、单章节内容获取、搜索分页
-- **特点**: 稳定可靠，适合日常使用；禁用 CookieJar 减少无关请求；多发现分类
-
-### 2. fqnovel-batch-booksource.json  
-- **名称**: FQNovel-unidbg (批量)
-- **类型**: 标准书源（批量优化版）
-- **功能**: 与标准版相同，超时时间更长（300s），适合连续阅读场景
-- **特点**: 可与标准版同时导入，互为备用；启用后可在 Legado 中灵活切换
+- **类型**: 段评增强版 (SSR)
+- **功能**: 支持搜索、发现、详情、目录、章节内容、段评徽章嵌入
+- **特点**: 章节正文段落末尾自动显示评论数徽章，点击半屏弹出段评预览页；内置 `jsLib` 实现段评弹窗
 
 ## 使用方法
 
 ### 1. 启动 FQNovel API 服务
 ```bash
 # 确保服务在 localhost:8099 运行（默认端口）
-java -jar target/unidbg-boot-server-0.0.1-SNAPSHOT.jar
+java -jar target/unidbg-boot-server-0.0.3-SNAPSHOT.jar
 ```
 
 ### 2. 导入书源到 Legado
@@ -37,7 +31,7 @@ java -jar target/unidbg-boot-server-0.0.1-SNAPSHOT.jar
 - **搜索**: `/api/fqsearch/books` 
 - **书籍详情**: `/api/fqnovel/book/{bookId}`
 - **书籍目录**: `/api/fqsearch/directory/{bookId}`
-- **章节内容**: `/api/fqnovel/item_id/{itemId}` 或 `/api/fqnovel/chapter/{bookId}/{chapterId}`
+- **章节内容（段评增强）**: `/api/fqnovel/chapter/enriched/{bookId}/{chapterId}`
 - **批量章节**: `/api/fqnovel/chapters/batch`
 
 #### 关键参数
@@ -75,3 +69,7 @@ java -jar target/unidbg-boot-server-0.0.1-SNAPSHOT.jar
 - `ruleBookInfo.tocUrl`
 - `ruleExplore.bookUrl`
 - `ruleSearch.bookUrl`
+
+> 从 Release 下载的 `legado-fqnovel-template.json` 使用占位符域名，
+> `legado-fqnovel-preconfigured.json` 预设为 `localhost:8099`，
+> 也可直接编辑 `bookSourceUrl` 为你的实际部署地址。
