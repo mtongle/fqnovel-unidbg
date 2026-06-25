@@ -1,6 +1,7 @@
 package com.anjia.unidbgserver.service;
 
 import com.anjia.unidbgserver.config.UnidbgProperties;
+import com.anjia.unidbgserver.utils.CommonUtils;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.github.unidbg.worker.Worker;
 import com.github.unidbg.worker.WorkerPool;
@@ -62,7 +63,12 @@ public class FQEncryptServiceWorker extends Worker {
         unidbgProperties.setDynarmic(dynarmic);
         unidbgProperties.setVerbose(verbose);
         log.info("FQ签名服务 - 是否启用动态引擎:{}, 是否打印详细信息:{}", dynarmic, verbose);
-        this.fqEncryptService = new FQEncryptService(unidbgProperties);
+        try {
+            this.fqEncryptService = new FQEncryptService(unidbgProperties);
+        } catch (Exception e) {
+            log.error("FQ签名引擎创建失败，该Worker暂不可用", e);
+            this.fqEncryptService = null;
+        }
     }
 
     public CompletableFuture<Map<String, String>> generateSignatureHeaders(String url, String headers) {
@@ -79,7 +85,10 @@ public class FQEncryptServiceWorker extends Worker {
         if (this.unidbgProperties.isAsync()) {
             WorkerPool currentPool = pool;
             if (currentPool == null) {
-                throw new IllegalStateException("FQ签名线程池不可用");
+                log.error("FQ签名线程池不可用");
+                Map<String, String> err = new java.util.HashMap<>();
+                err.put("error", "FQ签名线程池不可用");
+                return CompletableFuture.completedFuture(err);
             }
             while (true) {
                 if ((worker = currentPool.borrow(2, TimeUnit.SECONDS)) == null) {
@@ -129,17 +138,19 @@ public class FQEncryptServiceWorker extends Worker {
             md.update(url.getBytes("UTF-8"));
             md.update(headers != null ? headers.getBytes("UTF-8") : new byte[0]);
             byte[] digest = md.digest();
-            StringBuilder sb = new StringBuilder(digest.length * 2);
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
+            return CommonUtils.bytesToHex(digest);
         } catch (Exception e) {
             return url + "|" + headers;
         }
     }
 
     private Map<String, String> doWork(String url, String headers) {
+        if (fqEncryptService == null) {
+            log.error("doWork: 签名引擎不可用");
+            Map<String, String> err = new java.util.HashMap<>();
+            err.put("error", "签名引擎不可用");
+            return err;
+        }
         return fqEncryptService.generateSignatureHeaders(url, headers);
     }
 
@@ -157,8 +168,13 @@ public class FQEncryptServiceWorker extends Worker {
                         log.warn("关闭旧签名线程池失败，继续重建", e);
                     }
                 }
-                this.pool = createAsyncPool();
-                log.info("FQ签名线程池重置完成，poolSize={}", this.poolSize);
+                try {
+                    this.pool = createAsyncPool();
+                    log.info("FQ签名线程池重置完成，poolSize={}", this.poolSize);
+                } catch (Exception e) {
+                    log.error("FQ签名线程池重置失败，线程池不可用", e);
+                    this.pool = null;
+                }
                 return;
             }
 

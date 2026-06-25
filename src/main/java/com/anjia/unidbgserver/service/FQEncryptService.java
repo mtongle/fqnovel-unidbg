@@ -2,7 +2,6 @@ package com.anjia.unidbgserver.service;
 
 import com.anjia.unidbgserver.config.UnidbgProperties;
 import com.anjia.unidbgserver.unidbg.IdleFQ;
-import com.anjia.unidbgserver.utils.TempFileUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -19,8 +18,13 @@ public class FQEncryptService {
 
     public FQEncryptService(UnidbgProperties properties) {
         this.verbose = properties.isVerbose();
-        this.idleFQ = new IdleFQ(this.verbose);
-        log.info("FQ签名服务初始化完成");
+        try {
+            this.idleFQ = new IdleFQ(this.verbose);
+            log.info("FQ签名服务初始化完成");
+        } catch (Exception e) {
+            log.error("FQ签名服务初始化失败，引擎暂不可用", e);
+            this.idleFQ = null;
+        }
     }
 
     /**
@@ -152,13 +156,31 @@ public class FQEncryptService {
                 }
             }
 
-            idleFQ = new IdleFQ(verbose);
-            log.info("FQ签名服务重置完成");
+            // 尝试初始化，失败后重试一次
+            Exception lastError = null;
+            for (int i = 0; i < 2; i++) {
+                try {
+                    idleFQ = new IdleFQ(verbose);
+                    log.info("FQ签名服务重置完成");
+                    return;
+                } catch (Exception e) {
+                    lastError = e;
+                    log.warn("FQ签名服务重置失败(第{}次)，短暂延迟后重试", i + 1);
+                    try { Thread.sleep(1000); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+                }
+            }
+
+            log.error("FQ签名服务重置失败，引擎暂不可用", lastError);
+            idleFQ = null;
         }
     }
 
     /**
      * 清理资源
+     *
+     * 注意：不清除 TempFileUtils 缓存。临时文件是静态共享的，
+     * 由 deleteOnExit() 在 JVM 退出时自动清理，reset 时如果清空
+     * 缓存会导致新 IdleFQ 实例初始化时无法复用已提取的临时文件。
      */
     public void destroy() {
         synchronized (engineLock) {
@@ -167,7 +189,6 @@ public class FQEncryptService {
                 idleFQ = null;
             }
 
-            TempFileUtils.cleanup();
             log.info("FQ签名服务资源释放完成");
         }
     }
