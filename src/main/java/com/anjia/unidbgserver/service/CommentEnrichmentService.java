@@ -3,6 +3,7 @@ package com.anjia.unidbgserver.service;
 import com.anjia.unidbgserver.dto.FQCommentIdeaRequest;
 import com.anjia.unidbgserver.dto.FQNovelChapterInfo;
 import com.anjia.unidbgserver.dto.FQNovelResponse;
+import com.anjia.unidbgserver.utils.CommonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -197,37 +198,37 @@ public class CommentEnrichmentService {
     }
 
     private String escapeHtml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;");
+        return CommonUtils.escapeHtml(s);
     }
 
     private String encodeParam(String s) {
-        if (s == null) return "";
-        try {
-            return java.net.URLEncoder.encode(s, "UTF-8");
-        } catch (Exception e) {
-            return s;
-        }
+        return CommonUtils.urlEncode(s);
     }
 
     private String generateSvgDataUri(int count, String clickUrl) {
         if (count <= 0) return null;
 
-        int width = count > 999 ? 48 : count > 99 ? 39 : 28;
-        int height = 20;
+        // 固定高度，宽度基于文本自适应
+        int height = 24;
+        int fontSize = 12;
+        String countStr = String.valueOf(count);
+        // 粗略估算文本宽度（每个数字约7px，加左右内边距）
+        int textWidth = countStr.length() * 7;
+        int padding = 12;
+        int width = Math.max(28, textWidth + padding);
+
+        int rx = height / 2;
+        int textY = height - 7;
 
         String svg = String.format(
                 "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"%d\" height=\"%d\" viewBox=\"0 0 %d %d\">" +
-                        "<rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" rx=\"10\" fill=\"#999\"/>" +
-                        "<text x=\"%d\" y=\"14\" text-anchor=\"middle\" fill=\"#fff\" font-size=\"11\" font-weight=\"bold\">%d</text>" +
+                        "<rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" rx=\"%d\" fill=\"#999\"/>" +
+                        "<text x=\"%d\" y=\"%d\" text-anchor=\"middle\" fill=\"#fff\" font-size=\"%d\" font-weight=\"bold\">%s</text>" +
                         "</svg>",
                 width, height, width, height,
-                width, height,
-                width / 2,
-                count
+                width, height, rx,
+                width / 2, textY,
+                fontSize, countStr
         );
 
         String base64Svg = Base64.getEncoder().encodeToString(svg.getBytes(StandardCharsets.UTF_8));
@@ -239,11 +240,6 @@ public class CommentEnrichmentService {
     }
 
     private String escapeJsonStr(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+        return CommonUtils.escapeJson(s);
     }
 }
