@@ -83,10 +83,10 @@ spring:
 ```bash
 # 方式一：Maven Wrapper（推荐）
 ./mvnw package -DskipTests
-java -jar target/unidbg-boot-server-0.0.1-SNAPSHOT.jar
+java -jar target/unidbg-boot-server-0.0.3-SNAPSHOT.jar
 
 # 方式二：本机 Maven
-mvn package -T10 -DskipTests && java -jar target/unidbg-boot-server-0.0.1-SNAPSHOT.jar
+mvn package -T10 -DskipTests && java -jar target/unidbg-boot-server-0.0.3-SNAPSHOT.jar
 
 # 方式三：快捷脚本
 ./run.sh
@@ -96,7 +96,7 @@ mvn package -T10 -DskipTests && java -jar target/unidbg-boot-server-0.0.1-SNAPSH
 
 ## 📡 API 概览
 
-服务默认启动在 `http://127.0.0.1:8099`，共 **9 个路由前缀**：
+服务默认启动在 `http://127.0.0.1:8099`，共 **11 个路由前缀**：
 
 ### 小说内容 `/api/fqnovel`
 
@@ -295,7 +295,7 @@ results/   — 全本下载输出
 
 ## 📜 更新日志
 
-### v0.0.3 (待发布)
+### v0.0.3 (2026-06-25)
 - ✨ **段评增强章节内容** — 章节正文段落末尾自动插入评论数徽章
 - ✨ **SSR 段评预览页面** — 服务端渲染的段评列表页，支持明暗主题、展开全文、回复分页
 - ✨ **SSR 段评回复** — 支持分页加载回复，每页 5 条，滚动加载
