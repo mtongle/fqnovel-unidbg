@@ -16,7 +16,7 @@ import org.springframework.web.client.RestTemplate;
 import javax.annotation.Resource;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 
@@ -49,7 +49,7 @@ public class FQNovelService {
     private final ObjectMapper objectMapper;
 
     @Resource(name = "bizExecutor")
-    private ExecutorService bizExecutor;
+    private Executor bizExecutor;
 
     public FQNovelService(RestTemplate restTemplate, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;

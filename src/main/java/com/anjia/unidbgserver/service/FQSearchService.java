@@ -38,7 +38,7 @@ public class FQSearchService {
     private RestTemplate restTemplate;
 
     @Resource(name = "bizExecutor")
-    private ExecutorService bizExecutor;
+    private Executor bizExecutor;
 
     @Resource
     private ObjectMapper objectMapper;

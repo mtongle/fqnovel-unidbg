@@ -15,7 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 /**
@@ -35,7 +35,7 @@ public class FullBookDownloadService {
     private RedisService redisService;
 
     @Resource(name = "bizExecutor")
-    private ExecutorService bizExecutor;
+    private Executor bizExecutor;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
     @Resource
