@@ -39,17 +39,13 @@ public class FQEncryptController {
             headers = "";
         }
 
-        if (log.isDebugEnabled()) {
-            log.debug("接收到FQ签名请求 - URL: {}", url);
-            log.debug("接收到FQ签名请求 - Headers: {}", headers);
-        }
+        log.debug("接收到FQ签名请求 - URL: {}", url);
+        log.debug("接收到FQ签名请求 - Headers: {}", headers);
 
         // 调用服务生成签名
         Map<String, String> result = fqSignatureServiceWorker.generateSignatureHeaders(url, headers).get();
 
-        if (log.isDebugEnabled()) {
-            log.debug("FQ签名生成完成，结果数量: {}", result.size());
-        }
+        log.debug("FQ签名生成完成，结果数量: {}", result.size());
 
         return result;
     }
@@ -71,17 +67,13 @@ public class FQEncryptController {
             throw new IllegalArgumentException("URL参数不能为空");
         }
 
-        if (log.isDebugEnabled()) {
-            log.debug("接收到FQ签名请求(Map格式) - URL: {}", url);
-            log.debug("接收到FQ签名请求(Map格式) - HeaderMap: {}", headerMap);
-        }
+        log.debug("接收到FQ签名请求(Map格式) - URL: {}", url);
+        log.debug("接收到FQ签名请求(Map格式) - HeaderMap: {}", headerMap);
 
         // 调用服务生成签名
         Map<String, String> result = fqSignatureServiceWorker.generateSignatureHeaders(url, headerMap).get();
 
-        if (log.isDebugEnabled()) {
-            log.debug("FQ签名生成完成，结果数量: {}", result.size());
-        }
+        log.debug("FQ签名生成完成，结果数量: {}", result.size());
 
         return result;
     }
@@ -101,16 +93,12 @@ public class FQEncryptController {
             throw new IllegalArgumentException("URL参数不能为空");
         }
 
-        if (log.isDebugEnabled()) {
-            log.debug("接收到FQ简化签名请求 - URL: {}", url);
-        }
+        log.debug("接收到FQ简化签名请求 - URL: {}", url);
 
         // 调用服务生成签名
         Map<String, String> result = fqSignatureServiceWorker.generateSignatureHeaders(url, "").get();
 
-        if (log.isDebugEnabled()) {
-            log.debug("FQ简化签名生成完成，结果数量: {}", result.size());
-        }
+        log.debug("FQ简化签名生成完成，结果数量: {}", result.size());
 
         return result;
     }
@@ -128,16 +116,12 @@ public class FQEncryptController {
             throw new IllegalArgumentException("URL参数不能为空");
         }
 
-        if (log.isDebugEnabled()) {
-            log.debug("接收到FQ测试签名请求 - URL: {}", url);
-        }
+        log.debug("接收到FQ测试签名请求 - URL: {}", url);
 
         // 调用服务生成签名
         Map<String, String> result = fqSignatureServiceWorker.generateSignatureHeaders(url, "").get();
 
-        if (log.isDebugEnabled()) {
-            log.debug("FQ测试签名生成完成，结果数量: {}", result.size());
-        }
+        log.debug("FQ测试签名生成完成，结果数量: {}", result.size());
 
         return result;
     }

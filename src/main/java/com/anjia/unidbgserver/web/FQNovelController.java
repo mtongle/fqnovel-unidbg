@@ -42,9 +42,7 @@ public class FQNovelController {
      */
     @GetMapping("/book/{bookId}")
     public CompletableFuture<FQNovelResponse<FQNovelBookInfo>> getBookInfo(@PathVariable String bookId) {
-        if (log.isDebugEnabled()) {
-            log.debug("获取书籍信息请求 - bookId: {}", bookId);
-        }
+        log.debug("获取书籍信息请求 - bookId: {}", bookId);
         
         if (bookId == null || bookId.trim().isEmpty()) {
             return CompletableFuture.completedFuture(
@@ -74,9 +72,7 @@ public class FQNovelController {
             @RequestParam(required = false) String token,
             HttpServletRequest httpRequest) {
         
-        if (log.isDebugEnabled()) {
-            log.debug("获取章节内容请求 - bookId: {}, chapterId: {}", bookId, chapterId);
-        }
+        log.debug("获取章节内容请求 - bookId: {}, chapterId: {}", bookId, chapterId);
         
         if (bookId == null || bookId.trim().isEmpty()) {
             return CompletableFuture.completedFuture(
@@ -115,10 +111,8 @@ public class FQNovelController {
     public CompletableFuture<FQNovelResponse<FQNovelChapterInfo>> getChapterContentPost(
             @RequestBody FQNovelRequest request) {
         
-        if (log.isDebugEnabled()) {
-            log.debug("获取章节内容请求(POST) - bookId: {}, chapterId: {}", 
+        log.debug("获取章节内容请求(POST) - bookId: {}, chapterId: {}", 
                 request.getBookId(), request.getChapterId());
-        }
         
         if (request.getBookId() == null || request.getBookId().trim().isEmpty()) {
             return CompletableFuture.completedFuture(
@@ -149,9 +143,7 @@ public class FQNovelController {
             @PathVariable String bookId,
             @PathVariable String chapterId) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("获取段评增强章节内容请求 - bookId: {}, chapterId: {}", bookId, chapterId);
-        }
+        log.debug("获取段评增强章节内容请求 - bookId: {}, chapterId: {}", bookId, chapterId);
 
         if (bookId == null || bookId.trim().isEmpty()) {
             return CompletableFuture.completedFuture(
@@ -185,10 +177,8 @@ public class FQNovelController {
     public CompletableFuture<FQNovelResponse<FQBatchChapterResponse>> getBatchChapterContent(
             @RequestBody FQBatchChapterRequest request) {
         
-        if (log.isDebugEnabled()) {
-            log.debug("批量获取章节内容请求 - bookId: {}, range: {}", 
+        log.debug("批量获取章节内容请求 - bookId: {}, range: {}", 
                 request.getBookId(), request.getChapterRange());
-        }
         
         return fqNovelService.getBatchChapterContent(request);
     }

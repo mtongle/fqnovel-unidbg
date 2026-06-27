@@ -163,14 +163,12 @@ public class FqCrypto {
         // 转换为大写十六进制字符串
         String keyHex = byteArrayToHexString(decrypted);
         
-        if (log.isDebugEnabled()) {
-            log.debug("解密后原始内容 hex: {}", keyHex);
-            if (decrypted.length >= 16) {
-                log.debug("前16字节 hex: {}", byteArrayToHexString(java.util.Arrays.copyOfRange(decrypted, 0, 16)));
-            }
-            if (decrypted.length >= 32) {
-                log.debug("后16字节 hex: {}", byteArrayToHexString(java.util.Arrays.copyOfRange(decrypted, 16, 32)));
-            }
+        log.debug("解密后原始内容 hex: {}", keyHex);
+        if (decrypted.length >= 16) {
+            log.debug("前16字节 hex: {}", byteArrayToHexString(java.util.Arrays.copyOfRange(decrypted, 0, 16)));
+        }
+        if (decrypted.length >= 32) {
+            log.debug("后16字节 hex: {}", byteArrayToHexString(java.util.Arrays.copyOfRange(decrypted, 16, 32)));
         }
         
         return keyHex;
@@ -228,9 +226,7 @@ public class FqCrypto {
         // 转换为大写十六进制字符串
         String keyHex = byteArrayToHexString(decrypted);
         
-        if (log.isDebugEnabled()) {
-            log.debug("解密后原始内容 hex (NoPadding): {}", keyHex);
-        }
+        log.debug("解密后原始内容 hex (NoPadding): {}", keyHex);
         
         return keyHex;
     }

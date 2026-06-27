@@ -39,10 +39,8 @@ public class FQSearchController {
             @RequestParam(defaultValue = "20") Integer count,
             @RequestParam(required = false) String searchId) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("搜索书籍请求(GET) - query: {}, tabType: {}, offset: {}, count: {}, searchId: {}",
+        log.debug("搜索书籍请求(GET) - query: {}, tabType: {}, offset: {}, count: {}, searchId: {}",
                 query, tabType, offset, count, searchId);
-        }
 
         if (query == null || query.trim().isEmpty()) {
             return CompletableFuture.completedFuture(
@@ -81,10 +79,8 @@ public class FQSearchController {
     public CompletableFuture<FQNovelResponse<FQSearchResponse>> searchBooksPost(
             @RequestBody FQSearchRequest searchRequest) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("搜索书籍请求(POST) - query: {}, tabType: {}, searchId: {}",
+        log.debug("搜索书籍请求(POST) - query: {}, tabType: {}, searchId: {}",
                 searchRequest.getQuery(), searchRequest.getTabType(), searchRequest.getSearchId());
-        }
 
         if (searchRequest.getQuery() == null || searchRequest.getQuery().trim().isEmpty()) {
             return CompletableFuture.completedFuture(
@@ -117,9 +113,7 @@ public class FQSearchController {
     public CompletableFuture<FQNovelResponse<FQDirectoryResponse>> getBookDirectoryGet(
             @PathVariable String bookId) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("获取书籍目录请求(GET) - bookId: {}", bookId);
-        }
+        log.debug("获取书籍目录请求(GET) - bookId: {}", bookId);
 
         if (bookId == null || bookId.trim().isEmpty()) {
             return CompletableFuture.completedFuture(
@@ -144,9 +138,7 @@ public class FQSearchController {
     public CompletableFuture<FQNovelResponse<FQDirectoryResponse>> getBookDirectoryPost(
             @RequestBody FQDirectoryRequest directoryRequest) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("获取书籍目录请求(POST) - bookId: {}", directoryRequest.getBookId());
-        }
+        log.debug("获取书籍目录请求(POST) - bookId: {}", directoryRequest.getBookId());
 
         if (directoryRequest.getBookId() == null || directoryRequest.getBookId().trim().isEmpty()) {
             return CompletableFuture.completedFuture(
@@ -167,9 +159,7 @@ public class FQSearchController {
     public CompletableFuture<FQNovelResponse<FQSearchResponse>> quickSearch(
             @RequestParam String query) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("快速搜索请求 - query: {}", query);
-        }
+        log.debug("快速搜索请求 - query: {}", query);
 
         if (query == null || query.trim().isEmpty()) {
             return CompletableFuture.completedFuture(
@@ -196,9 +186,7 @@ public class FQSearchController {
     public CompletableFuture<FQNovelResponse<FQDirectoryResponse>> getBookChapters(
             @PathVariable String bookId) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("获取书籍章节列表请求 - bookId: {}", bookId);
-        }
+        log.debug("获取书籍章节列表请求 - bookId: {}", bookId);
 
         if (bookId == null || bookId.trim().isEmpty()) {
             return CompletableFuture.completedFuture(

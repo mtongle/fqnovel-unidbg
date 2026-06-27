@@ -38,10 +38,8 @@ public class FQDiscoveryController {
             @RequestParam(required = false) Integer categoryTab,
             @RequestParam(required = false) Boolean needHot,
             @RequestParam(required = false) String source) {
-        if (log.isDebugEnabled()) {
-            log.debug("获取分类发现页 - categoryTab: {}, needHot: {}, source: {}",
+        log.debug("获取分类发现页 - categoryTab: {}, needHot: {}, source: {}",
                     categoryTab, needHot, source);
-        }
         return discoveryService.getCategoryFrontPage(categoryTab, needHot, source);
     }
 
@@ -67,10 +65,8 @@ public class FQDiscoveryController {
             @RequestParam(required = false) String bookStatus,
             @RequestParam(required = false) String wordNumber) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("获取分类书籍列表 - categoryId: {}, offset: {}, limit: {}, subCategoryId: {}, sortBy: {}",
+        log.debug("获取分类书籍列表 - categoryId: {}, offset: {}, limit: {}, subCategoryId: {}, sortBy: {}",
                     categoryId, offset, limit, subCategoryId, sortBy);
-        }
         if (categoryId == null || categoryId.trim().isEmpty()) {
             return CompletableFuture.completedFuture(
                     FQNovelResponse.error("分类ID不能为空"));
@@ -94,10 +90,8 @@ public class FQDiscoveryController {
             @RequestParam(defaultValue = "0") int newCategoryTab,
             @RequestParam(defaultValue = "0") int reqType,
             @RequestParam(defaultValue = "0") int distinctStyle) {
-        if (log.isDebugEnabled()) {
-            log.debug("获取分类Cell数据 - newCategoryTab: {}, reqType: {}, distinctStyle: {}",
+        log.debug("获取分类Cell数据 - newCategoryTab: {}, reqType: {}, distinctStyle: {}",
                     newCategoryTab, reqType, distinctStyle);
-        }
         return discoveryService.getCategoryCellData(newCategoryTab, reqType, distinctStyle);
     }
 }

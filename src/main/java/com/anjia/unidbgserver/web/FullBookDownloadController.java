@@ -39,9 +39,7 @@ public class FullBookDownloadController {
      */
     @PostMapping("/download")
     public Flux<FullBookDownloadResponse> downloadFullBook(@RequestBody FullBookDownloadRequest request) {
-        if (log.isDebugEnabled()) {
-            log.debug("全本下载请求 - bookId: {}, batchSize: {}", request.getBookId(), request.getBatchSize());
-        }
+        log.debug("全本下载请求 - bookId: {}, batchSize: {}", request.getBookId(), request.getBatchSize());
         
         if (request.getBookId() == null || request.getBookId().trim().isEmpty()) {
             return Flux.error(new IllegalArgumentException("书籍ID不能为空"));
@@ -97,9 +95,7 @@ public class FullBookDownloadController {
      */
     @GetMapping("/chapters/{bookId}")
     public CompletableFuture<ResponseEntity<List<FQNovelChapterInfo>>> getDownloadedChapters(@PathVariable String bookId) {
-        if (log.isDebugEnabled()) {
-            log.debug("获取已下载章节列表请求 - bookId: {}", bookId);
-        }
+        log.debug("获取已下载章节列表请求 - bookId: {}", bookId);
         
         return fullBookDownloadService.getDownloadedChapters(bookId)
             .thenApply(chapters -> {
@@ -119,9 +115,7 @@ public class FullBookDownloadController {
      */
     @GetMapping("/progress/{bookId}")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> getDownloadProgress(@PathVariable String bookId) {
-        if (log.isDebugEnabled()) {
-            log.debug("获取下载进度请求 - bookId: {}", bookId);
-        }
+        log.debug("获取下载进度请求 - bookId: {}", bookId);
         
         return fullBookDownloadService.getDownloadProgress(bookId)
             .thenApply(progress -> {
@@ -141,9 +135,7 @@ public class FullBookDownloadController {
      */
     @PostMapping("/auto-resume/{bookId}")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> autoResumeDownload(@PathVariable String bookId) {
-        if (log.isDebugEnabled()) {
-            log.debug("自动恢复下载请求 - bookId: {}", bookId);
-        }
+        log.debug("自动恢复下载请求 - bookId: {}", bookId);
         
         return fullBookDownloadService.autoResumeDownload(bookId)
             .thenApply(result -> {
@@ -168,9 +160,7 @@ public class FullBookDownloadController {
      */
     @PostMapping("/auto-resume-all")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> autoResumeAllDownloads() {
-        if (log.isDebugEnabled()) {
-            log.debug("批量自动恢复下载请求");
-        }
+        log.debug("批量自动恢复下载请求");
         
         return fullBookDownloadService.autoResumeAllDownloads()
             .thenApply(result -> {
@@ -191,9 +181,7 @@ public class FullBookDownloadController {
      */
     @PostMapping("/trigger-auto-resume")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> triggerAutoResume() {
-        if (log.isDebugEnabled()) {
-            log.debug("手动触发自动恢复任务请求");
-        }
+        log.debug("手动触发自动恢复任务请求");
         
         return autoResumeTaskService.triggerAutoResume()
             .thenApply(result -> {
@@ -214,9 +202,7 @@ public class FullBookDownloadController {
      */
     @GetMapping("/check-all-status")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> checkAllDownloadStatus() {
-        if (log.isDebugEnabled()) {
-            log.debug("检查所有书籍下载状态请求");
-        }
+        log.debug("检查所有书籍下载状态请求");
         
         return fullBookDownloadService.checkAllDownloadStatus()
             .thenApply(result -> {
@@ -238,9 +224,7 @@ public class FullBookDownloadController {
      */
     @DeleteMapping("/chapters/{bookId}")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> deleteDownloadedChapters(@PathVariable String bookId) {
-        if (log.isDebugEnabled()) {
-            log.debug("删除已下载章节请求 - bookId: {}", bookId);
-        }
+        log.debug("删除已下载章节请求 - bookId: {}", bookId);
         
         return fullBookDownloadService.deleteDownloadedChapters(bookId)
             .thenApply(success -> {

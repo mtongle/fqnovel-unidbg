@@ -36,10 +36,8 @@ public class DeviceManagementController {
     public CompletableFuture<ResponseEntity<DeviceRegisterResponse>> registerDevice(
             @RequestBody DeviceRegisterRequest request) {
         
-        if (log.isDebugEnabled()) {
-            log.debug("设备注册请求 - 品牌: {}, 型号: {}", 
+        log.debug("设备注册请求 - 品牌: {}, 型号: {}", 
                 request.getDeviceBrand(), request.getDeviceType());
-        }
         
         return deviceManagementService.registerDevice(request)
             .thenApply(response -> {
@@ -61,9 +59,7 @@ public class DeviceManagementController {
     public CompletableFuture<ResponseEntity<Map<String, Object>>> updateDeviceConfig(
             @RequestBody DeviceInfo deviceInfo) {
         
-        if (log.isDebugEnabled()) {
-            log.debug("更新设备配置请求 - 设备ID: {}", deviceInfo.getDeviceId());
-        }
+        log.debug("更新设备配置请求 - 设备ID: {}", deviceInfo.getDeviceId());
         
         return deviceManagementService.updateDeviceConfig(deviceInfo)
             .thenApply(success -> {
@@ -90,9 +86,7 @@ public class DeviceManagementController {
     @PostMapping("/restart")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> restartProject() {
         
-        if (log.isDebugEnabled()) {
-            log.debug("项目重启请求");
-        }
+        log.debug("项目重启请求");
         
         return deviceManagementService.restartProject()
             .thenApply(success -> {
@@ -121,10 +115,8 @@ public class DeviceManagementController {
     public CompletableFuture<ResponseEntity<Map<String, Object>>> registerDeviceAndRestart(
             @RequestBody DeviceRegisterRequest request) {
         
-        if (log.isDebugEnabled()) {
-            log.debug("设备注册并重启请求 - 品牌: {}, 型号: {}", 
+        log.debug("设备注册并重启请求 - 品牌: {}, 型号: {}", 
                 request.getDeviceBrand(), request.getDeviceType());
-        }
         
         return deviceManagementService.registerDeviceAndRestart(request)
             .thenApply(result -> {
@@ -150,9 +142,7 @@ public class DeviceManagementController {
     @GetMapping("/current-config")
     public CompletableFuture<ResponseEntity<DeviceInfo>> getCurrentDeviceConfig() {
         
-        if (log.isDebugEnabled()) {
-            log.debug("获取当前设备配置请求");
-        }
+        log.debug("获取当前设备配置请求");
         
         return deviceManagementService.getCurrentDeviceConfig()
             .thenApply(deviceInfo -> {
