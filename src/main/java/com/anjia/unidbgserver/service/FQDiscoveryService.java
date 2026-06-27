@@ -297,11 +297,15 @@ public class FQDiscoveryService {
                 if (bookNode.has("serial_count")) {
                     try {
                         item.setTotalChapters(Integer.parseInt(jsonStr(bookNode, "serial_count")));
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException e) {
+                        log.warn("解析serial_count失败", e);
+                    }
                 } else if (bookNode.has("content_chapter_number")) {
                     try {
                         item.setTotalChapters(Integer.parseInt(jsonStr(bookNode, "content_chapter_number")));
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException e) {
+                        log.warn("解析content_chapter_number失败", e);
+                    }
                 }
                 item.setLastChapterTitle(jsonStr(bookNode, "last_chapter_title"));
                 item.setLastChapterItemId(jsonStr(bookNode, "last_chapter_item_id"));

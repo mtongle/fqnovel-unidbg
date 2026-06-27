@@ -390,7 +390,7 @@ public class FQSearchService {
             }
         }
         
-        log.info("章节列表增强完成 - 总章节数: {}", totalChapters);
+        log.debug("章节列表增强完成 - 总章节数: {}", totalChapters);
     }
 
     /**

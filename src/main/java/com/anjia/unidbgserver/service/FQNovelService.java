@@ -270,21 +270,21 @@ public class FQNovelService {
 
         try {
             registerKeyService.clearCache();
-            log.info("ILLEGAL_ACCESS三联恢复步骤完成：registerkey缓存已清理");
+            log.debug("ILLEGAL_ACCESS三联恢复步骤完成：registerkey缓存已清理");
         } catch (Exception ex) {
             log.warn("ILLEGAL_ACCESS三联恢复步骤失败：清理registerkey缓存", ex);
         }
 
         try {
             devicePoolService.rebuildPool();
-            log.info("ILLEGAL_ACCESS三联恢复步骤完成：设备池已重建");
+            log.debug("ILLEGAL_ACCESS三联恢复步骤完成：设备池已重建");
         } catch (Exception ex) {
             log.warn("ILLEGAL_ACCESS三联恢复步骤失败：重建设备池", ex);
         }
 
         try {
             fqEncryptServiceWorker.reset();
-            log.info("ILLEGAL_ACCESS三联恢复步骤完成：签名引擎已重置");
+            log.debug("ILLEGAL_ACCESS三联恢复步骤完成：签名引擎已重置");
         } catch (Exception ex) {
             log.warn("ILLEGAL_ACCESS三联恢复步骤失败：重置签名引擎", ex);
         }
@@ -475,7 +475,7 @@ public class FQNovelService {
                 FQNovelBookInfo bookInfo = mapBookInfoRespToBookInfo(bookInfoResp, bookId);
 
                 // 章节总数 - 优先使用目录接口的serial_count字段获取真实章节数
-                log.info("调试信息 - bookId: {}, directoryData.serialCount: {}, bookInfoResp.serialCount: {}, directoryData.catalogData.size: {}", 
+                log.debug("调试信息 - bookId: {}, directoryData.serialCount: {}, bookInfoResp.serialCount: {}, directoryData.catalogData.size: {}", 
                     bookId, directoryData.getSerialCount(), bookInfoResp.getSerialCount(),
                     directoryData.getCatalogData() != null ? directoryData.getCatalogData().size() : "null");
                 
@@ -483,14 +483,14 @@ public class FQNovelService {
                 if (bookInfoResp.getSerialCount() != null) {
                     try {
                         bookInfo.setTotalChapters(Integer.parseInt(bookInfoResp.getSerialCount()));
-                        log.info("使用bookInfo.serialCount获取章节总数 - bookId: {}, 章节数: {}", bookId, bookInfoResp.getSerialCount());
+                        log.debug("使用bookInfo.serialCount获取章节总数 - bookId: {}, 章节数: {}", bookId, bookInfoResp.getSerialCount());
                     } catch (NumberFormatException e) {
                         log.error("解析bookInfo.serialCount失败 - bookId: {}, serialCount: {}", bookId, bookInfoResp.getSerialCount());
                         // 如果解析失败，尝试从目录数据获取
                         List<FQDirectoryResponse.CatalogItem> catalogData = directoryData.getCatalogData();
                         if (catalogData != null && !catalogData.isEmpty()) {
                             bookInfo.setTotalChapters(catalogData.size());
-                            log.info("从目录数据获取章节总数 - bookId: {}, 章节数: {}", bookId, catalogData.size());
+                            log.debug("从目录数据获取章节总数 - bookId: {}, 章节数: {}", bookId, catalogData.size());
                         } else {
                             bookInfo.setTotalChapters(0);
                         }
@@ -498,14 +498,14 @@ public class FQNovelService {
                 } else if (directoryData.getSerialCount() != null) {
                     try {
                         bookInfo.setTotalChapters(Integer.parseInt(directoryData.getSerialCount()));
-                        log.info("使用目录接口serial_count获取章节总数 - bookId: {}, 章节数: {}", bookId, directoryData.getSerialCount());
+                        log.debug("使用目录接口serial_count获取章节总数 - bookId: {}, 章节数: {}", bookId, directoryData.getSerialCount());
                     } catch (NumberFormatException e) {
                         log.error("解析目录接口serial_count失败 - bookId: {}, serialCount: {}", bookId, directoryData.getSerialCount());
                         // 如果解析失败，尝试从目录数据获取
                         List<FQDirectoryResponse.CatalogItem> catalogData = directoryData.getCatalogData();
                         if (catalogData != null && !catalogData.isEmpty()) {
                             bookInfo.setTotalChapters(catalogData.size());
-                            log.info("从目录数据获取章节总数 - bookId: {}, 章节数: {}", bookId, catalogData.size());
+                            log.debug("从目录数据获取章节总数 - bookId: {}, 章节数: {}", bookId, catalogData.size());
                         } else {
                             bookInfo.setTotalChapters(0);
                         }
@@ -515,7 +515,7 @@ public class FQNovelService {
                     List<FQDirectoryResponse.CatalogItem> catalogData = directoryData.getCatalogData();
                     if (catalogData != null && !catalogData.isEmpty()) {
                         bookInfo.setTotalChapters(catalogData.size());
-                        log.info("从目录数据获取章节总数 - bookId: {}, 章节数: {}", bookId, catalogData.size());
+                        log.debug("从目录数据获取章节总数 - bookId: {}, 章节数: {}", bookId, catalogData.size());
                     } else {
                         bookInfo.setTotalChapters(0);
                         log.warn("无法获取章节总数 - bookId: {}", bookId);
@@ -618,7 +618,7 @@ public class FQNovelService {
                 String decryptedContent = "";
                 String encryptedContent = itemContent.getContent();
                 try {
-                    log.info("章节解密诊断 - chapterId={}, keyVersion={}, cryptStatus={}, compressStatus={}, contentLength={}, contentPreview={}",
+                    log.debug("章节解密诊断 - chapterId={}, keyVersion={}, cryptStatus={}, compressStatus={}, contentLength={}, contentPreview={}",
                         chapterId,
                         itemContent.getKeyVersion(),
                         itemContent.getCryptStatus(),
@@ -832,7 +832,7 @@ public class FQNovelService {
                         String decryptedContent = "";
                         String encryptedContent = itemContent.getContent();
                         try {
-                            log.info("批量章节解密诊断 - itemId={}, keyVersion={}, cryptStatus={}, compressStatus={}, contentLength={}, contentPreview={}",
+                            log.debug("批量章节解密诊断 - itemId={}, keyVersion={}, cryptStatus={}, compressStatus={}, contentLength={}, contentPreview={}",
                                 itemId,
                                 itemContent.getKeyVersion(),
                                 itemContent.getCryptStatus(),
@@ -925,7 +925,7 @@ public class FQNovelService {
 
         DeviceInfo matchedDevice = devicePoolService.findDeviceById(requestDeviceId);
         if (matchedDevice != null) {
-            log.info("{} 使用请求设备上下文，deviceId={}", scene, matchedDevice.getDeviceId());
+            log.debug("{} 使用请求设备上下文，deviceId={}", scene, matchedDevice.getDeviceId());
             return matchedDevice;
         }
 

@@ -53,7 +53,7 @@ public class FullBookDownloadService {
                     // 1. 获取书籍信息（优先从Redis获取）
                     FQNovelBookInfo bookInfo = redisService.getBookInfo(request.getBookId());
                     if (bookInfo == null) {
-                        log.info("Redis中未找到作品信息，从API获取 - bookId: {}", request.getBookId());
+                        log.debug("Redis中未找到作品信息，从API获取 - bookId: {}", request.getBookId());
                         FQNovelResponse<FQNovelBookInfo> bookResponse = fqNovelService.getBookInfo(request.getBookId()).get();
                         if (bookResponse.getCode() != 0 || bookResponse.getData() == null) {
                             sink.error(new RuntimeException("获取书籍信息失败: " + bookResponse.getMessage()));
@@ -63,9 +63,9 @@ public class FullBookDownloadService {
                         
                         // 保存到Redis
                         redisService.saveBookInfo(request.getBookId(), bookInfo);
-                        log.info("作品信息已保存到Redis - bookId: {}", request.getBookId());
+                        log.debug("作品信息已保存到Redis - bookId: {}", request.getBookId());
                     } else {
-                        log.info("从Redis获取作品信息成功 - bookId: {}", request.getBookId());
+                        log.debug("从Redis获取作品信息成功 - bookId: {}", request.getBookId());
                     }
                     // 优先以目录真实章节总数为准，避免误把 wordNumber 当作章节数
                     List<String> allChapterIds = getBookChapterIds(request.getBookId()).get();
@@ -73,7 +73,7 @@ public class FullBookDownloadService {
                         allChapterIds = new ArrayList<>();
                     }
                     int totalChapters = allChapterIds.size();
-                    log.info("书籍信息获取成功 - 书名: {}, 目录章节数: {}", bookInfo.getBookName(), totalChapters);
+                    log.debug("书籍信息获取成功 - 书名: {}, 目录章节数: {}", bookInfo.getBookName(), totalChapters);
 
                     // 2. 计算实际要下载的章节数（maxChapters 允许为 null）
                     Integer reqMax = request.getMaxChapters();
@@ -95,7 +95,7 @@ public class FullBookDownloadService {
                                 break;
                             }
                             
-                            log.info("开始下载第 {} 批章节 - 范围: {}-{}", batchIndex + 1, startIndex, endIndex - 1);
+                            log.debug("开始下载第 {} 批章节 - 范围: {}-{}", batchIndex + 1, startIndex, endIndex - 1);
                             
                             // 复用预先获取的章节ID
                             if (allChapterIds.isEmpty()) {
@@ -108,7 +108,7 @@ public class FullBookDownloadService {
                             int actualEndIndex = Math.min(endIndex, allChapterIds.size());
                             
                             if (actualStartIndex >= allChapterIds.size()) {
-                                log.info("已处理完所有章节");
+                                log.debug("已处理完所有章节");
                                 break;
                             }
                             
@@ -131,7 +131,7 @@ public class FullBookDownloadService {
                             // 如果所有章节都已存在，跳过当前批次
                             if (chapterIds.isEmpty()) {
                                 downloadedChapters += actualEndIndex - actualStartIndex;
-                                log.info("第 {} 批所有章节都已存在，跳过 - 跳过数量: {}", batchIndex + 1, skippedChapterIds.size());
+                                log.debug("第 {} 批所有章节都已存在，跳过 - 跳过数量: {}", batchIndex + 1, skippedChapterIds.size());
                                 
                                 // 发送跳过响应
                                 FullBookDownloadResponse skipResponse = FullBookDownloadResponse.progress(
@@ -150,7 +150,7 @@ public class FullBookDownloadService {
                                 continue;
                             }
                             
-                            log.info("第 {} 批章节 - 需要下载: {}, 跳过: {}", batchIndex + 1, chapterIds.size(), skippedChapterIds.size());
+                            log.debug("第 {} 批章节 - 需要下载: {}, 跳过: {}", batchIndex + 1, chapterIds.size(), skippedChapterIds.size());
                             
                             // 构建批量章节请求
                             FQBatchChapterRequest batchRequest = new FQBatchChapterRequest();
@@ -321,7 +321,8 @@ public class FullBookDownloadService {
                             bookInfo = fresh.getData();
                             totalChapters = bookInfo.getTotalChapters();
                         }
-                    } catch (Exception ignored) {
+                    } catch (Exception e) {
+                        log.warn("获取书籍信息失败，跳过: bookId={}", bookId, e);
                     }
 
                     if (totalChapters <= 0) {
@@ -330,7 +331,8 @@ public class FullBookDownloadService {
                             if (chapterIds != null) {
                                 totalChapters = chapterIds.size();
                             }
-                        } catch (Exception ignored) {
+                        } catch (Exception e) {
+                            log.warn("获取章节ID列表失败，跳过: bookId={}", bookId, e);
                         }
                     }
 
@@ -383,11 +385,11 @@ public class FullBookDownloadService {
                 // 优先从Redis获取章节列表
                 List<String> chapterIds = redisService.getChapterList(bookId);
                 if (chapterIds != null && !chapterIds.isEmpty()) {
-                    log.info("从Redis获取章节列表成功 - bookId: {}, 章节数量: {}", bookId, chapterIds.size());
+                    log.debug("从Redis获取章节列表成功 - bookId: {}, 章节数量: {}", bookId, chapterIds.size());
                     return chapterIds;
                 }
                 
-                log.info("Redis中未找到章节列表，从API获取 - bookId: {}", bookId);
+                log.debug("Redis中未找到章节列表，从API获取 - bookId: {}", bookId);
                 
                 // 构建目录请求
                 FQDirectoryRequest directoryRequest = new FQDirectoryRequest();
@@ -397,7 +399,7 @@ public class FullBookDownloadService {
                 
                 // 直接调用目录接口获取章节列表
                 String directoryUrl = "http://localhost:9999/api/fqsearch/directory/" + bookId;
-                log.info("调用目录接口获取章节列表 - URL: {}", directoryUrl);
+                log.debug("调用目录接口获取章节列表 - URL: {}", directoryUrl);
                 
                 HttpRequest httpRequest = HttpRequest.newBuilder()
                     .uri(URI.create(directoryUrl))
@@ -442,11 +444,11 @@ public class FullBookDownloadService {
                     }
                 }
                 
-                log.info("成功获取章节列表 - bookId: {}, 章节数量: {}", bookId, chapterIds.size());
+                log.debug("成功获取章节列表 - bookId: {}, 章节数量: {}", bookId, chapterIds.size());
                 
                 // 保存到Redis
                 redisService.saveChapterList(bookId, chapterIds);
-                log.info("章节列表已保存到Redis - bookId: {}, 章节数量: {}", bookId, chapterIds.size());
+                log.debug("章节列表已保存到Redis - bookId: {}, 章节数量: {}", bookId, chapterIds.size());
                 
                 return chapterIds;
                 
@@ -497,7 +499,7 @@ public class FullBookDownloadService {
                 // 异步执行下载，不等待完成
                 downloadFullBook(request)
                     .doOnNext(response -> {
-                        log.info("自动恢复下载进度更新 - bookId: {}, 消息: {}", bookId, response.getMessage());
+                        log.debug("自动恢复下载进度更新 - bookId: {}, 消息: {}", bookId, response.getMessage());
                     })
                     .doOnError(error -> {
                         log.error("自动恢复下载失败 - bookId: {}", bookId, error);
