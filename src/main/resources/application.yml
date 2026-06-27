@@ -30,6 +30,13 @@ spring:
         core-size: 8
         keep-alive: 60s
         max-size: 8
+  sleuth:
+    sampler:
+      probability: 1.0
+    async:
+      enabled: true
+      configurer:
+        enabled: true
   redis:
     host: 0.0.0.0
     port: 26586

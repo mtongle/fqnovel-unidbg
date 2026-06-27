@@ -15,6 +15,15 @@
             <charset>UTF-8</charset>
         </encoder>
     </appender>
+
+    <!-- Console appender with color and traceId -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%X{traceId:-}]){magenta} %clr(%logger{36}){cyan} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
     <logger name="javax.activation" level="WARN"/>
     <logger name="javax.mail" level="WARN"/>
     <logger name="javax.management.remote" level="WARN"/>
@@ -55,6 +64,7 @@
     </contextListener>
 
     <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>
 

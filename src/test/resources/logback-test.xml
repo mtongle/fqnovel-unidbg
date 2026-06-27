@@ -38,8 +38,20 @@
     <logger name="com.anjia.unidbgserver.utils" level="DEBUG"/>
     <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
 
+    <!-- Console appender with color (simplified, no traceId) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level) %clr(%logger{36}){cyan} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
     <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
         <resetJUL>true</resetJUL>
     </contextListener>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
 
 </configuration>
