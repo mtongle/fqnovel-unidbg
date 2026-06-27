@@ -58,7 +58,7 @@ public class CacheController {
             resp.put("keys", keys == null ? Collections.emptyList() : keys);
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
-            log.error("List keys failed", e);
+            log.error("查询缓存键失败", e);
             return ResponseEntity.status(500).body(Collections.singletonMap("error", e.getMessage()));
         }
     }
@@ -72,7 +72,7 @@ public class CacheController {
             resp.put("value", val);
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
-            log.error("Get value failed", e);
+            log.error("获取缓存值失败", e);
             return ResponseEntity.status(500).body(Collections.singletonMap("error", e.getMessage()));
         }
     }
@@ -86,7 +86,7 @@ public class CacheController {
             resp.put("deleted", deleted);
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
-            log.error("Delete key failed", e);
+            log.error("删除缓存键失败", e);
             return ResponseEntity.status(500).body(Collections.singletonMap("error", e.getMessage()));
         }
     }

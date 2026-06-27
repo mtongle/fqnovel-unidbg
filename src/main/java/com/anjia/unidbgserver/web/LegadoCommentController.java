@@ -3,6 +3,7 @@ package com.anjia.unidbgserver.web;
 import com.anjia.unidbgserver.dto.LegadoCommentRequest;
 import com.anjia.unidbgserver.dto.LegadoCommentResponse;
 import com.anjia.unidbgserver.service.LegadoCommentService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.Resource;
 import java.util.concurrent.CompletableFuture;
 
+@Slf4j
 @RestController
 @RequestMapping(path = "/api/legado", produces = MediaType.APPLICATION_JSON_VALUE)
 public class LegadoCommentController {

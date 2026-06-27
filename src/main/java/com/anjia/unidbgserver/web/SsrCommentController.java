@@ -1,12 +1,14 @@
 package com.anjia.unidbgserver.web;
 
 import com.anjia.unidbgserver.service.SsrCommentService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.concurrent.CompletableFuture;
 
+@Slf4j
 @RestController
 @RequestMapping(path = "/api/ssr")
 public class SsrCommentController {

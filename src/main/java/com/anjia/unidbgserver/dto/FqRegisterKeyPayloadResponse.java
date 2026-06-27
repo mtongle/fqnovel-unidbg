@@ -6,11 +6,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * FQNovel 注册密钥载荷
  * 对应 Rust 中的 FqRegisterKeyPayload 结构
  */
+@Slf4j
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -40,7 +42,7 @@ public class FqRegisterKeyPayloadResponse {
             return FqCrypto.getRealKey(this.key);
         } catch (Exception e) {
             // Log the error and return a default or null value
-            e.printStackTrace();
+            log.error("解析registerkey payload失败", e);
             return null;
         }
     }

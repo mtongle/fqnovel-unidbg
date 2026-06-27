@@ -4,6 +4,7 @@ import com.anjia.unidbgserver.dto.FQCommentListRequest;
 import com.anjia.unidbgserver.dto.LegadoCommentRequest;
 import com.anjia.unidbgserver.dto.LegadoCommentResponse;
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -12,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+@Slf4j
 @Service
 public class LegadoCommentService {
 
