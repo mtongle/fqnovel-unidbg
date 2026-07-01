@@ -198,8 +198,27 @@
   /* ===========================
      FETCH HELPERS
      =========================== */
+  function getAdminToken() {
+    return sessionStorage.getItem('admin_token') || '';
+  }
+
+  function handleUnauthorized(resp) {
+    if (resp.status === 401) {
+      sessionStorage.removeItem('admin_token');
+      sessionStorage.removeItem('admin_auth');
+      sessionStorage.removeItem('admin_auth_time');
+      location.href = '/admin/login.html';
+      return true;
+    }
+    return false;
+  }
+
   async function apiGet(url) {
-    const resp = await fetch(API_BASE + url);
+    const token = getAdminToken();
+    const resp = await fetch(API_BASE + url, {
+      headers: token ? { 'X-Admin-Token': token } : {}
+    });
+    if (handleUnauthorized(resp)) return null;
     if (!resp.ok) {
       const text = await resp.text().catch(function() { return 'Request failed'; });
       throw new Error('HTTP ' + resp.status + ': ' + text.slice(0, 200));
@@ -212,12 +231,16 @@
   }
 
   async function apiPut(url, body, contentType) {
+    const token = getAdminToken();
     const opts = {
       method: 'PUT',
       body: body,
+      headers: {},
     };
-    if (contentType) opts.headers = { 'Content-Type': contentType };
+    if (token) opts.headers['X-Admin-Token'] = token;
+    if (contentType) opts.headers['Content-Type'] = contentType;
     const resp = await fetch(API_BASE + url, opts);
+    if (handleUnauthorized(resp)) return null;
     if (!resp.ok) {
       const text = await resp.text().catch(function() { return 'Request failed'; });
       throw new Error('HTTP ' + resp.status + ': ' + text.slice(0, 200));
@@ -226,12 +249,16 @@
   }
 
   async function apiPost(url, params) {
+    const token = getAdminToken();
     var fullUrl = API_BASE + url;
     if (params) {
       var qs = Object.keys(params).map(function(k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); }).join('&');
       fullUrl += '?' + qs;
     }
-    const resp = await fetch(fullUrl, { method: 'POST' });
+    var fetchOpts = { method: 'POST' };
+    if (token) fetchOpts.headers = { 'X-Admin-Token': token };
+    const resp = await fetch(fullUrl, fetchOpts);
+    if (handleUnauthorized(resp)) return null;
     if (!resp.ok) {
       const text = await resp.text().catch(function() { return 'Request failed'; });
       throw new Error('HTTP ' + resp.status + ': ' + text.slice(0, 200));
@@ -675,6 +702,15 @@
      LOCK / LOGOUT
      =========================== */
   function lockPanel() {
+    var token = sessionStorage.getItem('admin_token');
+    // 异步通知服务端移除令牌
+    if (token) {
+      fetch(API_BASE + '/logout', {
+        method: 'POST',
+        headers: { 'X-Admin-Token': token }
+      }).catch(function() { /* ignore */ });
+    }
+    sessionStorage.removeItem('admin_token');
     sessionStorage.removeItem(AUTH_KEY);
     sessionStorage.removeItem(AUTH_TIME_KEY);
     location.href = '/admin/login.html';

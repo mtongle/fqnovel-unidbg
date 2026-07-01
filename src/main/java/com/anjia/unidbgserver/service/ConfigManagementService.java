@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -73,7 +74,8 @@ public class ConfigManagementService {
      * 保存 YAML 字符串到配置文件（会先验证 YAML 合法性）
      */
     public void saveConfigFromYaml(String yamlContent) throws IOException {
-        Yaml yaml = new Yaml();
+        // 使用 SafeConstructor 防止 SnakeYAML 反序列化 RCE（CVE-2022-1471）
+        Yaml yaml = new Yaml(new SafeConstructor());
         Object loaded = yaml.load(yamlContent);
         if (loaded == null) {
             throw new IllegalArgumentException("YAML 内容为空或无效");
@@ -88,7 +90,8 @@ public class ConfigManagementService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> loadConfigAsMap() throws IOException {
-        Yaml yaml = new Yaml();
+        // 使用 SafeConstructor 防止 SnakeYAML 反序列化 RCE
+        Yaml yaml = new Yaml(new SafeConstructor());
         try (InputStream is = new FileInputStream(getConfigFilePath())) {
             return yaml.load(is);
         }

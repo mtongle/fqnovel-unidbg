@@ -205,6 +205,7 @@
           if (data.success) {
             sessionStorage.setItem('admin_auth', '1');
             sessionStorage.setItem('admin_auth_time', Date.now());
+            sessionStorage.setItem('admin_token', data.token);
             location.href = '/admin/index.html';
           } else {
             errorEl.textContent = data.message || '✕ 密码错误';

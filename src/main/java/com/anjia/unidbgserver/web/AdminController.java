@@ -1,5 +1,6 @@
 package com.anjia.unidbgserver.web;
 
+import com.anjia.unidbgserver.config.AdminAuthFilter;
 import com.anjia.unidbgserver.service.ConfigManagementService;
 import com.anjia.unidbgserver.service.DeviceManagementService;
 import com.anjia.unidbgserver.service.DevicePoolService;
@@ -45,6 +46,9 @@ public class AdminController {
     @Autowired(required = false)
     private RedisTemplate<String, String> redisTemplate;
 
+    @Autowired
+    private AdminAuthFilter adminAuthFilter;
+
     @Value("${application.http-client.connect-timeout-ms:5000}")
     private int httpConnectTimeoutMs;
 
@@ -73,13 +77,25 @@ public class AdminController {
             return ResponseEntity.badRequest().body(result);
         }
         if (Objects.equals(password, adminPassword)) {
+            // 认证成功 → 创建服务端令牌
+            String token = adminAuthFilter.createToken();
             result.put("success", true);
             result.put("message", "认证成功");
+            result.put("token", token);
             return ResponseEntity.ok(result);
         }
         result.put("success", false);
         result.put("message", "密码错误");
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(result);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logout(@RequestHeader("X-Admin-Token") String token) {
+        adminAuthFilter.removeToken(token);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("message", "已退出登录");
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/config")
