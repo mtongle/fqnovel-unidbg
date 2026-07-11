@@ -3,284 +3,43 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>fqnovel-unidbg · 管理面板</title>
-<link rel="stylesheet" href="/admin/css/admin.css?v=0.0.3">
+<title>✦ fqnovel-unidbg</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #141322;
+    color: #EEE8D8;
+    font-family: "Noto Serif SC", "Source Han Serif SC", "PingFang SC", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .loader { text-align: center; }
+  .loader .mark {
+    font-size: 2rem;
+    color: #C4A84A;
+    margin-bottom: 12px;
+    opacity: 0.6;
+  }
+  .loader .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid #2D2C4A;
+    border-top-color: #C4A84A;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loader p { color: #7A6E5E; font-size: 0.85rem; letter-spacing: 1px; }
+</style>
 </head>
 <body>
-
-<button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu">☰</button>
-<button class="theme-toggle-admin" id="adminThemeToggle" onclick="toggleAdminTheme()" title="切换主题">✦</button>
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h1>fqnovel-unidbg</h1>
-    <span class="sidebar-subtitle">管理面板</span>
+  <div class="loader">
+    <div class="mark">✦</div>
+    <div class="spinner"></div>
+    <p>正在跳转至仪表盘 ...</p>
   </div>
-  <nav class="sidebar-nav">
-    <button class="nav-item active" data-section="dashboard"><span class="nav-icon">📊</span>概览仪表盘</button>
-    <button class="nav-item" data-section="config"><span class="nav-icon">⚙️</span>配置编辑器</button>
-    <button class="nav-item" data-section="device-pool"><span class="nav-icon">📱</span>设备池管理</button>
-    <button class="nav-item" data-section="system"><span class="nav-icon">🖥️</span>系统监控</button>
-    <button class="nav-item" data-section="book-search"><span class="nav-icon">📚</span>书籍搜索</button>
-    <button class="nav-item" data-section="chapter-viewer"><span class="nav-icon">📖</span>章节阅读</button>
-    <button class="nav-item" data-section="comment-viewer"><span class="nav-icon">💬</span>段评查询</button>
-  </nav>
-  <div class="sidebar-footer">
-    <button class="btn btn-sm btn-outline" id="btn-lock" title="锁定面板">✦ 锁定</button>
-    <button class="btn btn-sm btn-outline" id="btn-restart">⟳ 重启</button>
-  </div>
-</aside>
-
-<main class="content">
-
-  <!-- ========== 概览仪表盘 ========== -->
-  <section id="section-dashboard" class="section active">
-    <div class="section-header">
-      <h2>概览仪表盘</h2>
-      <button class="btn btn-sm" id="btn-refresh-dashboard">⟳ 刷新</button>
-    </div>
-    <div class="dashboard-grid">
-      <div class="card">
-        <div class="card-header">JVM 内存</div>
-        <div class="card-body">
-          <div class="progress-bar" id="mem-bar"><div class="progress-fill"></div></div>
-          <div class="metric-row"><span>已用</span><span id="mem-used">--</span></div>
-          <div class="metric-row"><span>最大</span><span id="mem-max">--</span></div>
-          <div class="metric-row"><span>使用率</span><span id="mem-pct">--</span></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">线程</div>
-        <div class="card-body">
-          <div class="big-number" id="thread-active">--</div>
-          <div class="metric-label">活跃线程</div>
-          <div class="metric-row"><span>总线程数</span><span id="thread-total">--</span></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">设备池</div>
-        <div class="card-body">
-          <div class="big-number" id="pool-size">--</div>
-          <div class="metric-label">当前 / 目标</div>
-          <div class="metric-row"><span>启用</span><span id="pool-enabled">--</span></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">Redis</div>
-        <div class="card-body">
-          <div class="status-indicator" id="redis-status"><span class="dot"></span><span id="redis-text">--</span></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">签名缓存</div>
-        <div class="card-body">
-          <div class="metric-row"><span>命中率</span><span id="cache-hitrate">--</span></div>
-          <div class="metric-row"><span>缓存数量</span><span id="cache-size">--</span></div>
-          <div class="metric-row"><span>命中/未命中</span><span id="cache-hits">--</span></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">磁盘</div>
-        <div class="card-body">
-          <div class="progress-bar" id="disk-bar"><div class="progress-fill"></div></div>
-          <div class="metric-row"><span>可用</span><span id="disk-free">--</span></div>
-          <div class="metric-row"><span>总量</span><span id="disk-total">--</span></div>
-          <div class="metric-row"><span>使用率</span><span id="disk-pct">--</span></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== 配置编辑器 ========== -->
-  <section id="section-config" class="section">
-    <div class="section-header">
-      <h2>配置编辑器</h2>
-      <div class="section-header-actions">
-        <button class="btn btn-sm" id="btn-load-config">⟳ 加载</button>
-        <button class="btn btn-sm btn-primary" id="btn-save-config">✦ 保存</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-body">
-        <div class="config-editor-wrapper">
-          <textarea id="config-editor" class="config-textarea" placeholder="正在加载配置..."></textarea>
-        </div>
-        <div class="config-actions">
-          <div id="config-message" class="message hidden"></div>
-          <button class="btn btn-accent" id="btn-hot-reload">⟳ 热重载</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== 设备池管理 ========== -->
-  <section id="section-device-pool" class="section">
-    <div class="section-header">
-      <h2>设备池管理</h2>
-      <div class="section-header-actions">
-        <button class="btn btn-sm" id="btn-refresh-pool">⟳ 刷新</button>
-        <button class="btn btn-sm btn-primary" id="btn-add-device">✦ 添加设备</button>
-        <button class="btn btn-sm btn-accent" id="btn-rebuild-pool">⟳ 重建</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-body">
-        <div class="pool-stats" id="pool-stats"></div>
-        <div class="table-wrapper">
-          <table class="data-table" id="device-table">
-            <thead>
-              <tr>
-                <th>deviceId</th>
-                <th>品牌</th>
-                <th>型号</th>
-                <th>installId</th>
-                <th>版本</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="device-table-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== 系统监控 ========== -->
-  <section id="section-system" class="section">
-    <div class="section-header">
-      <h2>系统监控</h2>
-      <button class="btn btn-sm" id="btn-refresh-system">⟳ 刷新</button>
-    </div>
-    <div class="system-grid">
-      <div class="card">
-        <div class="card-header">JVM 详情</div>
-        <div class="card-body" id="jvm-detail"></div>
-      </div>
-      <div class="card">
-        <div class="card-header">HTTP 客户端</div>
-        <div class="card-body" id="http-detail"></div>
-      </div>
-      <div class="card">
-        <div class="card-header">Redis 详情</div>
-        <div class="card-body" id="redis-detail"></div>
-      </div>
-      <div class="card">
-        <div class="card-header">线程详情</div>
-        <div class="card-body" id="thread-detail"></div>
-      </div>
-      <div class="card">
-        <div class="card-header">磁盘详情</div>
-        <div class="card-body" id="disk-detail"></div>
-      </div>
-      <div class="card">
-        <div class="card-header">缓存详情</div>
-        <div class="card-body" id="cache-detail"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== 书籍搜索 ========== -->
-  <section id="section-book-search" class="section">
-    <div class="section-header">
-      <h2>✦ 书籍搜索</h2>
-    </div>
-    <div class="card mb-12">
-      <div class="card-body">
-        <div class="search-bar">
-          <select id="bs-tab-type" class="search-select">
-            <option value="1">综合</option>
-            <option value="3">书籍</option>
-            <option value="5">全文</option>
-          </select>
-          <input type="text" id="bs-query" class="search-input" placeholder="输入书名/作者关键词" autocomplete="off">
-          <button class="btn btn-primary" id="btn-bs-search">✦ 搜索</button>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header">搜索结果 <span id="bs-result-count" class="text-muted"></span></div>
-      <div class="card-body">
-        <div class="table-wrapper">
-          <table class="data-table" id="bs-result-table">
-            <thead><tr><th>书名</th><th>作者</th><th>状态</th><th>字数</th><th>评分</th><th>分类</th><th>操作</th></tr></thead>
-            <tbody id="bs-result-body"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px;">✦ 输入关键词开始搜索</td></tr></tbody>
-          </table>
-        </div>
-        <div class="pagination" id="bs-pagination"></div>
-      </div>
-    </div>
-    <div id="bs-detail-container"></div>
-    <div class="card mt-12 hidden" id="bs-directory-card">
-      <div class="card-header">✦ 章节目录</div>
-      <div class="card-body">
-        <div class="table-wrapper">
-          <table class="data-table" id="bs-dir-table">
-            <thead><tr><th>序号</th><th>章节名</th><th>字数</th><th>类型</th><th>免费</th><th>操作</th></tr></thead>
-            <tbody id="bs-dir-body"></tbody>
-          </table>
-        </div>
-        <div class="pagination" id="bs-dir-pagination"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== 章节阅读 ========== -->
-  <section id="section-chapter-viewer" class="section">
-    <div class="section-header">
-      <h2>✦ 章节阅读</h2>
-    </div>
-    <div class="card mb-12">
-      <div class="card-body">
-        <div class="search-bar">
-          <input type="text" id="cv-book-id" class="search-input" style="max-width:180px;" placeholder="Book ID" autocomplete="off">
-          <input type="text" id="cv-chapter-id" class="search-input" style="max-width:180px;" placeholder="Chapter ID" autocomplete="off">
-          <button class="btn btn-primary" id="btn-cv-load">✦ 加载</button>
-          <button class="btn btn-sm" id="btn-cv-prev" disabled>← 上一章</button>
-          <button class="btn btn-sm" id="btn-cv-next" disabled>下一章 →</button>
-          <button class="btn btn-sm btn-accent" id="btn-cv-comments" disabled>💬 段评</button>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header" id="cv-title">✦ 章节标题</div>
-      <div class="card-body">
-        <div class="chapter-content" id="cv-content"><div class="detail-empty">✦ 输入 Book ID 和 Chapter ID 加载章节</div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== 段评查询 ========== -->
-  <section id="section-comment-viewer" class="section">
-    <div class="section-header">
-      <h2>✦ 段评查询</h2>
-    </div>
-    <div class="card mb-12">
-      <div class="card-body">
-        <div class="search-bar flex-wrap">
-          <input type="text" id="cm-book-id" class="search-input" style="max-width:180px;" placeholder="Book ID" autocomplete="off">
-          <input type="text" id="cm-chapter-id" class="search-input" style="max-width:180px;" placeholder="Chapter ID" autocomplete="off">
-          <input type="number" id="cm-para-idx" class="search-input" style="max-width:100px;" placeholder="段落索引" value="0">
-          <button class="btn btn-primary" id="btn-cm-idea">✦ 统计</button>
-          <button class="btn btn-accent" id="btn-cm-list">✦ 查询</button>
-        </div>
-      </div>
-    </div>
-    <div class="card mb-12">
-      <div class="card-header">段评列表 <span id="cm-list-count" class="text-muted"></span></div>
-      <div class="card-body" id="cm-list-result"><div class="detail-empty">✦ 暂无数据</div></div>
-    </div>
-    <div class="card">
-      <div class="card-header">段落评论统计</div>
-      <div class="card-body" id="cm-idea-result"><div class="detail-empty">✦ 暂无数据</div></div>
-    </div>
-  </section>
-
-</main>
-
-<div class="toast-container" id="toast-container"></div>
-<div class="loading-overlay hidden" id="loading-overlay">
-  <div class="loading-spinner"></div>
-</div>
-
-<script src="/admin/js/admin.js?v=0.0.3"></script>
+  <script>location.href = '/admin/dashboard.html';</script>
 </body>
 </html>

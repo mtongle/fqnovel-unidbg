@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fqnovel-unidbg · 系统监控</title>
+<link rel="stylesheet" href="/admin/css/admin.css?v=0.0.4">
+</head>
+<body>
+
+<button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu">☰</button>
+<button class="theme-toggle-admin" id="adminThemeToggle" onclick="toggleAdminTheme()" title="切换主题">✦</button>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>fqnovel-unidbg</h1>
+    <span class="sidebar-subtitle">管理面板</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/admin/dashboard.html" class="nav-item" data-section="dashboard"><span class="nav-icon">📊</span>概览仪表盘</a>
+    <a href="/admin/config.html" class="nav-item" data-section="config"><span class="nav-icon">⚙️</span>配置编辑器</a>
+    <a href="/admin/devices.html" class="nav-item" data-section="device-pool"><span class="nav-icon">📱</span>设备池管理</a>
+    <a href="/admin/system.html" class="nav-item" data-section="system"><span class="nav-icon">🖥️</span>系统监控</a>
+    <a href="/admin/search.html" class="nav-item" data-section="book-search"><span class="nav-icon">📚</span>书籍搜索</a>
+    <a href="/admin/download.html" class="nav-item" data-section="download"><span class="nav-icon">⬇️</span>全本下载</a>
+    <a href="/admin/books.html" class="nav-item" data-section="books"><span class="nav-icon">📖</span>已下载书籍</a>
+    <a href="/admin/reader.html" class="nav-item" data-section="chapter-viewer"><span class="nav-icon">📖</span>章节阅读</a>
+    <a href="/admin/comments.html" class="nav-item" data-section="comment-viewer"><span class="nav-icon">💬</span>段评查询</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn btn-sm btn-outline" onclick="lockPanel()" title="锁定面板">✦ 锁定</button>
+  </div>
+</aside>
+
+<main class="content">
+  <section class="section active" style="display:block;">
+    <div class="section-header">
+      <h2>系统监控</h2>
+      <button class="btn btn-sm" id="btn-refresh-system">⟳ 刷新</button>
+    </div>
+    <div class="system-grid">
+      <div class="card"><div class="card-header">JVM 详情</div><div class="card-body" id="jvm-detail"></div></div>
+      <div class="card"><div class="card-header">HTTP 客户端</div><div class="card-body" id="http-detail"></div></div>
+      <div class="card"><div class="card-header">Redis 详情</div><div class="card-body" id="redis-detail"></div></div>
+      <div class="card"><div class="card-header">线程详情</div><div class="card-body" id="thread-detail"></div></div>
+      <div class="card"><div class="card-header">磁盘详情</div><div class="card-body" id="disk-detail"></div></div>
+      <div class="card"><div class="card-header">缓存详情</div><div class="card-body" id="cache-detail"></div></div>
+    </div>
+  </section>
+</main>
+
+<div class="toast-container" id="toast-container"></div>
+<div class="loading-overlay hidden" id="loading-overlay">
+  <div class="loading-spinner"></div>
+</div>
+
+<script src="/admin/js/admin-common.js?v=0.0.4"></script>
+<script>
+(function(){
+  async function refresh() {
+    var data = await safeFetch(function(){ return apiGet('/monitor'); }, '加载系统监控失败');
+    if (!data) return;
+
+    var jvm = data.jvm || {};
+    $('jvm-detail').innerHTML = renderDetailRows([
+      ['已用内存', formatBytes(jvm.usedMemory||0)], ['最大内存', formatBytes(jvm.maxMemory||0)],
+      ['使用率', formatPercent(jvm.memoryUsagePercent)], ['CPU 核心', jvm.availableProcessors!=null ? jvm.availableProcessors : '--'],
+      ['系统负载', jvm.systemLoadAverage!=null ? jvm.systemLoadAverage : 'N/A'], ['运行时间', formatUptime(jvm.uptime)]
+    ]);
+    var http = data.httpClient || {};
+    $('http-detail').innerHTML = renderDetailRows([
+      ['连接超时', http.connectTimeoutMs!=null ? http.connectTimeoutMs+'ms' : '--'],
+      ['读取超时', http.readTimeoutMs!=null ? http.readTimeoutMs+'ms' : '--'],
+      ['最大连接数', http.maxConnections!=null ? http.maxConnections : '--'],
+      ['每路由连接', http.maxConnectionsPerRoute!=null ? http.maxConnectionsPerRoute : '--']
+    ]);
+    var redis = data.redis || {};
+    if (redis.connected) {
+      $('redis-detail').innerHTML = renderDetailRows([['状态', '<span class="badge badge-green">已连接</span>'], ['Ping', redis.ping||'--']]);
+    } else {
+      $('redis-detail').innerHTML = '<div class="detail-empty">' + (redis.error||redis.message||'Redis 未配置') + '</div>';
+    }
+    var th = data.threads || {};
+    $('thread-detail').innerHTML = renderDetailRows([['活跃线程', th.activeCount!=null ? th.activeCount : '--'], ['总线程数', th.totalCount!=null ? th.totalCount : '--']]);
+    var disk = data.disk || {};
+    $('disk-detail').innerHTML = renderDetailRows([
+      ['总空间', formatBytes((disk.totalSpaceMB||0)*1024*1024)], ['可用空间', formatBytes((disk.freeSpaceMB||0)*1024*1024)],
+      ['使用率', formatPercent(disk.usedPercent)]
+    ]);
+    var cache = data.signatureCache || {};
+    var hr = cache.hitRate!=null ? (cache.hitRate*100).toFixed(1)+'%' : '--';
+    $('cache-detail').innerHTML = renderDetailRows([
+      ['命中率', hr], ['缓存数量', cache.cacheSize!=null ? cache.cacheSize : (cache.size!=null ? cache.size : '--')],
+      ['命中', cache.hits!=null ? cache.hits : '--'], ['未命中', cache.misses!=null ? cache.misses : '--']
+    ]);
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    refresh();
+    $('btn-refresh-system').addEventListener('click', refresh);
+  });
+})();
+</script>
+</body>
+</html>

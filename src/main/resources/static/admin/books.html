@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fqnovel-unidbg · 已下载书籍</title>
+<link rel="stylesheet" href="/admin/css/admin.css?v=0.0.4">
+<style>
+.books-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+.books-grid .book-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  transition: all var(--transition);
+}
+.books-grid .book-card:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-gold-dim);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-elevated);
+}
+.book-card-name { font-family: var(--font-display); font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.book-card-meta { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 8px; }
+.book-card-progress { margin: 6px 0; }
+.book-card-stats { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-muted); }
+.book-card-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.chapter-list { max-height: 400px; overflow-y: auto; }
+.chapter-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 0.82rem; }
+.chapter-item:last-child { border-bottom: none; }
+.detail-empty { text-align: center; padding: 40px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu">☰</button>
+<button class="theme-toggle-admin" id="adminThemeToggle" onclick="toggleAdminTheme()" title="切换主题">✦</button>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>fqnovel-unidbg</h1>
+    <span class="sidebar-subtitle">管理面板</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/admin/dashboard.html" class="nav-item" data-section="dashboard"><span class="nav-icon">📊</span>概览仪表盘</a>
+    <a href="/admin/config.html" class="nav-item" data-section="config"><span class="nav-icon">⚙️</span>配置编辑器</a>
+    <a href="/admin/devices.html" class="nav-item" data-section="device-pool"><span class="nav-icon">📱</span>设备池管理</a>
+    <a href="/admin/system.html" class="nav-item" data-section="system"><span class="nav-icon">🖥️</span>系统监控</a>
+    <a href="/admin/search.html" class="nav-item" data-section="book-search"><span class="nav-icon">📚</span>书籍搜索</a>
+    <a href="/admin/download.html" class="nav-item" data-section="download"><span class="nav-icon">⬇️</span>全本下载</a>
+    <a href="/admin/books.html" class="nav-item" data-section="books"><span class="nav-icon">📖</span>已下载书籍</a>
+    <a href="/admin/reader.html" class="nav-item" data-section="chapter-viewer"><span class="nav-icon">📖</span>章节阅读</a>
+    <a href="/admin/comments.html" class="nav-item" data-section="comment-viewer"><span class="nav-icon">💬</span>段评查询</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn btn-sm btn-outline" onclick="lockPanel()" title="锁定面板">✦ 锁定</button>
+  </div>
+</aside>
+
+<main class="content">
+  <section class="section active" style="display:block;">
+    <div class="section-header">
+      <h2>📖 已下载书籍</h2>
+      <div class="section-header-actions">
+        <button class="btn btn-sm" id="btn-refresh-books">⟳ 刷新</button>
+      </div>
+    </div>
+
+    <!-- 统计 -->
+    <div class="card mb-12">
+      <div class="card-body">
+        <div class="pool-stats" id="books-stats">
+          <div class="pool-stat-item"><span class="stat-value" id="books-total">--</span><span class="stat-label">总书籍</span></div>
+          <div class="pool-stat-item"><span class="stat-value" id="books-complete">--</span><span class="stat-label">已完成</span></div>
+          <div class="pool-stat-item"><span class="stat-value" id="books-incomplete">--</span><span class="stat-label">未完成</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 书籍网格 -->
+    <div class="card">
+      <div class="card-header">✦ 书籍列表</div>
+      <div class="card-body" id="books-grid-area">
+        <div class="detail-empty">✦ 正在加载...</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast-container" id="toast-container"></div>
+<div class="loading-overlay hidden" id="loading-overlay">
+  <div class="loading-spinner"></div>
+</div>
+
+<script src="/admin/js/admin-common.js?v=0.0.4"></script>
+<script>
+(function(){
+  var _allBooks = [];
+
+  async function refreshBooks() {
+    showLoading();
+    try {
+      var resp = await fetch('/api/fullbook/check-all-status');
+      var result = await resp.json();
+      if (!result || !result.success) { showToast((result&&result.message)||'获取数据失败', 'error'); return; }
+      renderBooks(result.books);
+    } catch(e) { showToast('刷新失败: '+e.message, 'error'); }
+    finally { hideLoading(); }
+  }
+
+  function renderBooks(data) {
+    if (!data) { $('books-grid-area').innerHTML = '<div class="detail-empty">✦ 暂无数据</div>'; return; }
+
+    var allBooks = (data.completeBooks || []).concat(data.incompleteBookList || []);
+    _allBooks = allBooks;
+
+    $('books-total').textContent = data.totalBooks || 0;
+    $('books-complete').textContent = data.completeBooks || 0;
+    $('books-incomplete').textContent = data.incompleteBooks || 0;
+
+    if (!allBooks.length) { $('books-grid-area').innerHTML = '<div class="detail-empty">✦ 暂无已下载的书籍</div>'; return; }
+
+    var html = '<div class="books-grid">' + allBooks.map(function(b){
+      var pct = b.progress != null ? Math.round(b.progress) : 0;
+      var completed = b.completed ? true : false;
+      var barColor = completed ? 'var(--accent-green)' : (pct>0?'var(--accent-gold)':'var(--text-muted)');
+      var statusBadge = completed ? '<span class="badge badge-green">已完成</span>' : '<span class="badge badge-gold">' + pct + '%</span>';
+      return '<div class="book-card" data-book-id="'+escapeHtml(b.bookId)+'">' +
+        '<div class="book-card-name">' + escapeHtml(b.bookName||'未命名书籍') + '</div>' +
+        '<div class="book-card-meta" style="font-family:var(--font-mono);font-size:0.7rem;">' + escapeHtml(b.bookId) + '</div>' +
+        '<div class="book-card-meta">' + statusBadge + '</div>' +
+        '<div class="book-card-progress"><div class="progress-bar" style="height:6px;"><div class="progress-fill" style="width:'+pct+'%;background:'+barColor+';"></div></div></div>' +
+        '<div class="book-card-stats"><span>已下载: <strong>' + (b.downloadedChapters!=null?b.downloadedChapters:'?') + '</strong></span><span>总章节: <strong>' + (b.totalChapters!=null?b.totalChapters:'?') + '</strong></span></div>' +
+        '<div class="book-card-actions">' +
+        '<button class="btn btn-sm btn-primary show-chapters-btn" data-book-id="'+encodeURIComponent(b.bookId)+'" data-book-name="'+escapeHtml(b.bookName||'')+'">📋 查看章节</button>' +
+        '<button class="btn btn-sm btn-outline" onclick="window.location.href=\'/admin/download.html\'">⬇️ 下载管理</button>' +
+        '<button class="btn btn-sm btn-danger delete-book-btn" data-book-id="'+encodeURIComponent(b.bookId)+'">删除</button></div></div>';
+    }).join('') + '</div>';
+
+    $('books-grid-area').innerHTML = html;
+
+    $('books-grid-area').querySelectorAll('.show-chapters-btn').forEach(function(btn){
+      btn.addEventListener('click', function(e){ e.stopPropagation(); showChapters(this.dataset.bookId, this.dataset.bookName); });
+    });
+    $('books-grid-area').querySelectorAll('.delete-book-btn').forEach(function(btn){
+      btn.addEventListener('click', function(e){ e.stopPropagation(); deleteBook(this.dataset.bookId); });
+    });
+  }
+
+  async function showChapters(bookId, bookName) {
+    if (!bookId) return;
+    showLoading();
+    try {
+      var resp = await fetch('/api/fullbook/chapters/' + encodeURIComponent(bookId));
+      if (!resp.ok) { showToast('获取章节列表失败', 'error'); return; }
+      var chapters = await resp.json();
+      if (!chapters || !chapters.length) { showToast('该书籍暂无已下载章节', 'info'); return; }
+      renderChapterModal(bookId, bookName, chapters);
+    } catch(e) { showToast('获取章节列表失败: ' + e.message, 'error'); }
+    finally { hideLoading(); }
+  }
+
+  function renderChapterModal(bookId, bookName, chapters) {
+    var overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    var tableRows = chapters.map(function(ch, idx){
+      var hasContent = ch.txtContent || ch.rawContent ? true : false;
+      return '<div class="chapter-item"><span>' + (idx+1) + '. ' + escapeHtml(ch.title||'无标题') + '</span><span>' +
+        (ch.wordCount ? '<span style="color:var(--text-muted);margin-right:12px;">'+formatWordCount(ch.wordCount)+'</span>' : '') +
+        (hasContent ? '<span class="badge badge-green" style="font-size:0.6rem;">已下载</span>' : '') +
+        '</span></div>';
+    }).join('');
+    overlay.innerHTML = '<div class="confirm-dialog" style="max-width:640px;width:90vw;">' +
+      '<h3>📋 '+escapeHtml(bookName||bookId)+'</h3>' +
+      '<p style="margin-bottom:8px;">已下载 '+chapters.length+' 章</p>' +
+      '<div class="chapter-list">'+tableRows+'</div>' +
+      '<div class="confirm-actions" style="margin-top:12px;"><button class="btn" id="chapters-close-btn">关闭</button></div></div>';
+    document.body.appendChild(overlay);
+    qs('#chapters-close-btn', overlay).addEventListener('click', function(){ overlay.remove(); });
+    overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
+  }
+
+  async function deleteBook(bookId) {
+    if (!bookId) return;
+    var ok = await confirmDialog('删除已下载章节', '确定要删除该书籍的所有已下载章节吗？此操作不可撤销。');
+    if (!ok) return;
+    showLoading();
+    try {
+      var resp = await fetch('/api/fullbook/chapters/' + bookId, { method: 'DELETE' });
+      var result = await resp.json();
+      if (result.success) { showToast('删除成功', 'success'); refreshBooks(); }
+      else showToast(result.message||'删除失败', 'error');
+    } catch(e) { showToast('删除失败: '+e.message, 'error'); }
+    finally { hideLoading(); }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    refreshBooks();
+    $('btn-refresh-books').addEventListener('click', refreshBooks);
+    var params = new URLSearchParams(location.search);
+    var bid = params.get('bookId');
+    if (bid) setTimeout(function(){ showChapters(bid, ''); }, 500);
+  });
+})();
+</script>
+</body>
+</html>

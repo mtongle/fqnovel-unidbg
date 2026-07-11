@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fqnovel-unidbg · 配置编辑器</title>
+<link rel="stylesheet" href="/admin/css/admin.css?v=0.0.4">
+</head>
+<body>
+
+<button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu">☰</button>
+<button class="theme-toggle-admin" id="adminThemeToggle" onclick="toggleAdminTheme()" title="切换主题">✦</button>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>fqnovel-unidbg</h1>
+    <span class="sidebar-subtitle">管理面板</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/admin/dashboard.html" class="nav-item" data-section="dashboard"><span class="nav-icon">📊</span>概览仪表盘</a>
+    <a href="/admin/config.html" class="nav-item" data-section="config"><span class="nav-icon">⚙️</span>配置编辑器</a>
+    <a href="/admin/devices.html" class="nav-item" data-section="device-pool"><span class="nav-icon">📱</span>设备池管理</a>
+    <a href="/admin/system.html" class="nav-item" data-section="system"><span class="nav-icon">🖥️</span>系统监控</a>
+    <a href="/admin/search.html" class="nav-item" data-section="book-search"><span class="nav-icon">📚</span>书籍搜索</a>
+    <a href="/admin/download.html" class="nav-item" data-section="download"><span class="nav-icon">⬇️</span>全本下载</a>
+    <a href="/admin/books.html" class="nav-item" data-section="books"><span class="nav-icon">📖</span>已下载书籍</a>
+    <a href="/admin/reader.html" class="nav-item" data-section="chapter-viewer"><span class="nav-icon">📖</span>章节阅读</a>
+    <a href="/admin/comments.html" class="nav-item" data-section="comment-viewer"><span class="nav-icon">💬</span>段评查询</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn btn-sm btn-outline" onclick="lockPanel()" title="锁定面板">✦ 锁定</button>
+  </div>
+</aside>
+
+<main class="content">
+  <section class="section active" style="display:block;">
+    <div class="section-header">
+      <h2>配置编辑器</h2>
+      <div class="section-header-actions">
+        <button class="btn btn-sm" id="btn-load-config">⟳ 加载</button>
+        <button class="btn btn-sm btn-primary" id="btn-save-config">✦ 保存</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="config-editor-wrapper">
+          <textarea id="config-editor" class="config-textarea" placeholder="正在加载配置..."></textarea>
+        </div>
+        <div class="config-actions">
+          <div id="config-message" class="message hidden"></div>
+          <button class="btn btn-accent" id="btn-hot-reload">⟳ 热重载</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast-container" id="toast-container"></div>
+<div class="loading-overlay hidden" id="loading-overlay">
+  <div class="loading-spinner"></div>
+</div>
+
+<script src="/admin/js/admin-common.js?v=0.0.4"></script>
+<script>
+(function(){
+  var loaded = false;
+  async function loadConfig(force) {
+    if (loaded && !force) return;
+    var r = await safeFetch(function(){ return apiGet('/config'); }, '加载配置失败');
+    if (!r) return;
+    $('config-editor').value = r.text || '';
+    $('config-message').classList.add('hidden');
+    loaded = true;
+  }
+  async function saveConfig() {
+    var content = $('config-editor').value;
+    if (!content.trim()) { showToast('配置内容不能为空', 'error'); return; }
+    var btn = $('btn-save-config');
+    if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
+    var r = await safeFetch(function(){ return apiPut('/config', content, 'text/plain'); }, '保存配置失败');
+    if (btn) { btn.disabled = false; btn.textContent = '✦ 保存'; }
+    if (!r) return;
+    if (r.success) {
+      showToast(r.message || '配置已保存', 'success');
+      $('config-message').textContent = r.message;
+      $('config-message').className = 'message success';
+      $('config-message').classList.remove('hidden');
+    } else {
+      showToast(r.message || '保存失败', 'error');
+      $('config-message').textContent = r.message;
+      $('config-message').className = 'message error';
+      $('config-message').classList.remove('hidden');
+    }
+  }
+  async function hotReload() {
+    var r = await safeFetch(function(){ return apiPost('/refresh'); }, '热重载失败');
+    if (!r) return;
+    if (r.success) { var keys = r.changedKeys; showToast(r.message + (keys && keys.length ? ' 变更键: ' + keys.join(', ') : ''), 'success'); }
+    else { showToast(r.message || '热重载失败', 'error'); }
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    loadConfig();
+    $('btn-load-config').addEventListener('click', function(){ loadConfig(true); });
+    $('btn-save-config').addEventListener('click', saveConfig);
+    $('btn-hot-reload').addEventListener('click', hotReload);
+  });
+})();
+</script>
+</body>
+</html>

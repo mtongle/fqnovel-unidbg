@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fqnovel-unidbg · 设备池管理</title>
+<link rel="stylesheet" href="/admin/css/admin.css?v=0.0.4">
+</head>
+<body>
+
+<button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu">☰</button>
+<button class="theme-toggle-admin" id="adminThemeToggle" onclick="toggleAdminTheme()" title="切换主题">✦</button>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>fqnovel-unidbg</h1>
+    <span class="sidebar-subtitle">管理面板</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="/admin/dashboard.html" class="nav-item" data-section="dashboard"><span class="nav-icon">📊</span>概览仪表盘</a>
+    <a href="/admin/config.html" class="nav-item" data-section="config"><span class="nav-icon">⚙️</span>配置编辑器</a>
+    <a href="/admin/devices.html" class="nav-item" data-section="device-pool"><span class="nav-icon">📱</span>设备池管理</a>
+    <a href="/admin/system.html" class="nav-item" data-section="system"><span class="nav-icon">🖥️</span>系统监控</a>
+    <a href="/admin/search.html" class="nav-item" data-section="book-search"><span class="nav-icon">📚</span>书籍搜索</a>
+    <a href="/admin/download.html" class="nav-item" data-section="download"><span class="nav-icon">⬇️</span>全本下载</a>
+    <a href="/admin/books.html" class="nav-item" data-section="books"><span class="nav-icon">📖</span>已下载书籍</a>
+    <a href="/admin/reader.html" class="nav-item" data-section="chapter-viewer"><span class="nav-icon">📖</span>章节阅读</a>
+    <a href="/admin/comments.html" class="nav-item" data-section="comment-viewer"><span class="nav-icon">💬</span>段评查询</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn btn-sm btn-outline" onclick="lockPanel()" title="锁定面板">✦ 锁定</button>
+  </div>
+</aside>
+
+<main class="content">
+  <section class="section active" style="display:block;">
+    <div class="section-header">
+      <h2>设备池管理</h2>
+      <div class="section-header-actions">
+        <button class="btn btn-sm" id="btn-refresh-pool">⟳ 刷新</button>
+        <button class="btn btn-sm btn-primary" id="btn-add-device">✦ 添加设备</button>
+        <button class="btn btn-sm btn-accent" id="btn-rebuild-pool">⟳ 重建</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="pool-stats" id="pool-stats"></div>
+        <div class="table-wrapper">
+          <table class="data-table" id="device-table">
+            <thead><tr><th>deviceId</th><th>品牌</th><th>型号</th><th>installId</th><th>版本</th><th>操作</th></tr></thead>
+            <tbody id="device-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast-container" id="toast-container"></div>
+<div class="loading-overlay hidden" id="loading-overlay">
+  <div class="loading-spinner"></div>
+</div>
+
+<script src="/admin/js/admin-common.js?v=0.0.4"></script>
+<script>
+(function(){
+  async function refresh() {
+    var data = await safeFetch(function(){ return apiGet('/device-pool'); }, '加载设备池失败');
+    if (!data) return;
+    renderPoolStats(data);
+    renderDeviceTable(data.devices || []);
+  }
+  function renderPoolStats(data) {
+    var el = $('pool-stats');
+    if (!el) return;
+    el.innerHTML =
+      '<div class="pool-stat-item"><span class="stat-value">' + (data.enabled ? '✓' : '✕') + '</span><span class="stat-label">状态</span></div>' +
+      '<div class="pool-stat-item"><span class="stat-value">' + (data.currentSize || 0) + '</span><span class="stat-label">当前数量</span></div>' +
+      '<div class="pool-stat-item"><span class="stat-value">' + (data.targetSize || 0) + '</span><span class="stat-label">目标数量</span></div>' +
+      '<div class="pool-stat-item"><span class="stat-value">' + (data.nextIndex || 0) + '</span><span class="stat-label">轮询索引</span></div>';
+  }
+  function renderDeviceTable(devices) {
+    var tbody = $('device-table-body');
+    if (!tbody) return;
+    if (!devices || !devices.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px;">暂无设备数据</td></tr>';
+      return;
+    }
+    tbody.innerHTML = devices.map(function(d){
+      return '<tr><td style="font-size:0.75rem;">' + escapeHtml(d.deviceId||'--') + '</td>' +
+        '<td>' + escapeHtml(d.deviceBrand||'--') + '</td>' +
+        '<td>' + escapeHtml(d.deviceType||'--') + '</td>' +
+        '<td style="font-size:0.75rem;">' + escapeHtml((d.installId||'--').slice(0,16)) + '…</td>' +
+        '<td>' + escapeHtml(d.versionName||d.versionCode||'--') + '</td>' +
+        '<td><button class="btn btn-sm btn-danger remove-device" data-device-id="' + escapeHtml(d.deviceId||'') + '">移除</button></td></tr>';
+    }).join('');
+    tbody.querySelectorAll('.remove-device').forEach(function(btn){
+      btn.addEventListener('click', function(){ removeDevice(this.dataset.deviceId); });
+    });
+  }
+  async function addDevice() {
+    var r = await safeFetch(function(){ return apiPost('/device-pool/add'); }, '添加设备失败');
+    if (!r) return;
+    if (r.success) { showToast(r.message||'设备已添加', 'success'); refresh(); }
+    else showToast(r.message||'添加失败', 'error');
+  }
+  async function removeDevice(id) {
+    if (!id) return;
+    var ok = await confirmDialog('移除设备', '确定要移除设备 ' + id + ' 吗？');
+    if (!ok) return;
+    var r = await safeFetch(function(){ return apiPost('/device-pool/remove', {deviceId: id}); }, '移除设备失败');
+    if (!r) return;
+    if (r.success) { showToast(r.message||'设备已移除', 'success'); refresh(); }
+    else showToast(r.message||'移除失败', 'error');
+  }
+  async function rebuildPool() {
+    var ok = await confirmDialog('重建设备池', '确定要重新构建整个设备池吗？');
+    if (!ok) return;
+    var r = await safeFetch(function(){ return apiPost('/device-pool/rebuild'); }, '重建设备池失败');
+    if (!r) return;
+    if (r.success) { showToast(r.message||'设备池已重建', 'success'); refresh(); }
+    else showToast(r.message||'重建失败', 'error');
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    refresh();
+    $('btn-refresh-pool').addEventListener('click', refresh);
+    $('btn-add-device').addEventListener('click', addDevice);
+    $('btn-rebuild-pool').addEventListener('click', rebuildPool);
+  });
+})();
+</script>
+</body>
+</html>

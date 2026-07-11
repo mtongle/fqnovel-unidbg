@@ -174,9 +174,9 @@
       var btnLogin = document.getElementById('btn-login');
       var serverInfo = document.getElementById('server-info');
 
-      // If already authenticated, go straight to admin
+      // If already authenticated, go straight to dashboard
       if (sessionStorage.getItem('admin_auth') === '1') {
-        location.href = '/admin/index.html';
+        location.href = '/admin/dashboard.html';
         return;
       }
 
@@ -206,7 +206,7 @@
             sessionStorage.setItem('admin_auth', '1');
             sessionStorage.setItem('admin_auth_time', Date.now());
             sessionStorage.setItem('admin_token', data.token);
-            location.href = '/admin/index.html';
+            location.href = '/admin/dashboard.html';
           } else {
             errorEl.textContent = data.message || '✕ 密码错误';
             errorEl.classList.add('visible');
