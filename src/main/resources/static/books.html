@@ -63,9 +63,9 @@
 <main class="public-content">
   <section class="section active" style="display:block;">
     <div class="section-header">
-      <h2>📖 已下载书籍</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg> 已下载书籍</h2>
       <div class="section-header-actions">
-        <button class="btn btn-sm" id="btn-refresh-books">⟳ 刷新</button>
+        <button class="btn btn-sm" id="btn-refresh-books"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 刷新</button>
       </div>
     </div>
 
@@ -118,7 +118,7 @@
     _allBooks = allBooks;
 
     $('books-total').textContent = data.totalBooks || 0;
-    $('books-complete').textContent = data.completeBooks || 0;
+    $('books-complete').textContent = (data.completeBooks || []).length;
     $('books-incomplete').textContent = data.incompleteBooks || 0;
 
     if (!allBooks.length) { $('books-grid-area').innerHTML = '<div class="detail-empty">✦ 暂无已下载的书籍</div>'; return; }
@@ -135,8 +135,8 @@
         '<div class="book-card-progress"><div class="progress-bar" style="height:6px;"><div class="progress-fill" style="width:'+pct+'%;background:'+barColor+';"></div></div></div>' +
         '<div class="book-card-stats"><span>已下载: <strong>' + (b.downloadedChapters!=null?b.downloadedChapters:'?') + '</strong></span><span>总章节: <strong>' + (b.totalChapters!=null?b.totalChapters:'?') + '</strong></span></div>' +
         '<div class="book-card-actions">' +
-        '<button class="btn btn-sm btn-primary show-chapters-btn" data-book-id="'+encodeURIComponent(b.bookId)+'" data-book-name="'+escapeHtml(b.bookName||'')+'">📋 查看章节</button>' +
-        '<button class="btn btn-sm btn-outline" onclick="window.location.href=\'/admin/download.html\'">⬇️ 下载管理</button>' +
+        '<button class="btn btn-sm btn-primary show-chapters-btn" data-book-id="'+encodeURIComponent(b.bookId)+'" data-book-name="'+escapeHtml(b.bookName||'')+'"><svg class="ic"><use href="/css/icons.svg#icon-clipboard"/></svg> 查看章节</button>' +
+        '<button class="btn btn-sm btn-outline" onclick="window.location.href=\'/admin/download.html\'"><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg> 下载管理</button>' +
         '<button class="btn btn-sm btn-danger delete-book-btn" data-book-id="'+encodeURIComponent(b.bookId)+'">删除</button></div></div>';
     }).join('') + '</div>';
 
@@ -174,7 +174,7 @@
         '</span></div>';
     }).join('');
     overlay.innerHTML = '<div class="confirm-dialog" style="max-width:640px;width:90vw;">' +
-      '<h3>📋 '+escapeHtml(bookName||bookId)+'</h3>' +
+      '<h3><svg class="ic"><use href="/css/icons.svg#icon-clipboard"/></svg> '+escapeHtml(bookName||bookId)+'</h3>' +
       '<p style="margin-bottom:8px;">已下载 '+chapters.length+' 章</p>' +
       '<div class="chapter-list">'+tableRows+'</div>' +
       '<div class="confirm-actions" style="margin-top:12px;"><button class="btn" id="chapters-close-btn">关闭</button></div></div>';

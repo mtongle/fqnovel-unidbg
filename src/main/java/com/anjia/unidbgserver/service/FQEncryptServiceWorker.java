@@ -219,9 +219,9 @@ public class FQEncryptServiceWorker extends Worker {
         CacheStats stats = signatureCacheService.getStats();
         return Map.of(
             "cacheSize", signatureCacheService.size(),
-            "hitCount", stats.hitCount(),
-            "missCount", stats.missCount(),
-            "hitRate", String.format("%.2f%%", stats.hitRate() * 100),
+            "hits", stats.hitCount(),
+            "misses", stats.missCount(),
+            "hitRate", stats.hitRate(),
             "evictionCount", stats.evictionCount()
         );
     }

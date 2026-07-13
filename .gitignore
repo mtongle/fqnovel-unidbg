@@ -52,5 +52,12 @@ tools/results/
 ### Sisyphus work evidence ###
 .sisyphus/
 
+### OpenCode ###
+.omo/
+opencode.jsonc
+
+### Runtime ###
+.hermes/
+
 ### Build artifacts ###
 /fqnovel-unidbg.jar

@@ -71,15 +71,15 @@
     <span class="sidebar-subtitle">管理面板</span>
   </div>
   <nav class="sidebar-nav">
-    <a href="/admin/dashboard.html" class="nav-item" data-section="dashboard"><span class="nav-icon">📊</span>概览仪表盘</a>
-    <a href="/admin/config.html" class="nav-item" data-section="config"><span class="nav-icon">⚙️</span>配置编辑器</a>
-    <a href="/admin/devices.html" class="nav-item" data-section="device-pool"><span class="nav-icon">📱</span>设备池管理</a>
-    <a href="/admin/system.html" class="nav-item" data-section="system"><span class="nav-icon">🖥️</span>系统监控</a>
-    <a href="/admin/search.html" class="nav-item" data-section="book-search"><span class="nav-icon">📚</span>书籍搜索</a>
-    <a href="/admin/download.html" class="nav-item" data-section="download"><span class="nav-icon">⬇️</span>全本下载</a>
-    <a href="/admin/books.html" class="nav-item" data-section="books"><span class="nav-icon">📖</span>已下载书籍</a>
-    <a href="/admin/reader.html" class="nav-item" data-section="chapter-viewer"><span class="nav-icon">📖</span>章节阅读</a>
-    <a href="/admin/comments.html" class="nav-item" data-section="comment-viewer"><span class="nav-icon">💬</span>段评查询</a>
+    <a href="/admin/dashboard.html" class="nav-item" data-section="dashboard"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-dashboard"/></svg></span>概览仪表盘</a>
+    <a href="/admin/config.html" class="nav-item" data-section="config"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-settings"/></svg></span>配置编辑器</a>
+    <a href="/admin/devices.html" class="nav-item" data-section="device-pool"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-device"/></svg></span>设备池管理</a>
+    <a href="/admin/system.html" class="nav-item" data-section="system"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-monitor"/></svg></span>系统监控</a>
+    <a href="/admin/search.html" class="nav-item" data-section="book-search"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-search"/></svg></span>书籍搜索</a>
+    <a href="/admin/download.html" class="nav-item" data-section="download"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg></span>全本下载</a>
+    <a href="/admin/books.html" class="nav-item" data-section="books"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg></span>已下载书籍</a>
+    <a href="/admin/reader.html" class="nav-item" data-section="chapter-viewer"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg></span>章节阅读</a>
+    <a href="/admin/comments.html" class="nav-item" data-section="comment-viewer"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-comment"/></svg></span>段评查询</a>
   </nav>
   <div class="sidebar-footer">
     <button class="btn btn-sm btn-outline" onclick="lockPanel()" title="锁定面板">✦ 锁定</button>
@@ -194,7 +194,7 @@
       var d = resp.data;
       _detailBookId = d.bookId || _detailBookId;
       var coverUrl = normalizeImageUrl(d.coverUrl);
-      var coverHtml = coverUrl ? '<img class="book-detail-cover" src="'+escapeHtml(coverUrl)+'" alt="cover" onerror="fixHeicImg(this)">' : '<div style="width:140px;height:200px;background:var(--bg-tertiary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:2rem;">📖</div>';
+      var coverHtml = coverUrl ? '<img class="book-detail-cover" src="'+escapeHtml(coverUrl)+'" alt="cover" onerror="fixHeicImg(this)">' : '<div style="width:140px;height:200px;background:var(--bg-tertiary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:2rem;"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg></div>';
       var fch = d.firstChapterItemId || '';
       var bid = _detailBookId;
       var vipHtml = '';
@@ -202,7 +202,7 @@
       var card = document.createElement('div');
       card.className = 'card';
       card.style.marginTop = '12px';
-      card.innerHTML = '<div class="card-header">📖 书籍详情 <span style="float:right;cursor:pointer;color:var(--text-muted);" class="bs-close-card">✕</span></div><div class="card-body"><div class="book-detail">'+coverHtml+'<div class="book-detail-info"><h3>'+escapeHtml(d.bookName||'--')+'</h3><div class="author">'+escapeHtml(d.author||'--')+'</div><div class="desc">'+escapeHtml((d.description||'').slice(0,500))+'</div><div class="book-detail-stats"><div class="stat"><span class="stat-label">状态</span><span class="stat-value">'+bookStatusText(d.status)+'</span></div><div class="stat"><span class="stat-label">字数</span><span class="stat-value">'+formatWordCount(d.wordNumber)+'</span></div><div class="stat"><span class="stat-label">章节</span><span class="stat-value">'+(d.totalChapters!=null?d.totalChapters:'--')+'</span></div><div class="stat"><span class="stat-label">评分</span><span class="stat-value">'+(d.score!=null?d.score:'--')+'</span></div><div class="stat"><span class="stat-label">分类</span><span class="stat-value">'+escapeHtml(d.category||'--')+'</span></div><div class="stat"><span class="stat-label">阅读</span><span class="stat-value">'+escapeHtml(d.readCount||'--')+'</span></div>'+vipHtml+'</div><div class="flex gap-8" style="flex-wrap:wrap;"><button class="btn btn-primary btn-sm bs-show-dir" data-book-id="'+escapeHtml(bid)+'">📋 查看目录</button><button class="btn btn-sm bs-read-book" data-book-id="'+escapeHtml(bid)+'" data-first-chapter="'+escapeHtml(fch)+'">📖 开始阅读</button><button class="btn btn-sm btn-outline bs-close-card">收起</button></div></div></div></div>';
+      card.innerHTML = '<div class="card-header"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg> 书籍详情 <span style="float:right;cursor:pointer;color:var(--text-muted);" class="bs-close-card">✕</span></div><div class="card-body"><div class="book-detail">'+coverHtml+'<div class="book-detail-info"><h3>'+escapeHtml(d.bookName||'--')+'</h3><div class="author">'+escapeHtml(d.author||'--')+'</div><div class="desc">'+escapeHtml((d.description||'').slice(0,500))+'</div><div class="book-detail-stats"><div class="stat"><span class="stat-label">状态</span><span class="stat-value">'+bookStatusText(d.status)+'</span></div><div class="stat"><span class="stat-label">字数</span><span class="stat-value">'+formatWordCount(d.wordNumber)+'</span></div><div class="stat"><span class="stat-label">章节</span><span class="stat-value">'+(d.totalChapters!=null?d.totalChapters:'--')+'</span></div><div class="stat"><span class="stat-label">评分</span><span class="stat-value">'+(d.score!=null?d.score:'--')+'</span></div><div class="stat"><span class="stat-label">分类</span><span class="stat-value">'+escapeHtml(d.category||'--')+'</span></div><div class="stat"><span class="stat-label">阅读</span><span class="stat-value">'+escapeHtml(d.readCount||'--')+'</span></div>'+vipHtml+'</div><div class="flex gap-8" style="flex-wrap:wrap;"><button class="btn btn-primary btn-sm bs-show-dir" data-book-id="'+escapeHtml(bid)+'"><svg class="ic"><use href="/css/icons.svg#icon-clipboard"/></svg> 查看目录</button><button class="btn btn-sm bs-read-book" data-book-id="'+escapeHtml(bid)+'" data-first-chapter="'+escapeHtml(fch)+'"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg> 开始阅读</button><button class="btn btn-sm btn-outline bs-close-card">收起</button></div></div></div></div>';
       container.appendChild(card);
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
       card.querySelectorAll('.bs-close-card').forEach(function(btn){ btn.addEventListener('click', function(){ container.innerHTML = ''; }); });
@@ -240,7 +240,7 @@
             var isf = item.is_free != null ? item.is_free : item.isFree;
             return '<tr><td>'+ci+'</td><td>'+escapeHtml(item.title||'--')+'</td><td>'+formatWordCount(cwn)+'</td><td>'+(ct==='1'?'番外':'正文')+'</td><td>'+(isf ? '<span class="badge badge-green">免费</span>' : '<span class="badge badge-orange">付费</span>')+'</td><td><a href="/admin/reader.html?bookId='+encodeURIComponent(bookId)+'&chapterId='+encodeURIComponent(iid)+'" class="btn btn-sm">阅读</a></td></tr>';
           }).join('');
-      card.innerHTML = '<div class="card-header">📋 章节目录</div><div class="card-body"><div class="table-wrapper"><table class="data-table"><thead><tr><th>序号</th><th>章节名</th><th>字数</th><th>类型</th><th>免费/付费</th><th>操作</th></tr></thead><tbody>'+tableBody+'</tbody></table></div></div>';
+      card.innerHTML = '<div class="card-header"><svg class="ic"><use href="/css/icons.svg#icon-clipboard"/></svg> 章节目录</div><div class="card-body"><div class="table-wrapper"><table class="data-table"><thead><tr><th>序号</th><th>章节名</th><th>字数</th><th>类型</th><th>免费/付费</th><th>操作</th></tr></thead><tbody>'+tableBody+'</tbody></table></div></div>';
       container.appendChild(card);
     } catch(e) { showToast('请求失败: ' + e.message, 'error'); }
     finally { hideLoading(); }

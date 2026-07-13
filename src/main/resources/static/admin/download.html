@@ -18,15 +18,15 @@
     <span class="sidebar-subtitle">管理面板</span>
   </div>
   <nav class="sidebar-nav">
-    <a href="/admin/dashboard.html" class="nav-item" data-section="dashboard"><span class="nav-icon">📊</span>概览仪表盘</a>
-    <a href="/admin/config.html" class="nav-item" data-section="config"><span class="nav-icon">⚙️</span>配置编辑器</a>
-    <a href="/admin/devices.html" class="nav-item" data-section="device-pool"><span class="nav-icon">📱</span>设备池管理</a>
-    <a href="/admin/system.html" class="nav-item" data-section="system"><span class="nav-icon">🖥️</span>系统监控</a>
-    <a href="/admin/search.html" class="nav-item" data-section="book-search"><span class="nav-icon">📚</span>书籍搜索</a>
-    <a href="/admin/download.html" class="nav-item" data-section="download"><span class="nav-icon">⬇️</span>全本下载</a>
-    <a href="/admin/books.html" class="nav-item" data-section="books"><span class="nav-icon">📖</span>已下载书籍</a>
-    <a href="/admin/reader.html" class="nav-item" data-section="chapter-viewer"><span class="nav-icon">📖</span>章节阅读</a>
-    <a href="/admin/comments.html" class="nav-item" data-section="comment-viewer"><span class="nav-icon">💬</span>段评查询</a>
+    <a href="/admin/dashboard.html" class="nav-item" data-section="dashboard"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-dashboard"/></svg></span>概览仪表盘</a>
+    <a href="/admin/config.html" class="nav-item" data-section="config"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-settings"/></svg></span>配置编辑器</a>
+    <a href="/admin/devices.html" class="nav-item" data-section="device-pool"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-device"/></svg></span>设备池管理</a>
+    <a href="/admin/system.html" class="nav-item" data-section="system"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-monitor"/></svg></span>系统监控</a>
+    <a href="/admin/search.html" class="nav-item" data-section="book-search"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-search"/></svg></span>书籍搜索</a>
+    <a href="/admin/download.html" class="nav-item" data-section="download"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg></span>全本下载</a>
+    <a href="/admin/books.html" class="nav-item" data-section="books"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg></span>已下载书籍</a>
+    <a href="/admin/reader.html" class="nav-item" data-section="chapter-viewer"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg></span>章节阅读</a>
+    <a href="/admin/comments.html" class="nav-item" data-section="comment-viewer"><span class="nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-comment"/></svg></span>段评查询</a>
   </nav>
   <div class="sidebar-footer">
     <button class="btn btn-sm btn-outline" onclick="lockPanel()" title="锁定面板">✦ 锁定</button>
@@ -36,10 +36,10 @@
 <main class="content">
   <section class="section active" style="display:block;">
     <div class="section-header">
-      <h2>⬇️ 全本下载管理</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg> 全本下载管理</h2>
       <div class="section-header-actions">
-        <button class="btn btn-accent" id="btn-check-status">⟳ 检查所有</button>
-        <button class="btn btn-primary" id="btn-resume-all">⟳ 恢复所有</button>
+        <button class="btn btn-accent" id="btn-check-status"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 检查所有</button>
+        <button class="btn btn-primary" id="btn-resume-all"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 恢复所有</button>
       </div>
     </div>
 
@@ -51,8 +51,8 @@
           <input type="text" id="dl-book-id" class="search-input" style="max-width:220px;" placeholder="输入 Book ID" autocomplete="off">
           <input type="number" id="dl-batch-size" class="search-input" style="max-width:100px;" placeholder="批大小" value="30">
           <input type="number" id="dl-max-chapters" class="search-input" style="max-width:100px;" placeholder="最大章节(0=全部)" value="0">
-          <button class="btn btn-primary" id="btn-start-download">⬇️ 开始下载</button>
-          <button class="btn btn-sm" id="btn-resume-book">⟳ 恢复下载</button>
+          <button class="btn btn-primary" id="btn-start-download"><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg> 开始下载</button>
+          <button class="btn btn-sm" id="btn-resume-book"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 恢复下载</button>
         </div>
       </div>
     </div>
@@ -60,7 +60,7 @@
     <!-- 活跃下载 -->
     <div class="card mb-12">
       <div class="card-header">
-        ⬇️ 下载进度
+        <svg class="ic"><use href="/css/icons.svg#icon-download"/></svg> 下载进度
         <span style="margin-left:12px;color:var(--text-muted);" id="dl-progress-count"></span>
       </div>
       <div class="card-body" id="dl-progress-area">
@@ -72,7 +72,7 @@
     <!-- 所有书籍状态 -->
     <div class="card">
       <div class="card-header">
-        📊 所有书籍下载状态
+        <svg class="ic"><use href="/css/icons.svg#icon-stats"/></svg> 所有书籍下载状态
         <span style="margin-left:12px;color:var(--text-muted);" id="dl-summary"></span>
       </div>
       <div class="card-body">
@@ -187,7 +187,7 @@
       var result = await resp.json();
       if (!result || !result.success) { showToast((result&&result.message)||'检查失败', 'error'); return; }
       renderStatusTable(result.books);
-      $('dl-summary').textContent = '共 ' + (result.books.totalBooks||0) + ' 本，已完成 ' + (result.books.completeBooks||0) + ' 本';
+      $('dl-summary').textContent = '共 ' + (result.books.totalBooks||0) + ' 本，已完成 ' + ((result.books.completeBooks||[]).length) + ' 本';
     } catch(e) { showToast('检查失败: ' + e.message, 'error'); }
     finally { hideLoading(); }
   }
@@ -206,7 +206,7 @@
         '<td style="min-width:120px;"><div class="progress-bar" style="height:6px;margin:4px 0;"><div class="progress-fill" style="width:'+pct+'%;background:'+(completed?'var(--accent-green)':(pct>0?'var(--accent-gold)':'var(--text-muted)'))+';"></div></div></td>' +
         '<td style="font-family:var(--font-mono);">'+(b.downloadedChapters!=null?b.downloadedChapters:'?')+' / '+(b.totalChapters!=null?b.totalChapters:'?')+'</td>' +
         '<td>'+statusText+'</td>' +
-        '<td><button class="btn btn-sm btn-outline resume-book-btn" data-book-id="'+escapeHtml(b.bookId)+'" '+(completed?'disabled':'')+'>⟳ 恢复</button> <button class="btn btn-sm btn-danger delete-book-btn" data-book-id="'+escapeHtml(b.bookId)+'">删除</button></td></tr>';
+        '<td><button class="btn btn-sm btn-outline resume-book-btn" data-book-id="'+escapeHtml(b.bookId)+'" '+(completed?'disabled':'')+'><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 恢复</button> <button class="btn btn-sm btn-danger delete-book-btn" data-book-id="'+escapeHtml(b.bookId)+'">删除</button></td></tr>';
     }).join('');
     tbody.querySelectorAll('.resume-book-btn').forEach(function(btn){ btn.addEventListener('click', function(){ autoResumeBook(this.dataset.bookId); }); });
     tbody.querySelectorAll('.delete-book-btn').forEach(function(btn){ btn.addEventListener('click', function(){ deleteBook(this.dataset.bookId); }); });

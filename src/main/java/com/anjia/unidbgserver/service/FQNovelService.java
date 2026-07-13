@@ -664,9 +664,15 @@ public class FQNovelService {
                 }
                 chapterInfo.setTitle(title);
 
-                // 从novelData中提取作者信息（如果可用）
+                // 从novelData中提取元信息（如果可用）
                 FQNovelData novelData = itemContent.getNovelData();
-                chapterInfo.setAuthorName(novelData != null ? novelData.getAuthor() : "未知作者");
+                if (novelData != null) {
+                    chapterInfo.setAuthorName(novelData.getAuthor() != null ? novelData.getAuthor() : "未知作者");
+                    chapterInfo.setPrevChapterId(novelData.getPreItemId());
+                    chapterInfo.setNextChapterId(novelData.getNextItemId());
+                } else {
+                    chapterInfo.setAuthorName("未知作者");
+                }
                 // 设置其他字段
                 chapterInfo.setWordCount(txtContent.length());
                 chapterInfo.setUpdateTime(System.currentTimeMillis());

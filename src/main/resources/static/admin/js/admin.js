@@ -250,7 +250,7 @@
   function renderPoolStats(data) {
     if (!dom.poolStats) return;
     dom.poolStats.innerHTML =
-      '<div class="pool-stat-item"><span class="stat-value">' + (data.enabled ? '✓' : '✕') + '</span><span class="stat-label">状态</span></div>' +
+      '<div class="pool-stat-item"><span class="stat-value">' + (data.enabled ? '<svg class="ic"><use href="/css/icons.svg#icon-check"/></svg>' : '✕') + '</span><span class="stat-label">状态</span></div>' +
       '<div class="pool-stat-item"><span class="stat-value">' + (data.currentSize || 0) + '</span><span class="stat-label">当前数量</span></div>' +
       '<div class="pool-stat-item"><span class="stat-value">' + (data.targetSize || 0) + '</span><span class="stat-label">目标数量</span></div>' +
       '<div class="pool-stat-item"><span class="stat-value">' + (data.nextIndex || 0) + '</span><span class="stat-label">轮询索引</span></div>';
@@ -527,7 +527,7 @@
     var coverUrl = normalizeImageUrl(d.coverUrl);
     var coverHtml = coverUrl
       ? '<img class="book-detail-cover" src="' + escapeHtml(coverUrl) + '" alt="cover" onerror="fixHeicImg(this)" style="width:140px;border-radius:var(--radius-sm);box-shadow:0 2px 12px rgba(0,0,0,0.3);">'
-      : '<div style="width:140px;height:200px;background:var(--bg-tertiary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:2rem;">📖</div>';
+      : '<div style="width:140px;height:200px;background:var(--bg-tertiary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:2rem;"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg></div>';
 
     var vipHtml = '';
     if (d.vipBook === true || d.vipBook === '1' || d.vipBook === 'true') {
@@ -539,7 +539,7 @@
     card.style.marginTop = '12px';
     card.id = 'bs-detail-card';
     card.innerHTML =
-      '<div class="card-header">📖 书籍详情 <span style="float:right;cursor:pointer;color:var(--text-muted);" class="bs-close-card">✕</span></div>' +
+      '<div class="card-header"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg> 书籍详情 <span style="float:right;cursor:pointer;color:var(--text-muted);" class="bs-close-card">✕</span></div>' +
       '<div class="card-body"><div class="book-detail">' + coverHtml +
       '<div class="book-detail-info">' +
       '<h3>' + escapeHtml(d.bookName || '--') + '</h3>' +
@@ -555,8 +555,8 @@
         vipHtml +
       '</div>' +
       '<div class="flex gap-8" style="flex-wrap:wrap;">' +
-        '<button class="btn btn-primary btn-sm bs-show-dir" data-book-id="' + escapeHtml(bid) + '">📋 查看目录</button>' +
-        '<button class="btn btn-sm bs-read-book" data-book-id="' + escapeHtml(bid) + '" data-first-chapter="' + escapeHtml(fch) + '">📖 开始阅读</button>' +
+        '<button class="btn btn-primary btn-sm bs-show-dir" data-book-id="' + escapeHtml(bid) + '"><svg class="ic"><use href="/css/icons.svg#icon-clipboard"/></svg> 查看目录</button>' +
+        '<button class="btn btn-sm bs-read-book" data-book-id="' + escapeHtml(bid) + '" data-first-chapter="' + escapeHtml(fch) + '"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg> 开始阅读</button>' +
         '<button class="btn btn-sm btn-outline bs-close-card">收起</button>' +
       '</div>' +
       '</div></div></div>';
@@ -593,7 +593,7 @@
     }
 
     card.innerHTML =
-      '<div class="card-header">📋 章节目录 <span style="float:right;cursor:pointer;color:var(--text-muted);" class="bs-close-card">✕</span></div>' +
+      '<div class="card-header"><svg class="ic"><use href="/css/icons.svg#icon-clipboard"/></svg> 章节目录 <span style="float:right;cursor:pointer;color:var(--text-muted);" class="bs-close-card">✕</span></div>' +
       '<div class="card-body">' +
       '<div class="table-wrapper"><table class="data-table"><thead><tr><th>序号</th><th>章节名</th><th>字数</th><th>类型</th><th>免费</th><th>操作</th></tr></thead><tbody>' + tableBody + '</tbody></table></div>' +
       '</div></div>';
@@ -819,8 +819,8 @@
     }).filter(Boolean).join('');
 
     return '<div style="margin-bottom:8px;padding:8px 10px;background:var(--bg-tertiary);border-radius:var(--radius-sm);display:flex;gap:20px;font-size:0.85rem;">' +
-      '<span>📊 共 <strong>' + total + '</strong> 条段评</span>' +
-      '<span>📄 <strong>' + keys.length + '</strong> 个段落</span>' +
+      '<span><svg class="ic"><use href="/css/icons.svg#icon-stats"/></svg> 共 <strong>' + total + '</strong> 条段评</span>' +
+      '<span><svg class="ic"><use href="/css/icons.svg#icon-file-text"/></svg> <strong>' + keys.length + '</strong> 个段落</span>' +
       '</div>' +
       '<div>' + rows + '</div>';
   }
@@ -951,8 +951,8 @@
         quoteHtml +
         '<div style="font-size:0.85rem;line-height:1.7;color:var(--text-primary);word-wrap:break-word;">' + escapeHtml(e.content) + '</div>' +
         '<div style="display:flex;align-items:center;gap:20px;margin-top:8px;">' +
-        (e.likeCount > 0 ? '<span style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:3px;"><span>👍</span> ' + e.likeCount + '</span>' : '') +
-        (e.replyCount > 0 ? '<span style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:3px;"><span>💬</span> ' + e.replyCount + '</span>' : '') +
+        (e.likeCount > 0 ? '<span style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:3px;"><svg class="ic"><use href="/css/icons.svg#icon-thumbs-up"/></svg> ' + e.likeCount + '</span>' : '') +
+        (e.replyCount > 0 ? '<span style="font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:3px;"><svg class="ic"><use href="/css/icons.svg#icon-comment"/></svg> ' + e.replyCount + '</span>' : '') +
         idHtml +
         '</div></div></div>';
     }).join('');
@@ -997,7 +997,7 @@
           if (dom.cmListCount) dom.cmListCount.textContent = '';
           dom.cmListResult.innerHTML =
             '<div style="padding:20px;text-align:center;">' +
-            '<div style="font-size:1.5rem;margin-bottom:8px;">⚠️</div>' +
+            '<div style="margin-bottom:8px;"><svg class="ic" style="width:32px;height:32px;"><use href="/css/icons.svg#icon-alert"/></svg></div>' +
             '<div style="color:var(--accent-red);font-weight:600;margin-bottom:4px;">API 错误 ' + apiErr.code + '</div>' +
             '<div style="color:var(--text-secondary);font-size:0.85rem;">' + escapeHtml(apiErr.message) + '</div>' +
             '</div>';

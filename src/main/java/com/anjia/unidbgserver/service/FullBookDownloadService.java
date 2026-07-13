@@ -1,18 +1,12 @@
 package com.anjia.unidbgserver.service;
 
 import com.anjia.unidbgserver.dto.*;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -36,10 +30,6 @@ public class FullBookDownloadService {
 
     @Resource(name = "bizExecutor")
     private Executor bizExecutor;
-
-    private final HttpClient httpClient = HttpClient.newHttpClient();
-    @Resource
-    private ObjectMapper objectMapper;
 
     /**
      * 全本下载（流式返回）
@@ -397,52 +387,26 @@ public class FullBookDownloadService {
                 directoryRequest.setBookType(0);
                 directoryRequest.setNeedVersion(true);
                 
-                // 直接调用目录接口获取章节列表
-                String directoryUrl = "http://localhost:9999/api/fqsearch/directory/" + bookId;
-                log.debug("调用目录接口获取章节列表 - URL: {}", directoryUrl);
-                
-                HttpRequest httpRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(directoryUrl))
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
-                
-                HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-                
-                if (response.statusCode() != 200) {
-                    log.error("目录接口调用失败 - bookId: {}, status: {}, body: {}", bookId, response.statusCode(), response.body());
+                // 通过服务层直接获取目录数据
+                FQNovelResponse<FQDirectoryResponse> dirResponse =
+                    fqSearchService.getBookDirectory(directoryRequest).join();
+
+                if (dirResponse.getCode() != 0) {
+                    log.error("目录接口返回错误 - bookId: {}, message: {}", bookId, dirResponse.getMessage());
                     return new ArrayList<>();
                 }
-                
-                // 解析响应
-                JsonNode jsonNode = objectMapper.readTree(response.body());
-                if (jsonNode.get("code").asInt() != 0) {
-                    log.error("目录接口返回错误 - bookId: {}, message: {}", bookId, jsonNode.get("message").asText());
-                    return new ArrayList<>();
-                }
-                
-                JsonNode dataNode = jsonNode.get("data");
-                if (dataNode == null || !dataNode.has("item_data_list")) {
+
+                FQDirectoryResponse data = dirResponse.getData();
+                if (data == null || data.getItemDataList() == null || data.getItemDataList().isEmpty()) {
                     log.warn("目录数据为空 - bookId: {}", bookId);
                     return new ArrayList<>();
                 }
-                
-                JsonNode itemDataList = dataNode.get("item_data_list");
-                if (itemDataList == null || !itemDataList.isArray()) {
-                    log.warn("章节列表为空 - bookId: {}", bookId);
-                    return new ArrayList<>();
-                }
-                
+
                 // 提取章节ID
-                chapterIds = new ArrayList<>();
-                for (JsonNode item : itemDataList) {
-                    if (item.has("item_id")) {
-                        String itemId = item.get("item_id").asText();
-                        if (itemId != null && !itemId.isEmpty()) {
-                            chapterIds.add(itemId);
-                        }
-                    }
-                }
+                chapterIds = data.getItemDataList().stream()
+                    .map(FQDirectoryResponse.ItemData::getItemId)
+                    .filter(id -> id != null && !id.isEmpty())
+                    .collect(Collectors.toList());
                 
                 log.debug("成功获取章节列表 - bookId: {}, 章节数量: {}", bookId, chapterIds.size());
                 
@@ -530,6 +494,7 @@ public class FullBookDownloadService {
                 
                 // 获取所有有下载记录的书籍
                 Set<String> allBookKeys = redisService.getAllBookKeys();
+                Set<String> seenBookIds = new HashSet<>();
                 List<String> incompleteBooks = new ArrayList<>();
                 List<String> processedBooks = new ArrayList<>();
                 
@@ -538,6 +503,8 @@ public class FullBookDownloadService {
                         // 从key中提取bookId
                         String bookId = extractBookIdFromKey(bookKey);
                         if (bookId == null) continue;
+                        // 同一本书在Redis中可能有多个key，去重
+                        if (!seenBookIds.add(bookId)) continue;
                         
                         // 检查下载进度
                         Map<String, Object> progress = getDownloadProgress(bookId).get();
@@ -641,6 +608,7 @@ public class FullBookDownloadService {
                 
                 // 获取所有有下载记录的书籍
                 Set<String> allBookKeys = redisService.getAllBookKeys();
+                Set<String> seenBookIds = new HashSet<>();
                 List<Map<String, Object>> allBooks = new ArrayList<>();
                 List<Map<String, Object>> incompleteBooks = new ArrayList<>();
                 List<Map<String, Object>> completeBooks = new ArrayList<>();
@@ -650,6 +618,8 @@ public class FullBookDownloadService {
                         // 从key中提取bookId
                         String bookId = extractBookIdFromKey(bookKey);
                         if (bookId == null) continue;
+                        // 同一本书在Redis中可能有多个key，去重
+                        if (!seenBookIds.add(bookId)) continue;
                         
                         // 检查下载进度
                         Map<String, Object> progress = getDownloadProgress(bookId).get();
@@ -686,7 +656,7 @@ public class FullBookDownloadService {
                 
                 Map<String, Object> summary = new HashMap<>();
                 summary.put("totalBooks", allBooks.size());
-                summary.put("completeBooks", completeBooks.size());
+                summary.put("completeBooks", completeBooks);
                 summary.put("incompleteBooks", incompleteBooks.size());
                 summary.put("incompleteBookList", incompleteBooks);
                 

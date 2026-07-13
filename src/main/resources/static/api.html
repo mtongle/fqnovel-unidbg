@@ -51,8 +51,12 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
 .callout { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 0.82rem; line-height: 1.6; }
 .callout-info { background: var(--accent-blue-bg); border: 1px solid rgba(90, 140, 180, 0.2); color: var(--accent-blue); }
 .callout-info .callout-icon { color: var(--accent-blue); font-size: 1rem; flex-shrink: 0; }
+.callout-info .ic { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; stroke: var(--accent-blue); stroke-width: 2; fill: none; }
 .callout-warning { background: var(--accent-orange-bg); border: 1px solid rgba(212, 160, 74, 0.2); color: var(--accent-orange); }
 .callout-warning .callout-icon { color: var(--accent-orange); font-size: 1rem; flex-shrink: 0; }
+.public-sidebar-back { display: flex; align-items: center; gap: 8px; padding: 8px 20px; margin: 0 12px 6px; font-size: 0.82rem; color: var(--text-secondary); text-decoration: none; border-radius: var(--radius-sm); transition: all var(--transition); }
+.public-sidebar-back:hover { color: var(--accent-gold); background: var(--bg-hover); }
+.public-sidebar-back .public-nav-icon { font-size: 0.9rem; }
 @media (max-width: 768px) {
   .section { padding: 16px; }
   .endpoint-header { flex-wrap: wrap; }
@@ -120,6 +124,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
     <h1>fqnovel-unidbg</h1>
     <span class="public-sidebar-subtitle">API 文档</span>
   </div>
+  <a href="/dashboard.html" class="public-sidebar-back" onclick="closeMobileSidebar()"><span class="public-nav-icon">←</span>返回仪表盘</a>
   <nav class="public-sidebar-nav">
     <a href="#section-fqnovel" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-book"/></svg></span>小说内容</a>
     <a href="#section-fqsearch" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-search"/></svg></span>搜索与目录</a>
@@ -160,7 +165,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
     <div class="card mb-12">
       <div class="card-body" style="padding-bottom:8px;">
         <div class="callout callout-info mb-12">
-          <span class="callout-icon">ℹ</span>
+          <svg class="ic"><use href="/css/icons.svg#icon-info"/></svg>
           <span>优先使用 <code>POST /chapters/batch</code> 批量获取章节内容，降低调用频率。</span>
         </div>
 
@@ -610,7 +615,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
     <div class="card mb-12">
       <div class="card-body" style="padding-bottom:8px;">
         <div class="callout callout-info mb-12">
-          <span class="callout-icon">ℹ</span>
+          <svg class="ic"><use href="/css/icons.svg#icon-info"/></svg>
           <span>建议配置 Redis 以获得更好的下载体验。支持断点续传、进度查询与自动恢复。</span>
         </div>
 
@@ -966,7 +971,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
     <div class="card mb-12">
       <div class="card-body" style="padding-bottom:8px;">
         <div class="callout callout-info mb-12">
-          <span class="callout-icon">ℹ</span>
+          <svg class="ic"><use href="/css/icons.svg#icon-info"/></svg>
           <span>调用 unidbg 模拟 <code>libmetasec_ml.so</code> 生成 <code>X-SS-*</code> 签名头。</span>
         </div>
 
@@ -1207,7 +1212,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
     <div class="card mb-12">
       <div class="card-body" style="padding-bottom:8px;">
         <div class="callout callout-info mb-12">
-          <span class="callout-icon">ℹ</span>
+          <svg class="ic"><use href="/css/icons.svg#icon-info"/></svg>
           <span><code>aid</code> / <code>iid</code> 由服务端自动获取，<code>itemVersion</code> 固定为 <code>"1"</code>，无需传入。</span>
         </div>
 
@@ -1323,7 +1328,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
     <div class="card mb-12">
       <div class="card-body" style="padding-bottom:8px;">
         <div class="callout callout-info mb-12">
-          <span class="callout-icon">ℹ</span>
+          <svg class="ic"><use href="/css/icons.svg#icon-info"/></svg>
           <span>服务端渲染的段评预览页面，可直接在浏览器中访问，支持明暗主题切换。</span>
         </div>
 
@@ -1399,7 +1404,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
     <div class="card mb-12">
       <div class="card-body" style="padding-bottom:8px;">
         <div class="callout callout-info mb-12">
-          <span class="callout-icon">ℹ</span>
+          <svg class="ic"><use href="/css/icons.svg#icon-info"/></svg>
           <span>服务端直转图片，使用设备池 Cookie/UA/Referer 获取图片，支持 HEIC→JPEG 自动转换，避免前端跨域问题。会缓存转换后的 JPEG 至内存，最大 500 张，TTL 1 小时。</span>
         </div>
 
@@ -1460,7 +1465,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
     <div class="card mb-12">
       <div class="card-body" style="padding-bottom:8px;">
         <div class="callout callout-info mb-12">
-          <span class="callout-icon">ℹ</span>
+          <svg class="ic"><use href="/css/icons.svg#icon-info"/></svg>
           <span>适配 <a href="https://github.com/gedoor/legado" target="_blank">Legado（阅读3）</a> 格式的段评聚合接口。</span>
         </div>
 

@@ -31,11 +31,11 @@
 }
 .book-detail-info .desc {
   color: var(--text-secondary);
-  font-size: 0.82rem;
-  line-height: 1.6;
-  max-height: 80px;
-  overflow-y: auto;
+  font-size: 0.85rem;
+  line-height: 1.7;
   margin-bottom: 10px;
+  max-height: none;
+  overflow: visible;
 }
 .book-detail-stats {
   display: flex;
@@ -55,6 +55,161 @@
   font-weight: 600;
   font-family: var(--font-mono);
   color: var(--accent-gold);
+}
+
+/* ── Detail Modal ── */
+.detail-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+.detail-modal {
+  display: flex;
+  align-items: flex-start;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated);
+  width: 90vw;
+  max-width: 960px;
+  max-height: 85vh;
+  position: relative;
+  animation: fadeIn 0.25s ease;
+  overflow-y: auto;
+}
+.detail-modal-close {
+  position: absolute;
+  top: 10px; right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  z-index: 10;
+  width: 32px; height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+}
+.detail-modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.detail-modal-left {
+  flex: 0 0 400px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: 0;
+}
+.detail-modal-cover-area {
+  display: flex;
+  justify-content: center;
+}
+.detail-modal-cover-area .book-detail-cover {
+  width: 140px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+.detail-modal-divider {
+  flex: 0 0 1px;
+  background: var(--border-color);
+}
+.detail-modal-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.detail-modal-right-header {
+  padding: 20px 24px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  background: var(--bg-raised);
+  z-index: 1;
+}
+.detail-modal-toc-list {
+  padding: 8px 0;
+}
+.detail-modal-toc-item {
+  border-bottom: 1px solid var(--border-light);
+}
+.detail-modal-toc-item:last-child {
+  border-bottom: none;
+}
+.toc-chapter-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: background var(--transition);
+}
+.toc-chapter-link:hover {
+  background: var(--bg-hover);
+  text-decoration: none;
+}
+.toc-chapter-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-gold-bg);
+  color: var(--accent-gold);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+.toc-chapter-title {
+  flex: 1;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toc-chapter-meta {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+@media (max-width: 768px) {
+  .detail-modal {
+    flex-direction: column;
+    width: 94vw;
+    max-height: 92vh;
+  }
+  .detail-modal-left {
+    flex: none;
+    padding: 20px 16px;
+    gap: 14px;
+    position: static;
+  }
+  .detail-modal-divider {
+    flex: 0 0 1px;
+    width: 100%;
+  }
 }
 </style>
 </head>
@@ -108,7 +263,6 @@
         <div class="pagination" id="bs-pagination"></div>
       </div>
     </div>
-    <div id="bs-detail-container"></div>
   </section>
 </main>
 
@@ -121,7 +275,6 @@
 <script>
 (function(){
   var _state = { offset: 0, query: '', tabType: 1 };
-  var _detailBookId = null;
 
   async function searchBooks(offset) {
     var query = $('bs-query').value.trim();
@@ -181,62 +334,83 @@
     if (!bookId) return;
     showLoading();
     try {
-      var resp = await apiGetDirect('/api/fqnovel/book/' + encodeURIComponent(bookId));
-      if (!resp || resp.code !== 0) { showToast((resp&&resp.message)||'获取详情失败', 'error'); return; }
-      var container = $('bs-detail-container');
-      if (!container) return;
-      container.innerHTML = '';
-      var d = resp.data;
-      _detailBookId = d.bookId || _detailBookId;
+      var [detailResp, dirResp] = await Promise.all([
+        apiGetDirect('/api/fqnovel/book/' + encodeURIComponent(bookId)),
+        apiGetDirect('/api/fqsearch/directory/' + encodeURIComponent(bookId))
+      ]);
+      if (!detailResp || detailResp.code !== 0) { showToast((detailResp&&detailResp.message)||'获取详情失败', 'error'); return; }
+      var d = detailResp.data;
+      var dirItems = (dirResp && dirResp.code === 0 && (dirResp.data && (dirResp.data.itemDataList || dirResp.data.item_data_list))) || [];
       var coverUrl = normalizeImageUrl(d.coverUrl);
       var coverHtml = coverUrl ? '<img class="book-detail-cover" src="'+escapeHtml(coverUrl)+'" alt="cover" onerror="fixHeicImg(this)">' : '<div style="width:140px;height:200px;background:var(--bg-tertiary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:2rem;">📖</div>';
       var fch = d.firstChapterItemId || '';
-      var bid = _detailBookId;
       var vipHtml = '';
       if (d.vipBook === true || d.vipBook === '1' || d.vipBook === 'true') { vipHtml = '<div style="padding:6px 0;display:flex;justify-content:space-between;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="color:var(--text-secondary);">付费</span><span style="color:var(--text-primary);font-weight:500;">是</span></div>'; }
-      var card = document.createElement('div');
-      card.className = 'card';
-      card.style.marginTop = '12px';
-      card.innerHTML = '<div class="card-header">📖 书籍详情 <span style="float:right;cursor:pointer;color:var(--text-muted);" class="bs-close-card">✕</span></div><div class="card-body"><div class="book-detail">'+coverHtml+'<div class="book-detail-info"><h3>'+escapeHtml(d.bookName||'--')+'</h3><div class="author">'+escapeHtml(d.author||'--')+'</div><div class="desc">'+escapeHtml((d.description||'').slice(0,500))+'</div><div class="book-detail-stats"><div class="stat"><span class="stat-label">状态</span><span class="stat-value">'+bookStatusText(d.status)+'</span></div><div class="stat"><span class="stat-label">字数</span><span class="stat-value">'+formatWordCount(d.wordNumber)+'</span></div><div class="stat"><span class="stat-label">章节</span><span class="stat-value">'+(d.totalChapters!=null?d.totalChapters:'--')+'</span></div><div class="stat"><span class="stat-label">评分</span><span class="stat-value">'+(d.score!=null?d.score:'--')+'</span></div><div class="stat"><span class="stat-label">分类</span><span class="stat-value">'+escapeHtml(d.category||'--')+'</span></div><div class="stat"><span class="stat-label">阅读</span><span class="stat-value">'+escapeHtml(d.readCount||'--')+'</span></div>'+vipHtml+'</div><div class="flex gap-8" style="flex-wrap:wrap;"><button class="btn btn-primary btn-sm bs-show-dir" data-book-id="'+escapeHtml(bid)+'">📋 查看目录</button><button class="btn btn-sm bs-read-book" data-book-id="'+escapeHtml(bid)+'" data-first-chapter="'+escapeHtml(fch)+'">📖 开始阅读</button><button class="btn btn-sm btn-outline bs-close-card">收起</button></div></div></div></div>';
-      container.appendChild(card);
-      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      card.querySelectorAll('.bs-close-card').forEach(function(btn){ btn.addEventListener('click', function(){ container.innerHTML = ''; }); });
-      var dirBtn = card.querySelector('.bs-show-dir');
-      if (dirBtn) dirBtn.addEventListener('click', function(){ showBookDirectory(this.dataset.bookId); });
-      var readBtn = card.querySelector('.bs-read-book');
-      if (readBtn) readBtn.addEventListener('click', function(){
-        var bid2 = this.dataset.bookId, cid = this.dataset.firstChapter;
-        if (bid2 && cid) { window.open('/reader.html?bookId='+encodeURIComponent(bid2)+'&chapterId='+encodeURIComponent(cid)); }
-        else showToast('缺少章节信息', 'error');
-      });
-    } catch(e) { showToast('请求失败: ' + e.message, 'error'); }
-    finally { hideLoading(); }
-  }
-
-  async function showBookDirectory(bookId) {
-    if (!bookId) return;
-    showLoading();
-    try {
-      var resp = await apiGetDirect('/api/fqsearch/directory/' + encodeURIComponent(bookId));
-      if (!resp || resp.code !== 0) { showToast((resp&&resp.message)||'获取目录失败', 'error'); return; }
-      var container = $('bs-detail-container');
-      if (!container) return;
-      var items = (resp.data && (resp.data.itemDataList || resp.data.item_data_list)) || [];
-      var card = document.createElement('div');
-      card.className = 'card';
-      card.style.marginTop = '12px';
-      var tableBody = !items.length
-        ? '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted);">暂无目录数据</td></tr>'
-        : items.map(function(item, idx){
+      var tocHtml = !dirItems.length
+        ? '<div style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:0.85rem;">暂无目录数据</div>'
+        : '<div class="detail-modal-toc-list">' + dirItems.map(function(item, idx){
             var ci = item.chapter_index || item.chapterIndex || idx + 1;
             var iid = item.item_id || item.itemId;
             var cwn = item.chapter_word_number || item.chapterWordNumber;
             var ct = item.chapter_type || item.chapterType;
             var isf = item.is_free != null ? item.is_free : item.isFree;
-            return '<tr><td>'+ci+'</td><td>'+escapeHtml(item.title||'--')+'</td><td>'+formatWordCount(cwn)+'</td><td>'+(ct==='1'?'番外':'正文')+'</td><td>'+(isf ? '<span class="badge badge-green">免费</span>' : '<span class="badge badge-orange">付费</span>')+'</td><td><a href="/reader.html?bookId='+encodeURIComponent(bookId)+'&chapterId='+encodeURIComponent(iid)+'" class="btn btn-sm">阅读</a></td></tr>';
-          }).join('');
-      card.innerHTML = '<div class="card-header">📋 章节目录</div><div class="card-body"><div class="table-wrapper"><table class="data-table"><thead><tr><th>序号</th><th>章节名</th><th>字数</th><th>类型</th><th>免费/付费</th><th>操作</th></tr></thead><tbody>'+tableBody+'</tbody></table></div></div>';
-      container.appendChild(card);
+            return '<div class="detail-modal-toc-item"><a href="/reader.html?bookId='+encodeURIComponent(bookId)+'&chapterId='+encodeURIComponent(iid)+'" class="toc-chapter-link"><span class="toc-chapter-num">'+ci+'</span><span class="toc-chapter-title">'+escapeHtml(item.title||'--')+'</span><span class="toc-chapter-meta">'+formatWordCount(cwn)+' · '+(ct==='1'?'番外':'正文')+' · '+(isf?'免费':'付费')+'</span></a></div>';
+          }).join('') + '</div>';
+      var overlay = document.createElement('div');
+      overlay.className = 'detail-modal-overlay';
+      overlay.innerHTML = '<div class="detail-modal">' +
+        '<button class="detail-modal-close" aria-label="关闭">&times;</button>' +
+        '<div class="detail-modal-left">' +
+          '<div class="detail-modal-cover-area">' + coverHtml + '</div>' +
+          '<div class="book-detail-info">' +
+            '<h3>'+escapeHtml(d.bookName||'--')+'</h3>' +
+            '<div class="author">'+escapeHtml(d.author||'--')+'</div>' +
+            '<div class="desc">'+escapeHtml((d.description||'').slice(0,500))+'</div>' +
+            '<div class="book-detail-stats">' +
+              '<div class="stat"><span class="stat-label">状态</span><span class="stat-value">'+bookStatusText(d.status)+'</span></div>' +
+              '<div class="stat"><span class="stat-label">字数</span><span class="stat-value">'+formatWordCount(d.wordNumber)+'</span></div>' +
+              '<div class="stat"><span class="stat-label">章节</span><span class="stat-value">'+(d.totalChapters!=null?d.totalChapters:'--')+'</span></div>' +
+              '<div class="stat"><span class="stat-label">评分</span><span class="stat-value">'+(d.score!=null?d.score:'--')+'</span></div>' +
+              '<div class="stat"><span class="stat-label">分类</span><span class="stat-value">'+escapeHtml(d.category||'--')+'</span></div>' +
+              '<div class="stat"><span class="stat-label">阅读</span><span class="stat-value">'+escapeHtml(d.readCount||'--')+'</span></div>' +
+              vipHtml +
+            '</div>' +
+            '<div class="flex gap-8" style="flex-wrap:wrap;">' +
+              '<button class="btn btn-sm bs-read-book" data-book-id="'+escapeHtml(bookId)+'" data-first-chapter="'+escapeHtml(fch)+'"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg> 开始阅读</button>' +
+              '<button class="btn btn-sm btn-accent bs-download-book" data-book-id="'+escapeHtml(bookId)+'"><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg> 全本下载</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="detail-modal-divider"></div>' +
+        '<div class="detail-modal-right">' +
+          '<div class="detail-modal-right-header"><svg class="ic"><use href="/css/icons.svg#icon-clipboard"/></svg> 章节目录 <span class="text-muted" style="font-weight:400;font-size:0.75rem;text-transform:none;">('+dirItems.length+' 章)</span></div>' +
+          tocHtml +
+        '</div>' +
+      '</div>';
+      document.body.appendChild(overlay);
+      overlay.querySelector('.detail-modal-close').addEventListener('click', function(){ overlay.remove(); });
+      overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
+      var readBtn = overlay.querySelector('.bs-read-book');
+      if (readBtn) readBtn.addEventListener('click', function(){
+        var bid2 = this.dataset.bookId, cid = this.dataset.firstChapter;
+        if (bid2 && cid) { window.open('/reader.html?bookId='+encodeURIComponent(bid2)+'&chapterId='+encodeURIComponent(cid)); }
+        else showToast('缺少章节信息', 'error');
+      });
+      var dlBtn = overlay.querySelector('.bs-download-book');
+      if (dlBtn) dlBtn.addEventListener('click', async function(){
+        var bid2 = this.dataset.bookId;
+        if (!bid2) return;
+        this.disabled = true;
+        this.textContent = '⏳ 下载中...';
+        try {
+          var resp = await apiPostDirect('/api/fullbook/download', { bookId: bid2, batchSize: 30, maxChapters: 0, saveToRedis: true, streamResponse: true });
+          if (resp && resp.success) { showToast('已发起下载，可在「全本下载」页查看进度', 'success'); }
+          else { showToast((resp&&resp.message)||'下载请求失败', 'error'); }
+        } catch(e) { showToast('下载请求失败: ' + e.message, 'error'); }
+        finally { this.disabled = false; this.innerHTML = '<svg class="ic"><use href="/css/icons.svg#icon-download"/></svg> 全本下载'; }
+      });
+      function escHandler(e) { if (e.key === 'Escape' && overlay.parentNode) { overlay.remove(); document.removeEventListener('keydown', escHandler); } }
+      document.addEventListener('keydown', escHandler);
     } catch(e) { showToast('请求失败: ' + e.message, 'error'); }
     finally { hideLoading(); }
   }
