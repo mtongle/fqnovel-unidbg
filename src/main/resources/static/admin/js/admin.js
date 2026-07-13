@@ -1,34 +1,9 @@
 (function() {
   'use strict';
 
-  var AUTH_KEY = 'admin_auth';
-  var AUTH_TIME_KEY = 'admin_auth_time';
-  var AUTH_TTL_MS = 24 * 60 * 60 * 1000;
-
-  // Check auth - redirect to login if not authenticated
-  (function checkAuth() {
-    if (sessionStorage.getItem(AUTH_KEY) !== '1') {
-      location.href = '/admin/login.html';
-      return;
-    }
-    var authTime = parseInt(sessionStorage.getItem(AUTH_TIME_KEY), 10);
-    if (authTime && (Date.now() - authTime > AUTH_TTL_MS)) {
-      sessionStorage.removeItem(AUTH_KEY);
-      sessionStorage.removeItem(AUTH_TIME_KEY);
-      location.href = '/admin/login.html';
-      return;
-    }
-  })();
-
-  // Theme toggle
-  var adminTheme = localStorage.getItem('admin-theme');
-  if (adminTheme === 'light') document.body.classList.add('light');
-  window.toggleAdminTheme = function() {
-    document.body.classList.toggle('light');
-    localStorage.setItem('admin-theme', document.body.classList.contains('light') ? 'light' : 'dark');
-  };
-
-  const API_BASE = '/api/admin';
+  // Theme toggle — delegated to admin-common.js (toggleAdminTheme = toggleTheme)
+  var _adminThemeCheck = localStorage.getItem('admin-theme');
+  if (_adminThemeCheck === 'light') document.body.classList.add('light');
 
   const state = {
     currentSection: 'dashboard',
@@ -36,12 +11,8 @@
   };
 
   /* ===========================
-     DOM REFS
+     DOM REFS ($, qs, qsa from public.js)
      =========================== */
-  const $ = (id) => document.getElementById(id);
-  const qs = (sel, ctx) => (ctx || document).querySelector(sel);
-  const qsa = (sel, ctx) => (ctx || document).querySelectorAll(sel);
-
   const dom = {};
 
   function cacheDom() {
@@ -123,258 +94,10 @@
     dom.cmListCount = $('cm-list-count');
   }
 
-  /* ===========================
-     TOAST SYSTEM
-     =========================== */
-  function showToast(message, type) {
-    type = type || 'info';
-    const icons = { success: '✓', error: '✕', info: 'ℹ' };
-    const toast = document.createElement('div');
-    toast.className = 'toast ' + type;
-    toast.innerHTML =
-      '<span class="toast-icon">' + (icons[type] || 'ℹ') + '</span>' +
-      '<span class="toast-message">' + escapeHtml(message) + '</span>' +
-      '<button class="toast-close">&times;</button>';
-    dom.toastContainer.appendChild(toast);
+  /* Toast, Loading, Confirm — provided by public.js (window.showToast, showLoading, hideLoading, confirmDialog) */
 
-    qs('.toast-close', toast).addEventListener('click', function() {
-      dismiss(toast);
-    });
-
-    const dismiss = function(el) {
-      el.style.animation = 'toastSlideOut 0.3s ease forwards';
-      setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 350);
-    };
-
-    setTimeout(function() { dismiss(toast); }, 4000);
-  }
-
-  /* ===========================
-     LOADING OVERLAY
-     =========================== */
-  let loadingCount = 0;
-
-  function showLoading() {
-    loadingCount++;
-    dom.loadingOverlay.classList.remove('hidden');
-  }
-
-  function hideLoading() {
-    loadingCount = Math.max(0, loadingCount - 1);
-    if (loadingCount === 0) {
-      dom.loadingOverlay.classList.add('hidden');
-    }
-  }
-
-  /* ===========================
-     CONFIRM DIALOG
-     =========================== */
-  function confirmDialog(title, message) {
-    return new Promise(function(resolve) {
-      var overlay = document.createElement('div');
-      overlay.className = 'confirm-overlay';
-      overlay.innerHTML =
-        '<div class="confirm-dialog">' +
-        '<h3>' + escapeHtml(title) + '</h3>' +
-        '<p>' + escapeHtml(message) + '</p>' +
-        '<div class="confirm-actions">' +
-        '<button class="btn" id="confirm-cancel">取消</button>' +
-        '<button class="btn btn-danger" id="confirm-ok">确认</button>' +
-        '</div></div>';
-      document.body.appendChild(overlay);
-
-      function cleanup() {
-        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-      }
-
-      qs('#confirm-cancel', overlay).addEventListener('click', function() { cleanup(); resolve(false); });
-      qs('#confirm-ok', overlay).addEventListener('click', function() { cleanup(); resolve(true); });
-      overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) { cleanup(); resolve(false); }
-      });
-    });
-  }
-
-  /* ===========================
-     FETCH HELPERS
-     =========================== */
-  function getAdminToken() {
-    return sessionStorage.getItem('admin_token') || '';
-  }
-
-  function handleUnauthorized(resp) {
-    if (resp.status === 401) {
-      sessionStorage.removeItem('admin_token');
-      sessionStorage.removeItem('admin_auth');
-      sessionStorage.removeItem('admin_auth_time');
-      location.href = '/admin/login.html';
-      return true;
-    }
-    return false;
-  }
-
-  async function apiGet(url) {
-    const token = getAdminToken();
-    const resp = await fetch(API_BASE + url, {
-      headers: token ? { 'X-Admin-Token': token } : {}
-    });
-    if (handleUnauthorized(resp)) return null;
-    if (!resp.ok) {
-      const text = await resp.text().catch(function() { return 'Request failed'; });
-      throw new Error('HTTP ' + resp.status + ': ' + text.slice(0, 200));
-    }
-    const ct = resp.headers.get('content-type') || '';
-    if (ct.includes('text/plain')) {
-      return { _raw: true, text: await resp.text() };
-    }
-    return await resp.json();
-  }
-
-  async function apiPut(url, body, contentType) {
-    const token = getAdminToken();
-    const opts = {
-      method: 'PUT',
-      body: body,
-      headers: {},
-    };
-    if (token) opts.headers['X-Admin-Token'] = token;
-    if (contentType) opts.headers['Content-Type'] = contentType;
-    const resp = await fetch(API_BASE + url, opts);
-    if (handleUnauthorized(resp)) return null;
-    if (!resp.ok) {
-      const text = await resp.text().catch(function() { return 'Request failed'; });
-      throw new Error('HTTP ' + resp.status + ': ' + text.slice(0, 200));
-    }
-    return await resp.json();
-  }
-
-  async function apiPost(url, params) {
-    const token = getAdminToken();
-    var fullUrl = API_BASE + url;
-    if (params) {
-      var qs = Object.keys(params).map(function(k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); }).join('&');
-      fullUrl += '?' + qs;
-    }
-    var fetchOpts = { method: 'POST' };
-    if (token) fetchOpts.headers = { 'X-Admin-Token': token };
-    const resp = await fetch(fullUrl, fetchOpts);
-    if (handleUnauthorized(resp)) return null;
-    if (!resp.ok) {
-      const text = await resp.text().catch(function() { return 'Request failed'; });
-      throw new Error('HTTP ' + resp.status + ': ' + text.slice(0, 200));
-    }
-    return await resp.json();
-  }
-
-  async function safeFetch(fn, errorMsg) {
-    showLoading();
-    try {
-      return await fn();
-    } catch (e) {
-      showToast(errorMsg || e.message, 'error');
-      return null;
-    } finally {
-      hideLoading();
-    }
-  }
-
-  /* ===========================
-     UTILITY
-     =========================== */
-  function escapeHtml(str) {
-    if (!str) return '';
-    var div = document.createElement('div');
-    div.appendChild(document.createTextNode(str));
-    return div.innerHTML;
-  }
-
-  function normalizeImageUrl(url) {
-    if (!url) return '';
-    return url.replace('http://', 'https://');
-  }
-
-  function fixHeicImg(img) {
-    if (img._heicFixed) return;
-    img._heicFixed = true;
-    var src = img.src || '';
-    if (!src) return;
-
-    loadHeic2Any().then(function() {
-      return fetch(src);
-    }).then(function(r) {
-      if (!r.ok) throw new Error(r.status);
-      var ct = (r.headers.get('content-type') || '').toLowerCase();
-      return r.blob().then(function(blob) { return { blob: blob, ct: ct }; });
-    }).then(function(info) {
-      if (info.ct.indexOf('heic') !== -1 || info.ct.indexOf('heif') !== -1) {
-        return heic2any({ blob: info.blob, toType: 'image/jpeg', quality: 1 }).then(function(result) {
-          var b = Array.isArray(result) ? result[0] : result;
-          img.src = URL.createObjectURL(b);
-          img.style.display = '';
-          img.onerror = null;
-          var container = img.closest('.avatar, .comment-avatar, .reply-avatar');
-          if (container) {
-            var letter = container.querySelector('.avatar-letter, .reply-avatar > span');
-            if (letter) letter.style.display = 'none';
-          }
-        });
-      } else {
-        img.src = URL.createObjectURL(info.blob);
-        img.style.display = '';
-        img.onerror = null;
-      }
-    }).catch(function(e) {
-      console.warn('HEIC fail:', e);
-      showFallbackAvatar(img);
-    });
-  }
-
-  function showFallbackAvatar(img) {
-    img.style.display = 'none';
-    var container = img.closest('.avatar, .comment-avatar');
-    if (container) {
-      var letter = container.querySelector('.avatar-letter');
-      if (letter) letter.style.display = 'flex';
-    }
-  }
-
-  function loadHeic2Any() {
-    if (typeof heic2any === 'function') return Promise.resolve();
-    return new Promise(function(resolve) {
-      var s = document.createElement('script');
-      s.src = '/js/heic2any.min.js';
-      s.onload = resolve;
-      s.onerror = resolve;
-      document.head.appendChild(s);
-    });
-  }
-
-  function formatBytes(bytes) {
-    if (bytes == null || isNaN(bytes)) return '--';
-    if (bytes === 0) return '0 B';
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    const val = bytes / Math.pow(1024, i);
-    return val.toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
-  }
-
-  function formatUptime(ms) {
-    if (ms == null || isNaN(ms)) return '--';
-    var totalSec = Math.floor(ms / 1000);
-    var h = Math.floor(totalSec / 3600);
-    var m = Math.floor((totalSec % 3600) / 60);
-    var s = totalSec % 60;
-    var parts = [];
-    if (h > 0) parts.push(h + 'h');
-    if (m > 0) parts.push(m + 'm');
-    parts.push(s + 's');
-    return parts.join(' ');
-  }
-
-  function formatPercent(pct) {
-    if (pct == null || isNaN(pct)) return '--';
-    return pct + '%';
-  }
+  /* API helpers — provided by admin-common.js (window.getAdminToken, apiGet, apiPut, apiPost, safeFetch) */
+  /* Utilities — provided by public.js (escapeHtml, normalizeImageUrl, fixHeicImg, formatBytes, formatUptime, formatPercent) */
 
   /* ===========================
      NAVIGATION
@@ -676,11 +399,7 @@
     }
   }
 
-  function renderDetailRows(rows) {
-    return rows.map(function(r) {
-      return '<div class="metric-row"><span>' + escapeHtml(r[0]) + '</span><span>' + r[1] + '</span></div>';
-    }).join('');
-  }
+  /* renderDetailRows — provided by public.js (window.renderDetailRows) */
 
   /* ===========================
      RESTART
@@ -698,23 +417,7 @@
     }
   }
 
-  /* ===========================
-     LOCK / LOGOUT
-     =========================== */
-  function lockPanel() {
-    var token = sessionStorage.getItem('admin_token');
-    // 异步通知服务端移除令牌
-    if (token) {
-      fetch(API_BASE + '/logout', {
-        method: 'POST',
-        headers: { 'X-Admin-Token': token }
-      }).catch(function() { /* ignore */ });
-    }
-    sessionStorage.removeItem('admin_token');
-    sessionStorage.removeItem(AUTH_KEY);
-    sessionStorage.removeItem(AUTH_TIME_KEY);
-    location.href = '/admin/login.html';
-  }
+  /* lockPanel — provided by admin-common.js (window.lockPanel) */
 
   /* ===========================
      BOOK SEARCH
@@ -722,36 +425,7 @@
   var _bsState = { offset: 0, query: '', tabType: 1, searchId: null };
   var _bsDetailBookId = null;
 
-  function formatWordCount(n) {
-    if (n == null || isNaN(n)) return '--';
-    n = Number(n);
-    if (n >= 10000) return (n / 10000).toFixed(1) + '万字';
-    return n + '字';
-  }
-
-  function bookStatusText(s) {
-    if (s === 0 || s === '0') return '连载';
-    if (s === 1 || s === '1') return '完结';
-    return s || '--';
-  }
-
-  function apiGetDirect(url) {
-    return fetch(url).then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    });
-  }
-
-  function apiPostDirect(url, body) {
-    return fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    }).then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    });
-  }
+  /* formatWordCount, bookStatusText, apiGetDirect, apiPostDirect — provided by public.js */
 
   async function searchBooks(offset) {
     var query = dom.bsQuery.value.trim();
@@ -1228,31 +902,13 @@
     return null;
   }
 
-  function formatCommentTime(ts) {
-    if (!ts) return '';
-    var d = new Date(typeof ts === 'number' && ts < 1e12 ? ts * 1000 : ts);
-    if (isNaN(d.getTime())) return String(ts);
-    var now = new Date();
-    var diff = (now - d) / 1000;
-    if (diff < 60) return '刚刚';
-    if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
-    if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
-    if (diff < 172800) return '昨天';
-    return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
-  }
+  /* formatCommentTime, getNested — provided by public.js */
 
   function getAvatarUrl(comment) {
     return getField(comment, 'user_info.avatar_url', 'user_info.avatar_url', 'user.avatar_url', 'user.avatar', 'avatar_url', 'avatar', 'user_info.avatar_url');
   }
 
-  function getNested(obj, path) {
-    var parts = path.split('.');
-    for (var i = 0; i < parts.length; i++) {
-      if (obj == null || typeof obj !== 'object') return null;
-      obj = obj[parts[i]];
-    }
-    return obj;
-  }
+  /* getNested — provided by public.js */
 
   function renderCommentCards(rawComments) {
     if (!rawComments || !rawComments.length) {

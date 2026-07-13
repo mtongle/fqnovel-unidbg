@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✦ Inked · fqnovel-unidbg</title>
+<link rel="stylesheet" href="/css/public.css?v=0.0.6">
+<style>
+  /* ── Dashboard Layout ── */
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+  }
+
+  .dashboard-wrap {
+    width: 100%;
+    max-width: 960px;
+    padding: 40px 32px 60px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  /* ── Brand Header ── */
+  .brand-header {
+    text-align: center;
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .brand-header .brand-mark {
+    font-size: 2.8rem;
+    color: var(--accent-gold);
+    display: block;
+    margin-bottom: 6px;
+    opacity: 0.7;
+    letter-spacing: 4px;
+  }
+
+  .brand-header h1 {
+    font-family: var(--font-display);
+    font-size: var(--fs-display);
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .brand-header h1 .accent {
+    color: var(--accent-gold);
+  }
+
+  .brand-header .brand-sub {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    letter-spacing: 4px;
+    font-family: var(--font-display);
+    opacity: 0.6;
+  }
+
+  /* ── Theme Toggle ── */
+  .theme-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--accent-gold);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+    z-index: 100;
+    font-family: var(--font-body);
+    line-height: 1;
+  }
+
+  .theme-toggle:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-gold);
+    transform: rotate(90deg);
+  }
+
+  /* ── Service Status ── */
+  .status-card {
+    margin-bottom: 36px;
+  }
+
+  .status-card .card-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .status-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .status-label {
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .status-value {
+    font-family: var(--font-mono);
+    font-size: var(--fs-lg);
+    font-weight: 600;
+  }
+
+  .status-timestamp {
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ── Tool Cards Grid ── */
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .tool-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    transition: all var(--transition);
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px 28px;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tool-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent-gold);
+    opacity: 0;
+    transition: opacity var(--transition);
+  }
+
+  .tool-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-elevated);
+    border-color: var(--accent-gold-dim);
+    text-decoration: none;
+  }
+
+  .tool-card:hover::before {
+    opacity: 1;
+  }
+
+  .tool-card .ic {
+    width: 28px;
+    height: 28px;
+    stroke: var(--accent-gold);
+    transition: transform var(--transition);
+  }
+
+  .tool-card:hover .ic {
+    transform: scale(1.12);
+  }
+
+  .tool-card .tool-label {
+    font-size: var(--fs-base);
+    color: var(--text-primary);
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+
+  .tool-card .tool-hint {
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* ── Footer ── */
+  .dashboard-footer {
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-light);
+  }
+
+  .dashboard-footer .footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
+    transition: all var(--transition);
+    text-decoration: none;
+    background: var(--bg-surface);
+  }
+
+  .dashboard-footer .footer-link:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+    background: var(--accent-gold-bg);
+    text-decoration: none;
+  }
+
+  .dashboard-footer .footer-link .ic {
+    width: 14px;
+    height: 14px;
+  }
+
+  .dashboard-footer .footer-divider {
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    margin: 16px 0 0;
+    opacity: 0.4;
+    letter-spacing: 3px;
+    user-select: none;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .dashboard-wrap { padding: 24px 16px 40px; }
+    .brand-header { margin-bottom: 32px; }
+    .brand-header h1 { font-size: var(--fs-h1); }
+    .tool-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .tool-card { padding: 24px 16px 20px; }
+    .tool-card .ic { width: 24px; height: 24px; }
+  }
+
+  @media (max-width: 480px) {
+    .tool-grid { grid-template-columns: 1fr; }
+    .status-card .card-body { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" title="切换主题">✦</button>
+
+<div class="dashboard-wrap">
+  <!-- Brand Header -->
+  <div class="brand-header">
+    <span class="brand-mark">✦</span>
+    <h1><span class="accent">Inked</span> · fqnovel-unidbg</h1>
+    <div class="brand-sub">墨与笺 · Ink &amp; Parchment</div>
+  </div>
+
+  <div class="section-divider">❧ ❧ ❧</div>
+
+  <!-- Service Status -->
+  <div class="card status-card">
+    <div class="card-header">服务状态</div>
+    <div class="card-body">
+      <div class="status-info">
+        <span class="dot" id="health-dot"></span>
+        <div>
+          <div class="status-label">运行状态</div>
+          <div class="status-value" id="health-status">检测中…</div>
+        </div>
+      </div>
+      <div class="status-timestamp" id="health-ts"></div>
+    </div>
+  </div>
+
+  <!-- Tool Cards -->
+  <div class="tool-grid">
+    <a href="/search.html" class="tool-card">
+      <svg class="ic"><use href="/css/icons.svg#icon-search"/></svg>
+      <span class="tool-label">书籍搜索</span>
+      <span class="tool-hint">搜索番茄小说全量书目</span>
+    </a>
+
+    <a href="/reader.html" class="tool-card">
+      <svg class="ic"><use href="/css/icons.svg#icon-book"/></svg>
+      <span class="tool-label">章节阅读</span>
+      <span class="tool-hint">在线阅读章节内容</span>
+    </a>
+
+    <a href="/comments.html" class="tool-card">
+      <svg class="ic"><use href="/css/icons.svg#icon-comment"/></svg>
+      <span class="tool-label">段评查询</span>
+      <span class="tool-hint">查看段落评论与回复</span>
+    </a>
+
+    <a href="/download.html" class="tool-card">
+      <svg class="ic"><use href="/css/icons.svg#icon-download"/></svg>
+      <span class="tool-label">全本下载</span>
+      <span class="tool-hint">一键下载整本书籍</span>
+    </a>
+
+    <a href="/books.html" class="tool-card">
+      <svg class="ic"><use href="/css/icons.svg#icon-dashboard"/></svg>
+      <span class="tool-label">已下载书籍</span>
+      <span class="tool-hint">管理本地已下载内容</span>
+    </a>
+
+    <a href="/api.html" class="tool-card">
+      <svg class="ic"><use href="/css/icons.svg#icon-api"/></svg>
+      <span class="tool-label">API 文档</span>
+      <span class="tool-hint">查看接口使用说明</span>
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <div class="dashboard-footer">
+    <a href="/admin/dashboard.html" class="footer-link">
+      <svg class="ic"><use href="/css/icons.svg#icon-admin"/></svg>
+      进入管理后台
+    </a>
+    <div class="footer-divider">❧ ❧ ❧</div>
+  </div>
+</div>
+
+<script src="/js/public.js?v=0.0.6"></script>
+<script>
+(function () {
+  'use strict';
+
+  function checkHealth() {
+    var dot = document.getElementById('health-dot');
+    var statusEl = document.getElementById('health-status');
+    var tsEl = document.getElementById('health-ts');
+
+    apiGetDirect('/api/admin/health').then(function (data) {
+      if (data && data.status === 'UP') {
+        dot.className = 'dot green';
+        statusEl.textContent = '运行正常';
+        statusEl.style.color = '';
+      } else {
+        dot.className = 'dot yellow';
+        statusEl.textContent = data && data.status ? data.status : '异常';
+        statusEl.style.color = '';
+      }
+      if (data && data.timestamp) {
+        var d = new Date(data.timestamp);
+        tsEl.textContent = '上次检测: ' + d.toLocaleString('zh-CN');
+      }
+    }).catch(function (err) {
+      dot.className = 'dot red';
+      statusEl.textContent = '无法连接';
+      tsEl.textContent = '';
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    checkHealth();
+    // Re-check every 30 seconds
+    setInterval(checkHealth, 30000);
+  });
+})();
+</script>
+</body>
+</html>

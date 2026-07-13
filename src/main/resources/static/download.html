@@ -5,35 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>fqnovel-unidbg · 全本下载</title>
 <link rel="stylesheet" href="/css/public.css?v=0.0.6">
-<link rel="stylesheet" href="/admin/css/admin.css?v=0.0.6">
+<style>
+</style>
 </head>
 <body>
 
-<button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu">☰</button>
-<button class="theme-toggle-admin" id="adminThemeToggle" onclick="toggleAdminTheme()" title="切换主题">✦</button>
+<button class="public-mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu">☰</button>
+<button class="public-theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">✦</button>
 
-<aside class="sidebar">
-  <div class="sidebar-header">
+<aside class="public-sidebar">
+  <div class="public-sidebar-header">
     <h1>fqnovel-unidbg</h1>
-    <span class="sidebar-subtitle">管理面板</span>
+    <span class="public-sidebar-subtitle">公开面板</span>
   </div>
-  <nav class="sidebar-nav">
-    <a href="/admin/dashboard.html" class="nav-item" data-section="dashboard"><span class="nav-icon">📊</span>概览仪表盘</a>
-    <a href="/admin/config.html" class="nav-item" data-section="config"><span class="nav-icon">⚙️</span>配置编辑器</a>
-    <a href="/admin/devices.html" class="nav-item" data-section="device-pool"><span class="nav-icon">📱</span>设备池管理</a>
-    <a href="/admin/system.html" class="nav-item" data-section="system"><span class="nav-icon">🖥️</span>系统监控</a>
-    <a href="/admin/search.html" class="nav-item" data-section="book-search"><span class="nav-icon">📚</span>书籍搜索</a>
-    <a href="/admin/download.html" class="nav-item" data-section="download"><span class="nav-icon">⬇️</span>全本下载</a>
-    <a href="/admin/books.html" class="nav-item" data-section="books"><span class="nav-icon">📖</span>已下载书籍</a>
-    <a href="/admin/reader.html" class="nav-item" data-section="chapter-viewer"><span class="nav-icon">📖</span>章节阅读</a>
-    <a href="/admin/comments.html" class="nav-item" data-section="comment-viewer"><span class="nav-icon">💬</span>段评查询</a>
+  <nav class="public-sidebar-nav">
+    <a href="/dashboard.html" class="public-nav-item" data-section="dashboard"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-dashboard"/></svg></span>概览仪表盘</a>
+    <a href="/search.html" class="public-nav-item" data-section="book-search"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-search"/></svg></span>书籍搜索</a>
+    <a href="/reader.html" class="public-nav-item" data-section="chapter-viewer"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg></span>章节阅读</a>
+    <a href="/comments.html" class="public-nav-item" data-section="comment-viewer"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-comment"/></svg></span>段评查询</a>
+    <a href="/download.html" class="public-nav-item active" data-section="download"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg></span>全本下载</a>
+    <a href="/books.html" class="public-nav-item" data-section="books"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg></span>已下载书籍</a>
+    <a href="/api.html" class="public-nav-item" data-section="api"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-api"/></svg></span>API 文档</a>
   </nav>
-  <div class="sidebar-footer">
-    <button class="btn btn-sm btn-outline" onclick="lockPanel()" title="锁定面板">✦ 锁定</button>
+  <div class="public-sidebar-footer">
+    <a href="/admin/dashboard.html" class="btn btn-sm btn-outline" style="width:100%;text-decoration:none;">← 返回管理后台</a>
   </div>
 </aside>
 
-<main class="content">
+<main class="public-content">
   <section class="section active" style="display:block;">
     <div class="section-header">
       <h2>⬇️ 全本下载管理</h2>
@@ -97,7 +96,6 @@
 </div>
 
 <script src="/js/public.js?v=0.0.6"></script>
-<script src="/admin/js/admin-common.js?v=0.0.6"></script>
 <script>
 (function(){
   var _activeDownloads = {};
@@ -201,7 +199,7 @@
       var pct = b.progress != null ? Math.round(b.progress) : 0;
       var completed = b.completed ? true : false;
       var statusText = completed ? '<span class="badge badge-green">已完成</span>' : '<span class="badge badge-gold">下载中</span>';
-      return '<tr><td><a href="/admin/books.html?bookId='+encodeURIComponent(b.bookId)+'" style="font-weight:600;">'+escapeHtml(b.bookName||'--')+'</a></td>' +
+      return '<tr><td><a href="/books.html?bookId='+encodeURIComponent(b.bookId)+'" style="font-weight:600;">'+escapeHtml(b.bookName||'--')+'</a></td>' +
         '<td style="font-size:0.75rem;font-family:var(--font-mono);">'+escapeHtml(b.bookId)+'</td>' +
         '<td style="min-width:120px;"><div class="progress-bar" style="height:6px;margin:4px 0;"><div class="progress-fill" style="width:'+pct+'%;background:'+(completed?'var(--accent-green)':(pct>0?'var(--accent-gold)':'var(--text-muted)'))+';"></div></div></td>' +
         '<td style="font-family:var(--font-mono);">'+(b.downloadedChapters!=null?b.downloadedChapters:'?')+' / '+(b.totalChapters!=null?b.totalChapters:'?')+'</td>' +
@@ -259,6 +257,19 @@
     });
     $('dl-book-id').addEventListener('keydown', function(e){ if (e.key === 'Enter') startDownload(); });
     checkAllStatus();
+
+    // Mobile sidebar toggle
+    var menuBtn = $('mobile-menu-toggle');
+    var sidebar = document.querySelector('.public-sidebar');
+    if (menuBtn && sidebar) {
+      menuBtn.addEventListener('click', function() { sidebar.classList.toggle('open'); });
+      document.addEventListener('click', function(e) {
+        if (window.innerWidth <= 768 && sidebar.classList.contains('open') &&
+            !sidebar.contains(e.target) && e.target !== menuBtn) {
+          sidebar.classList.remove('open');
+        }
+      });
+    }
   });
 })();
 </script>
