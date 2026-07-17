@@ -12,7 +12,7 @@
 
     <groupId>com.anjia</groupId>
     <artifactId>unidbg-boot-server</artifactId>
-    <version>0.0.5-SNAPSHOT</version>
+    <version>0.0.5</version>
     <name>unidbg-boot-server</name>
     <description>Unidbg Spring Boot Server</description>
 

@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- (placeholder for upcoming changes)
+
+## [v0.0.5] - 2026-07-17
+
+### Added
 - feat(admin): 重构管理后台，新增9个功能页面和公共JS库
 - feat(tracing): configure Sleuth async MDC propagation via ThreadPoolTaskExecutor
 - feat(log): add AOP logging aspect with token masking and truncation
