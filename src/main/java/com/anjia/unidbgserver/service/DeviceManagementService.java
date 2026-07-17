@@ -331,7 +331,10 @@ public class DeviceManagementService {
      * 保存重启脚本
      */
     private String saveRestartScript(String scriptContent) throws IOException {
-        String scriptPath = System.getProperty("user.dir") + "/restart.sh";
+        String scriptPath = System.getProperty("user.dir") + "/bin/restart.sh";
+
+        new File(scriptPath).getParentFile().mkdirs();
+
         try (FileWriter writer = new FileWriter(scriptPath)) {
             writer.write(scriptContent);
         }
