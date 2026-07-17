@@ -197,7 +197,6 @@ class CommentEnrichmentServiceTest {
         int firstImg = result.indexOf("<img");
         assertTrue(firstImg > titleEnd,
                 "First img should appear after title paragraph, not on it");
-                "First content paragraph should be paraIndex=0");
     }
 
     private String invokeGenerateSvgDataUri(int count, String clickUrl) throws Exception {

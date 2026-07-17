@@ -12,7 +12,7 @@
 
     <groupId>com.anjia</groupId>
     <artifactId>unidbg-boot-server</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.5-SNAPSHOT</version>
     <name>unidbg-boot-server</name>
     <description>Unidbg Spring Boot Server</description>
 
@@ -33,8 +33,6 @@
         <jib-maven-plugin.version>3.1.4</jib-maven-plugin.version>
         <lombok.version>1.18.36</lombok.version>
         <spring-cloud.version>2021.0.7</spring-cloud.version>
-        <!-- 默认跳过单元测试 为嘛加这个跳过呢，参考这个issues https://github.com/anjia0532/unidbg-boot-server/issues/5 -->
-        <maven.test.skip>true</maven.test.skip>
     </properties>
 
     <dependencyManagement>
