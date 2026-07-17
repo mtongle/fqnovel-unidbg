@@ -2,6 +2,13 @@
 set -e  # 遇到错误立即退出
 echo "[$(date)] 正在重启项目..."
 
+JAR_FILE=$(ls -t target/unidbg-boot-server-*.jar 2>/dev/null | head -1)
+if [ -z "$JAR_FILE" ]; then
+    echo "[$(date)] 错误: 未找到 JAR 文件 (target/unidbg-boot-server-*.jar)"
+    exit 1
+fi
+echo "[$(date)] 使用 JAR: $JAR_FILE"
+
 # 第一步：请求注册接口（无参，生成随机真实设备并写入配置）
 echo "[$(date)] 调用注册接口，写入新设备配置..."
 curl -sf -X POST 'http://localhost:9999/api/device/register-and-restart' \
@@ -37,15 +44,15 @@ fi
 sleep 2
 
 # 检查JAR文件是否存在
-if [ ! -f "target/unidbg-boot-server-0.0.1-SNAPSHOT.jar" ]; then
-    echo "[$(date)] 错误: JAR文件不存在: target/unidbg-boot-server-0.0.1-SNAPSHOT.jar"
+if [ ! -f "$JAR_FILE" ]; then
+    echo "[$(date)] 错误: JAR文件不存在: $JAR_FILE"
     exit 1
 fi
 
 # 启动新的JAR文件
-echo "[$(date)] 启动JAR文件: target/unidbg-boot-server-0.0.1-SNAPSHOT.jar"
-cd "/Users/edy/code/cursor/nixiang/douyinsix/fqnovel-unidbg"
-nohup java -jar "target/unidbg-boot-server-0.0.1-SNAPSHOT.jar" >> target/spring-boot.log 2>&1 &
+echo "[$(date)] 启动JAR文件: $JAR_FILE"
+cd "$(dirname "$0")/.."
+nohup java -jar "$JAR_FILE" >> target/spring-boot.log 2>&1 &
 JAVA_PID=$!
 echo "[$(date)] 新进程PID: $JAVA_PID"
 
