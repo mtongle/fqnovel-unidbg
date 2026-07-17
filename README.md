@@ -83,13 +83,13 @@ spring:
 ```bash
 # 方式一：Maven Wrapper（推荐）
 ./mvnw package -DskipTests
-java -jar target/unidbg-boot-server-0.0.3-SNAPSHOT.jar
+java -jar target/unidbg-boot-server-0.0.5-SNAPSHOT.jar
 
 # 方式二：本机 Maven
-mvn package -T10 -DskipTests && java -jar target/unidbg-boot-server-0.0.3-SNAPSHOT.jar
+mvn package -T10 -DskipTests && java -jar target/unidbg-boot-server-0.0.5-SNAPSHOT.jar
 
 # 方式三：快捷脚本
-./run.sh
+./bin/run.sh
 ```
 
 > Docker 方式参考 [anjia0532/unidbg-boot-server](https://github.com/anjia0532/unidbg-boot-server)。
@@ -279,9 +279,16 @@ src/main/resources/
 ├── application.yml   — 主配置
 
 tools/     — Python 辅助脚本
+bin/       — 启动与管理脚本
 docs/      — 项目文档
 results/   — 全本下载输出
 ```
+
+| 文件 | 说明 |
+|------|------|
+| [`CHANGELOG.md`](CHANGELOG.md) | 版本历史与更新日志 |
+| [`AGENTS.md`](AGENTS.md) | 项目架构与 AI 开发指南 |
+| [`API.md`](API.md) | 段评接口详细文档 |
 
 ## ⚠️ 注意事项
 
@@ -289,20 +296,13 @@ results/   — 全本下载输出
 - 设备池可轮换设备降低风控，但仍有 IP 被封风险
 - 若用于阅读器，请控制预加载与缓存频率
 - `application.unidbg.verbose=true` 会开启详细日志，**极慢**，生产务必关闭
-- `restart.sh` 硬编码了原作者本机路径，本地使用需修改
+- `restart.sh` 脚本已移至 `bin/restart.sh`，使用相对路径定位项目根目录
 - 图片代理 `/api/img/proxy` 会缓存转换后的 JPEG 至内存，最大 500 张，TTL 1 小时
 - SSR 段评页面可通过明暗主题切换按钮调整阅读配色
 
 ## 📜 更新日志
 
-### v0.0.3 (2026-06-25)
-- ✨ **段评增强章节内容** — 章节正文段落末尾自动插入评论数徽章
-- ✨ **SSR 段评预览页面** — 服务端渲染的段评列表页，支持明暗主题、展开全文、回复分页
-- ✨ **SSR 段评回复** — 支持分页加载回复，每页 5 条，滚动加载
-- ✨ **图片代理** — 服务端直转图片，HEIC→JPEG 自动转换
-- 💄 **段评徽章优化** — 固定按钮高度、自适应宽度，大数字不再被压扁
-- 🐛 **回复加载滚动修复** — 点击"加载更多"后自动滚动到新内容
-- 📚 **Legado 书源更新** — 新增段评书源配置 (`fqnovel-tongle-comments.json`)
+> 完整版本历史请参阅 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 📖 相关文档
 
