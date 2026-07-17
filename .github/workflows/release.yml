@@ -48,9 +48,6 @@ jobs:
           sed 's/\[替换为你的ip或域名\]/127.0.0.1/g; s/\[你的端口号\]/8099/g' \
             src/main/resources/legado/fqnovel.json > legado-fqnovel-preconfigured.json
 
-          # Copy README for the Release page
-          cp README.md release-notes.md
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -59,7 +56,16 @@ jobs:
             unidbg-boot-server-${{ env.VERSION }}.jar
             legado-fqnovel-template.json
             legado-fqnovel-preconfigured.json
-          body_path: release-notes.md
+          body: |
+            # fqnovel-unidbg v${{ env.VERSION }}
+
+            ## 📥 Downloads
+            - JAR: unidbg-boot-server-${{ env.VERSION }}.jar
+            - Legado template: legado-fqnovel-template.json
+            - Legado preconfigured: legado-fqnovel-preconfigured.json
+
+            ## 📋 Changes
+            See [CHANGELOG](CHANGELOG.md) for full details.
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
