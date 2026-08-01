@@ -1,7 +1,7 @@
 package com.anjia.unidbgserver.service;
 
 import com.anjia.unidbgserver.dto.*;
-import com.anjia.unidbgserver.service.FqCrypto;
+import com.anjia.unidbgserver.service.FQCrypto;
 import com.anjia.unidbgserver.utils.CommonUtils;
 import com.anjia.unidbgserver.utils.FQApiUtils;
 import com.anjia.unidbgserver.utils.GzipUtils;
@@ -64,11 +64,11 @@ public class FQNovelService {
      * @param download 是否下载模式 (false=在线阅读, true=下载)
      * @return 批量内容响应
      */
-    public CompletableFuture<FQNovelResponse<FqIBatchFullResponse>> batchFull(String itemIds, String bookId, boolean download) {
+    public CompletableFuture<FQNovelResponse<FQBatchFullResponse>> batchFull(String itemIds, String bookId, boolean download) {
         return batchFull(itemIds, bookId, download, null, null);
     }
 
-    private CompletableFuture<FQNovelResponse<FqIBatchFullResponse>> batchFull(
+    private CompletableFuture<FQNovelResponse<FQBatchFullResponse>> batchFull(
             String itemIds,
             String bookId,
             boolean download,
@@ -76,7 +76,7 @@ public class FQNovelService {
         return batchFull(itemIds, bookId, download, requestedDevice, null);
     }
 
-    private CompletableFuture<FQNovelResponse<FqIBatchFullResponse>> batchFull(
+    private CompletableFuture<FQNovelResponse<FQBatchFullResponse>> batchFull(
             String itemIds,
             String bookId,
             boolean download,
@@ -91,7 +91,7 @@ public class FQNovelService {
                 try {
                     long keyRegisterTs = registerKeyService.ensureRegisterKeyReady(currentDevice);
 
-                    FqVariable var = new FqVariable(currentDevice);
+                    FQVariable var = new FQVariable(currentDevice);
                     var.setKeyRegisterTs(String.valueOf(keyRegisterTs));
 
                     String url = fqApiUtils.getBaseUrl() + "/reading/reader/batch_full/v";
@@ -141,7 +141,7 @@ public class FQNovelService {
                     }
                     consecutiveIllegalAccessCount = 0;
 
-                    FqIBatchFullResponse batchResponse = objectMapper.readValue(responseBody, FqIBatchFullResponse.class);
+                    FQBatchFullResponse batchResponse = objectMapper.readValue(responseBody, FQBatchFullResponse.class);
 
                     // 使用循环开始时获取的 keyRegisterTs，避免重复查询
                     long currentKeyRegisterTs = registerKeyService.getKeyRegisterTs(currentDevice);
@@ -309,6 +309,56 @@ public class FQNovelService {
     }
 
     /**
+     * 解密批量章节内容（原 FQBatchFullResponse.getDecryptContents，已从 DTO 移至 service 层）
+     *
+     * @param batchFullResponse 批量响应
+     * @param deviceInfo 当前请求设备
+     * @return 章节ID → 解密内容的列表（单章解密失败会跳过并记日志，不导致整批失败）
+     */
+    private List<Map.Entry<String, String>> decryptBatchContents(
+            FQBatchFullResponse batchFullResponse, DeviceInfo deviceInfo) {
+        List<Map.Entry<String, String>> results = new ArrayList<>();
+        if (batchFullResponse == null || batchFullResponse.getData() == null) {
+            return results;
+        }
+
+        for (Map.Entry<String, ItemContent> entry : batchFullResponse.getData().entrySet()) {
+            String itemId = entry.getKey();
+            ItemContent content = entry.getValue();
+            if (content == null) {
+                continue;
+            }
+
+            try {
+                Long contentKeyver = content.getKeyVersion();
+                log.debug("章节 {} 的keyVersion: {}, deviceId={}",
+                    itemId,
+                    contentKeyver,
+                    deviceInfo != null ? deviceInfo.getDeviceId() : null);
+
+                String key = registerKeyService.getDecryptionKey(deviceInfo, contentKeyver);
+
+                String decryptedContent = FQCrypto.decryptAndDecompressContent(content.getContent(), key);
+                results.add(new java.util.AbstractMap.SimpleEntry<>(itemId, decryptedContent));
+
+                log.debug("章节 {} 解密成功，内容长度: {}, deviceId={}",
+                    itemId,
+                    decryptedContent.length(),
+                    deviceInfo != null ? deviceInfo.getDeviceId() : null);
+
+            } catch (Exception e) {
+                log.error("解密章节内容失败 - itemId: {}, keyVersion: {}, deviceId={}",
+                    itemId,
+                    content.getKeyVersion(),
+                    deviceInfo != null ? deviceInfo.getDeviceId() : null,
+                    e);
+            }
+        }
+
+        return results;
+    }
+
+    /**
      * 从批量响应数据中查找第一个可用的 novelData
      * （优先按请求的 itemId 顺序查找，找不到时遍历整个 dataMap）
      *
@@ -336,7 +386,7 @@ public class FQNovelService {
         return null;
     }
 
-    private boolean containsInvalidItemPayload(FqIBatchFullResponse batchResponse, DeviceInfo currentDevice, long keyRegisterTs) {
+    private boolean containsInvalidItemPayload(FQBatchFullResponse batchResponse, DeviceInfo currentDevice, long keyRegisterTs) {
         if (batchResponse == null || batchResponse.getData() == null || batchResponse.getData().isEmpty()) {
             return false;
         }
@@ -502,7 +552,7 @@ public class FQNovelService {
                 AtomicReference<DeviceInfo> successfulDeviceRef = new AtomicReference<>(requestedDevice);
 
                 // 先获取批量内容
-                FQNovelResponse<FqIBatchFullResponse> batchResponse = batchFull(itemIds, bookId, download, requestedDevice, successfulDeviceRef).get();
+                FQNovelResponse<FQBatchFullResponse> batchResponse = batchFull(itemIds, bookId, download, requestedDevice, successfulDeviceRef).get();
 
                 if (batchResponse.getCode() != 0 || batchResponse.getData() == null) {
                     return FQNovelResponse.error("获取批量内容失败: " + batchResponse.getMessage());
@@ -510,9 +560,9 @@ public class FQNovelService {
 
                 DeviceInfo effectiveDevice = successfulDeviceRef.get();
 
-                // 解密内容
-                List<Map.Entry<String, String>> decryptedContents =
-                    batchResponse.getData().getDecryptContents(registerKeyService, effectiveDevice);
+                // 解密内容（逻辑从 DTO 移至 service 层，DTO 只做数据承载）
+                List<Map.Entry<String, String>> decryptedContents = decryptBatchContents(
+                        batchResponse.getData(), effectiveDevice);
 
                 return FQNovelResponse.success(decryptedContents);
 
@@ -541,13 +591,13 @@ public class FQNovelService {
 
                 // 使用batch_full API获取完整响应数据
                 String itemIds = request.getChapterId();
-                FQNovelResponse<FqIBatchFullResponse> batchResponse = batchFull(itemIds, request.getBookId(), false, requestedDevice, successfulDeviceRef).get();
+                FQNovelResponse<FQBatchFullResponse> batchResponse = batchFull(itemIds, request.getBookId(), false, requestedDevice, successfulDeviceRef).get();
 
                 if (batchResponse.getCode() != 0 || batchResponse.getData() == null) {
                     return FQNovelResponse.error("获取章节内容失败: " + batchResponse.getMessage());
                 }
 
-                FqIBatchFullResponse batchFullResponse = batchResponse.getData();
+                FQBatchFullResponse batchFullResponse = batchResponse.getData();
                 Map<String, ItemContent> dataMap = batchFullResponse.getData();
 
                 if (dataMap == null || dataMap.isEmpty()) {
@@ -584,7 +634,7 @@ public class FQNovelService {
 
                     Long contentKeyver = itemContent.getKeyVersion();
                     String key = registerKeyService.getDecryptionKey(effectiveDevice, contentKeyver);
-                    decryptedContent = FqCrypto.decryptAndDecompressContent(encryptedContent, key);
+                    decryptedContent = FQCrypto.decryptAndDecompressContent(encryptedContent, key);
                 } catch (Exception e) {
                     log.error("解密章节内容失败 - chapterId={}, keyVersion={}, cryptStatus={}, compressStatus={}, contentLength={}, contentPreview={}",
                         chapterId,
@@ -734,13 +784,13 @@ public class FQNovelService {
 
                 // 调用批量获取API
                 String itemIdsStr = String.join(",", itemIds);
-                FQNovelResponse<FqIBatchFullResponse> batchResponse = batchFull(itemIdsStr, request.getBookId(), true, requestedDevice, successfulDeviceRef).get();
+                FQNovelResponse<FQBatchFullResponse> batchResponse = batchFull(itemIdsStr, request.getBookId(), true, requestedDevice, successfulDeviceRef).get();
 
                 if (batchResponse.getCode() != 0 || batchResponse.getData() == null) {
                     return FQNovelResponse.error("获取批量章节内容失败: " + batchResponse.getMessage());
                 }
 
-                FqIBatchFullResponse batchFullResponse = batchResponse.getData();
+                FQBatchFullResponse batchFullResponse = batchResponse.getData();
                 Map<String, ItemContent> dataMap = batchFullResponse.getData();
 
                 if (dataMap == null) {
@@ -810,7 +860,7 @@ public class FQNovelService {
 
                             Long contentKeyver = itemContent.getKeyVersion();
                             String key = registerKeyService.getDecryptionKey(effectiveDevice, contentKeyver);
-                            decryptedContent = FqCrypto.decryptAndDecompressContent(encryptedContent, key);
+                            decryptedContent = FQCrypto.decryptAndDecompressContent(encryptedContent, key);
                         } catch (Exception e) {
                             log.error("解密章节内容失败 - itemId={}, keyVersion={}, cryptStatus={}, compressStatus={}, contentLength={}, contentPreview={}",
                                 itemId,

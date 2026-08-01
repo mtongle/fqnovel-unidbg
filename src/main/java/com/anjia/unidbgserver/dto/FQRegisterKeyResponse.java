@@ -4,10 +4,10 @@ import lombok.Data;
 
 /**
  * FQNovel 注册密钥响应
- * 对应 Rust 中的 FqRegisterKeyResponse 结构
+ * 对应 Rust 中的 FQRegisterKeyResponse 结构
  */
 @Data
-public class FqRegisterKeyResponse {
+public class FQRegisterKeyResponse {
 
     /**
      * 响应码
@@ -22,6 +22,5 @@ public class FqRegisterKeyResponse {
     /**
      * 响应数据
      */
-//    private FqRegisterKeyPayload data;
-    private FqRegisterKeyPayloadResponse data;
+    private FQRegisterKeyPayloadResponse data;
 }

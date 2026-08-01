@@ -5,6 +5,7 @@ import com.anjia.unidbgserver.dto.DeviceRegisterRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -86,6 +87,11 @@ public class DeviceGeneratorService {
         RESOLUTIONS.add(createResolution("1920*1080", 480, "xxhdpi"));
         RESOLUTIONS.add(createResolution("2560*1440", 560, "xxxhdpi"));
         RESOLUTIONS.add(createResolution("3200*1440", 640, "xxxhdpi"));
+
+        // 只读包装，防止运行时被意外修改
+        DEVICE_BRANDS.replaceAll((k, v) -> Collections.unmodifiableList(v));
+        ANDROID_VERSIONS.replaceAll(Collections::unmodifiableMap);
+        RESOLUTIONS.replaceAll(Collections::unmodifiableMap);
     }
 
     private static Map<String, Object> createAndroidVersion(String version, Integer api, String release) {
@@ -243,12 +249,12 @@ public class DeviceGeneratorService {
     }
 
     /**
-     * MD5编码
+     * MD5编码（显式 UTF-8，与 DeviceRegisterClientService 保持一致）
      */
     private String md5Encode(String text) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] digest = md.digest(text.getBytes());
+            byte[] digest = md.digest(text.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
             for (byte b : digest) {
                 sb.append(String.format("%02x", b));

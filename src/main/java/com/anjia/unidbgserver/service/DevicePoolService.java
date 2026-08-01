@@ -174,7 +174,7 @@ public class DevicePoolService {
     }
 
     public int getTargetPoolSize() {
-        if (fqApiProperties.getDevicePool() == null || fqApiProperties.getDevicePool().getSize() == null) {
+        if (fqApiProperties.getDevicePool() == null) {
             return 3;
         }
         return Math.max(1, fqApiProperties.getDevicePool().getSize());
@@ -231,7 +231,7 @@ public class DevicePoolService {
 
     private boolean isEnabled() {
         return fqApiProperties.getDevicePool() != null
-            && Boolean.TRUE.equals(fqApiProperties.getDevicePool().getEnabled());
+            && fqApiProperties.getDevicePool().isEnabled();
     }
 
     private boolean isSameDevice(DeviceInfo left, DeviceInfo right) {
@@ -248,6 +248,9 @@ public class DevicePoolService {
 
     private DeviceInfo buildFallbackDevice() {
         FQApiProperties.Device device = fqApiProperties.getDevice();
+        if (device == null) {
+            device = new FQApiProperties.Device();
+        }
         String userAgent = fqApiProperties.getUserAgent();
         String cookie = fqApiProperties.getCookie();
 

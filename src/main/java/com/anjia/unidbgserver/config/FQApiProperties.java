@@ -5,29 +5,36 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Component;
 
+/**
+ * FQ API 配置
+ *
+ * 注意：设备相关参数（cdid/installId/deviceId/cookie 等）不再提供硬编码默认值，
+ * 必须通过 application.yml / 环境变量注入。设备池模式（默认开启）会自动生成
+ * 真实设备并写入配置，无需手工维护。
+ */
 @Data
 @Component
 @RefreshScope
 @ConfigurationProperties(prefix = "fq.api")
 public class FQApiProperties {
-    
+
     /**
      * API基础URL
      */
     private String baseUrl = "https://api5-normal-sinfonlineb.fqnovel.com";
-    
+
     /**
-     * 默认User-Agent
+     * 默认User-Agent（设备池模式下由设备信息动态生成，此处为兜底）
      */
-    private String userAgent = "com.dragon.read.oversea.gp/68132 (Linux; U; Android 10; zh_CN; OnePlus11; Build/V291IR;tt-ok/3.12.13.4-tiktok)";
-    
+    private String userAgent = "";
+
     /**
-     * Cookie配置
+     * Cookie配置（设备池模式下由设备注册动态生成，此处为兜底）
      */
-    private String cookie = "store-region=cn-zj; store-region-src=did; install_id=933935730456617";
-    
+    private String cookie = "";
+
     /**
-     * 设备参数配置
+     * 设备参数配置（设备池模式下由设备信息动态注入）
      */
     private Device device = new Device();
 
@@ -50,65 +57,65 @@ public class FQApiProperties {
     @Data
     public static class Device {
         /**
-         * 设备唯一标识符
+         * 设备唯一标识符（设备池自动生成后回写）
          */
-        private String cdid = "17f05006-423a-4172-be4b-7d26a42f2f4a";
-        
+        private String cdid = "";
+
         /**
-         * 安装ID
+         * 安装ID（设备池自动生成后回写）
          */
-        private String installId = "933935730456617";
-        
+        private String installId = "";
+
         /**
-         * 设备ID
+         * 设备ID（设备池自动生成后回写）
          */
-        private String deviceId = "933935730452521";
-        
+        private String deviceId = "";
+
         /**
          * 应用ID
          */
         private String aid = "1967";
-        
+
         /**
          * 版本代码
          */
         private String versionCode = "68132";
-        
+
         /**
          * 版本名称
          */
         private String versionName = "6.8.1.32";
-        
+
         /**
          * 更新版本代码
          */
         private String updateVersionCode = "68132";
-        
+
         /**
          * 设备类型
          */
-        private String deviceType = "OnePlus11";
-        
+        private String deviceType = "";
+
         /**
          * 设备品牌
          */
-        private String deviceBrand = "OnePlus";
-        
+        private String deviceBrand = "";
+
         /**
          * ROM版本
          */
-        private String romVersion = "V291IR+release-keys";
-        
+        private String romVersion = "";
+
         /**
          * 分辨率
          */
-        private String resolution = "3200*1440";
-        
+        private String resolution = "";
+
         /**
          * DPI
          */
-        private String dpi = "640";
-        
+        private String dpi = "";
+
         /**
          * 主机ABI
          */
@@ -120,11 +127,11 @@ public class FQApiProperties {
         /**
          * 是否启用设备池
          */
-        private Boolean enabled = true;
+        private boolean enabled = true;
 
         /**
          * 设备池目标数量
          */
-        private Integer size = 3;
+        private int size = 3;
     }
 }

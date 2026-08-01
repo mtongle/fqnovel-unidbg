@@ -38,7 +38,7 @@ public class FQCommentService {
         return CompletableFuture.supplyAsync(() -> {
             DeviceInfo device = devicePoolService.nextDevice();
             String path = "/novel/commentapi/idea/list/" + request.getChapterId() + "/v1";
-            Map<String, String> queryParams = fqApiUtils.buildCommonApiParams(new FqVariable(device));
+            Map<String, String> queryParams = fqApiUtils.buildCommonApiParams(new FQVariable(device));
 
             Map<String, Object> businessParam = new LinkedHashMap<>();
             if (request.getBookId() != null && !request.getBookId().trim().isEmpty()) {
@@ -61,7 +61,7 @@ public class FQCommentService {
         return CompletableFuture.supplyAsync(() -> {
             DeviceInfo device = devicePoolService.nextDevice();
             String path = "/novel/commentapi/comment/list/" + request.getChapterId() + "/v1";
-            Map<String, String> queryParams = fqApiUtils.buildCommonApiParams(new FqVariable(device));
+            Map<String, String> queryParams = fqApiUtils.buildCommonApiParams(new FQVariable(device));
 
             Map<String, Object> businessParam = new LinkedHashMap<>();
             businessParam.put("book_id", request.getBookId());
@@ -88,7 +88,7 @@ public class FQCommentService {
         return CompletableFuture.supplyAsync(() -> {
             DeviceInfo device = devicePoolService.nextDevice();
             String path = "/novel/commentapi/reply/list/" + request.getCommentId() + "/v1";
-            Map<String, String> queryParams = fqApiUtils.buildCommonApiParams(new FqVariable(device));
+            Map<String, String> queryParams = fqApiUtils.buildCommonApiParams(new FQVariable(device));
 
             Map<String, Object> businessParam = new LinkedHashMap<>();
             businessParam.put("book_id", request.getBookId());

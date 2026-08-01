@@ -5,10 +5,10 @@ import lombok.Data;
 
 /**
  * FQNovel API 变量配置
- * 对应 Rust 中的 FqVariable 结构
+ * 对应 Rust 中的 FQVariable 结构
  */
 @Data
-public class FqVariable {
+public class FQVariable {
 
     /**
      * 安装ID
@@ -63,7 +63,7 @@ public class FqVariable {
     /**
      * 从配置构造
      */
-    public FqVariable(FQApiProperties fqApiProperties) {
+    public FQVariable(FQApiProperties fqApiProperties) {
         if (fqApiProperties != null && fqApiProperties.getDevice() != null) {
             FQApiProperties.Device device = fqApiProperties.getDevice();
             this.installId = device.getInstallId();
@@ -79,7 +79,7 @@ public class FqVariable {
     /**
      * 从设备信息构造
      */
-    public FqVariable(DeviceInfo deviceInfo) {
+    public FQVariable(DeviceInfo deviceInfo) {
         if (deviceInfo != null) {
             this.installId = deviceInfo.getInstallId();
             this.serverDeviceId = deviceInfo.getDeviceId();
@@ -94,7 +94,7 @@ public class FqVariable {
     /**
      * 构造函数
      */
-    public FqVariable(String installId, String serverDeviceId, String aid, String updateVersionCode) {
+    public FQVariable(String installId, String serverDeviceId, String aid, String updateVersionCode) {
         this.installId = installId;
         this.serverDeviceId = serverDeviceId;
         this.aid = aid;
@@ -105,7 +105,7 @@ public class FqVariable {
     /**
      * 默认构造函数
      */
-    public FqVariable() {
+    public FQVariable() {
         initializeDefaults();
     }
 

@@ -233,7 +233,7 @@ public class FQDiscoveryService {
 
     private Map<String, String> buildFrontPageParams(
             DeviceInfo device, Integer categoryTab, Boolean needHot, String source) {
-        FqVariable var = new FqVariable(device);
+        FQVariable var = new FQVariable(device);
         Map<String, String> params = fqApiUtils.buildCommonApiParams(var);
         // 可选参数，与APK中GetNewCategoryFrontPageRequest字段对应
         if (categoryTab != null) params.put("category_tab", String.valueOf(categoryTab));
@@ -246,7 +246,7 @@ public class FQDiscoveryService {
     private Map<String, String> buildLandingPageParams(
             DeviceInfo device, String categoryId, int offset, int limit,
             String subCategoryId, String sortBy, String bookStatus, String wordNumber) {
-        FqVariable var = new FqVariable(device);
+        FQVariable var = new FQVariable(device);
         Map<String, String> params = fqApiUtils.buildCommonApiParams(var);
         if (categoryId != null && !categoryId.isEmpty()) {
             params.put("category_id", categoryId);
@@ -272,7 +272,7 @@ public class FQDiscoveryService {
 
     private Map<String, String> buildCellDataParams(
             DeviceInfo device, int newCategoryTab, int reqType, int distinctStyle) {
-        FqVariable var = new FqVariable(device);
+        FQVariable var = new FQVariable(device);
         Map<String, String> params = fqApiUtils.buildCommonApiParams(var);
         params.put("new_category_tab", String.valueOf(newCategoryTab));
         params.put("req_type", String.valueOf(reqType));

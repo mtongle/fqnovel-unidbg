@@ -219,7 +219,7 @@ public class FQSearchService {
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             DeviceInfo currentDevice = devicePoolService.nextDevice();
             try {
-                FqVariable var = new FqVariable(currentDevice);
+                FQVariable var = new FQVariable(currentDevice);
 
                 String url = fqApiUtils.getSearchBaseUrl()
                     + "/reading/bookapi/search/tab/v";
@@ -295,7 +295,7 @@ public class FQSearchService {
             for (int attempt = 1; attempt <= maxAttempts; attempt++) {
                 DeviceInfo currentDevice = devicePoolService.nextDevice();
                 try {
-                    FqVariable var = new FqVariable(currentDevice);
+                    FQVariable var = new FQVariable(currentDevice);
 
                     String url = fqApiUtils.getSearchBaseUrl()
                         + "/reading/bookapi/directory/all_items/v";

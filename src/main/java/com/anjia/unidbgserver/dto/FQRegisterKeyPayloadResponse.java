@@ -1,22 +1,20 @@
 package com.anjia.unidbgserver.dto;
 
-import com.anjia.unidbgserver.service.FqCrypto;
+import com.anjia.unidbgserver.service.FQCrypto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
- * FQNovel 注册密钥载荷
- * 对应 Rust 中的 FqRegisterKeyPayload 结构
+ * FQNovel 注册密钥载荷响应
+ * 对应 Rust 中的 FQRegisterKeyPayload 结构
  */
-@Slf4j
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class FqRegisterKeyPayloadResponse {
+public class FQRegisterKeyPayloadResponse {
 
     /**
      * 密钥内容 (加密后的)
@@ -34,15 +32,13 @@ public class FqRegisterKeyPayloadResponse {
      * 获取解密后的真实密钥 (前16字节)
      * 使用新的解密算法，遵循 Python 中的 decrypt_registerkey 模式
      *
-     * @return 十六进制密钥字符串 (前16字节)
+     * @return 十六进制密钥字符串 (前16字节)，解密失败返回 null
      */
     @JsonIgnore
     public String getKey() {
         try {
-            return FqCrypto.getRealKey(this.key);
+            return FQCrypto.getRealKey(this.key);
         } catch (Exception e) {
-            // Log the error and return a default or null value
-            log.error("解析registerkey payload失败", e);
             return null;
         }
     }

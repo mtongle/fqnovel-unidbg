@@ -1,9 +1,9 @@
 package com.anjia.unidbgserver.service;
 
 import com.anjia.unidbgserver.dto.DeviceInfo;
-import com.anjia.unidbgserver.dto.FqRegisterKeyPayload;
-import com.anjia.unidbgserver.dto.FqRegisterKeyResponse;
-import com.anjia.unidbgserver.dto.FqVariable;
+import com.anjia.unidbgserver.dto.FQRegisterKeyPayload;
+import com.anjia.unidbgserver.dto.FQRegisterKeyResponse;
+import com.anjia.unidbgserver.dto.FQVariable;
 import com.anjia.unidbgserver.utils.CommonUtils;
 import com.anjia.unidbgserver.utils.FQApiUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -44,8 +44,8 @@ public class FQRegisterKeyService {
     private final Map<String, DeviceRegisterKeyCache> registerKeyCacheByDevice = new ConcurrentHashMap<>();
 
     private static class DeviceRegisterKeyCache {
-        private final Map<Long, FqRegisterKeyResponse> cachedRegisterKeys = new ConcurrentHashMap<>();
-        private volatile FqRegisterKeyResponse currentRegisterKey;
+        private final Map<Long, FQRegisterKeyResponse> cachedRegisterKeys = new ConcurrentHashMap<>();
+        private volatile FQRegisterKeyResponse currentRegisterKey;
         private volatile Long keyRegisterTs;
     }
 
@@ -57,7 +57,7 @@ public class FQRegisterKeyService {
         log.info("初始化FQRegisterKeyService，获取初始registerkey...");
         try {
             DeviceInfo initDevice = devicePoolService.nextDevice();
-            FqRegisterKeyResponse response = fetchRegisterKey(initDevice);
+            FQRegisterKeyResponse response = fetchRegisterKey(initDevice);
             if (response != null && response.getData() != null) {
                 DeviceRegisterKeyCache deviceCache = getOrCreateDeviceCache(initDevice);
                 long keyver = response.getData().getKeyver();
@@ -83,7 +83,7 @@ public class FQRegisterKeyService {
      * @param requiredKeyver 需要的keyver，如果为null则使用当前缓存的key
      * @return RegisterKey响应
      */
-    public synchronized FqRegisterKeyResponse getRegisterKey(Long requiredKeyver) throws Exception {
+    public FQRegisterKeyResponse getRegisterKey(Long requiredKeyver) throws Exception {
         DeviceInfo currentDevice = devicePoolService.nextDevice();
         return getRegisterKey(currentDevice, requiredKeyver);
     }
@@ -91,36 +91,41 @@ public class FQRegisterKeyService {
     /**
      * 获取registerkey（按设备维度）
      *
+     * 按设备维度分段加锁：不同设备、不同 keyver 的请求可以并行，
+     * 只有同一设备的刷新/读取才会串行（避免所有设备请求全局串行化）。
+     *
      * @param deviceInfo 设备信息
      * @param requiredKeyver 需要的keyver，如果为null则使用当前缓存的key
      * @return RegisterKey响应
      */
-    public synchronized FqRegisterKeyResponse getRegisterKey(DeviceInfo deviceInfo, Long requiredKeyver) throws Exception {
+    public FQRegisterKeyResponse getRegisterKey(DeviceInfo deviceInfo, Long requiredKeyver) throws Exception {
         String deviceCacheKey = buildDeviceCacheKey(deviceInfo);
-        DeviceRegisterKeyCache deviceCache = getOrCreateDeviceCache(deviceInfo);
+        synchronized (getDeviceLock(deviceCacheKey)) {
+            DeviceRegisterKeyCache deviceCache = getOrCreateDeviceCache(deviceInfo);
 
-        if (requiredKeyver == null) {
-            if (deviceCache.currentRegisterKey != null) {
-                return deviceCache.currentRegisterKey;
+            if (requiredKeyver == null) {
+                if (deviceCache.currentRegisterKey != null) {
+                    return deviceCache.currentRegisterKey;
+                }
+                return refreshRegisterKey(deviceInfo);
             }
-            return refreshRegisterKey(deviceInfo);
-        }
 
-        FqRegisterKeyResponse cached = deviceCache.cachedRegisterKeys.get(requiredKeyver);
-        if (cached != null) {
-            log.debug("使用缓存的registerkey，deviceCacheKey={}, keyver={}", deviceCacheKey, requiredKeyver);
-            return cached;
-        }
+            FQRegisterKeyResponse cached = deviceCache.cachedRegisterKeys.get(requiredKeyver);
+            if (cached != null) {
+                log.debug("使用缓存的registerkey，deviceCacheKey={}, keyver={}", deviceCacheKey, requiredKeyver);
+                return cached;
+            }
 
-        if (deviceCache.currentRegisterKey == null || deviceCache.currentRegisterKey.getData().getKeyver() != requiredKeyver) {
-            log.info("当前registerkey keyver ({}) 与需要的keyver ({}) 不匹配，刷新registerkey。deviceCacheKey={}",
-                deviceCache.currentRegisterKey != null ? deviceCache.currentRegisterKey.getData().getKeyver() : "null",
-                requiredKeyver,
-                deviceCacheKey);
-            return refreshRegisterKey(deviceInfo);
-        }
+            if (deviceCache.currentRegisterKey == null || deviceCache.currentRegisterKey.getData().getKeyver() != requiredKeyver) {
+                log.info("当前registerkey keyver ({}) 与需要的keyver ({}) 不匹配，刷新registerkey。deviceCacheKey={}",
+                    deviceCache.currentRegisterKey != null ? deviceCache.currentRegisterKey.getData().getKeyver() : "null",
+                    requiredKeyver,
+                    deviceCacheKey);
+                return refreshRegisterKey(deviceInfo);
+            }
 
-        return deviceCache.currentRegisterKey;
+            return deviceCache.currentRegisterKey;
+        }
     }
 
     /**
@@ -128,7 +133,7 @@ public class FQRegisterKeyService {
      *
      * @return 新的RegisterKey响应
      */
-    public synchronized FqRegisterKeyResponse refreshRegisterKey() throws Exception {
+    public FQRegisterKeyResponse refreshRegisterKey() throws Exception {
         DeviceInfo currentDevice = devicePoolService.nextDevice();
         return refreshRegisterKey(currentDevice);
     }
@@ -139,26 +144,28 @@ public class FQRegisterKeyService {
      * @param deviceInfo 设备信息
      * @return 新的RegisterKey响应
      */
-    public synchronized FqRegisterKeyResponse refreshRegisterKey(DeviceInfo deviceInfo) throws Exception {
+    public FQRegisterKeyResponse refreshRegisterKey(DeviceInfo deviceInfo) throws Exception {
         String deviceCacheKey = buildDeviceCacheKey(deviceInfo);
-        log.info("刷新registerkey，deviceCacheKey={}, deviceId={}", deviceCacheKey, safeDeviceId(deviceInfo));
+        synchronized (getDeviceLock(deviceCacheKey)) {
+            log.info("刷新registerkey，deviceCacheKey={}, deviceId={}", deviceCacheKey, safeDeviceId(deviceInfo));
 
-        FqRegisterKeyResponse response = fetchRegisterKey(deviceInfo);
-        if (response != null && response.getData() != null) {
-            DeviceRegisterKeyCache deviceCache = getOrCreateDeviceCache(deviceInfo);
-            long keyver = response.getData().getKeyver();
-            deviceCache.cachedRegisterKeys.put(keyver, response);
-            deviceCache.currentRegisterKey = response;
-            long keyRegisterTs = normalizeKeyRegisterTs(deviceCache.keyRegisterTs);
-            log.info("registerkey刷新成功，deviceCacheKey={}, deviceId={}, 新keyver={}, key_register_ts={}",
-                deviceCacheKey,
-                safeDeviceId(deviceInfo),
-                keyver,
-                keyRegisterTs);
-            return response;
+            FQRegisterKeyResponse response = fetchRegisterKey(deviceInfo);
+            if (response != null && response.getData() != null) {
+                DeviceRegisterKeyCache deviceCache = getOrCreateDeviceCache(deviceInfo);
+                long keyver = response.getData().getKeyver();
+                deviceCache.cachedRegisterKeys.put(keyver, response);
+                deviceCache.currentRegisterKey = response;
+                long keyRegisterTs = normalizeKeyRegisterTs(deviceCache.keyRegisterTs);
+                log.info("registerkey刷新成功，deviceCacheKey={}, deviceId={}, 新keyver={}, key_register_ts={}",
+                    deviceCacheKey,
+                    safeDeviceId(deviceInfo),
+                    keyver,
+                    keyRegisterTs);
+                return response;
+            }
+
+            throw new Exception("刷新registerkey失败，响应为空");
         }
-
-        throw new Exception("刷新registerkey失败，响应为空");
     }
 
     /**
@@ -167,14 +174,14 @@ public class FQRegisterKeyService {
      * @param fixedDevice 指定设备（为null时走设备池轮询）
      * @return RegisterKey响应
      */
-    private FqRegisterKeyResponse fetchRegisterKey(DeviceInfo fixedDevice) throws Exception {
+    private FQRegisterKeyResponse fetchRegisterKey(DeviceInfo fixedDevice) throws Exception {
         int maxAttempts = fixedDevice != null ? 2 : Math.max(2, devicePoolService.getTargetPoolSize() + 1);
         Exception lastException = null;
 
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             DeviceInfo currentDevice = fixedDevice != null ? fixedDevice : devicePoolService.nextDevice();
             try {
-                FqVariable var = new FqVariable(currentDevice);
+                FQVariable var = new FQVariable(currentDevice);
 
                 String url = fqApiUtils.getBaseUrl() + "/reading/crypt/registerkey";
                 Map<String, String> params = fqApiUtils.buildCommonApiParams(var);
@@ -194,8 +201,9 @@ public class FQRegisterKeyService {
                 signedHeaders.forEach(httpHeaders::set);
                 headers.forEach(httpHeaders::set);
 
-                FqRegisterKeyPayload payload = new FqRegisterKeyPayload(var);
-                HttpEntity<FqRegisterKeyPayload> entity = new HttpEntity<>(payload, httpHeaders);
+                // 构造注册密钥载荷：用 AES 加密 server_device_id 作为 content
+                FQRegisterKeyPayload payload = buildRegisterKeyPayload(var);
+                HttpEntity<FQRegisterKeyPayload> entity = new HttpEntity<>(payload, httpHeaders);
 
                 log.debug("发送registerkey请求到: {}", fullUrl);
                 log.debug("请求时间戳: {}, deviceCacheKey={}, deviceId={}",
@@ -203,10 +211,10 @@ public class FQRegisterKeyService {
                     buildDeviceCacheKey(currentDevice),
                     safeDeviceId(currentDevice));
 
-                ResponseEntity<FqRegisterKeyResponse> response = restTemplate.exchange(
-                    fullUrl, HttpMethod.POST, entity, FqRegisterKeyResponse.class);
+                ResponseEntity<FQRegisterKeyResponse> response = restTemplate.exchange(
+                    fullUrl, HttpMethod.POST, entity, FQRegisterKeyResponse.class);
 
-                FqRegisterKeyResponse body = response.getBody();
+                FQRegisterKeyResponse body = response.getBody();
                 if (body == null || body.getData() == null) {
                     throw new RuntimeException("EMPTY_RESPONSE");
                 }
@@ -268,10 +276,15 @@ public class FQRegisterKeyService {
      * @param deviceInfo 设备信息
      * @param requiredKeyver 需要的keyver
      * @return 解密密钥（十六进制字符串）
+     * @throws Exception 解密失败（getKey 返回 null）时抛出，避免静默使用空密钥解密内容
      */
     public String getDecryptionKey(DeviceInfo deviceInfo, Long requiredKeyver) throws Exception {
-        FqRegisterKeyResponse registerKeyResponse = getRegisterKey(deviceInfo, requiredKeyver);
-        return registerKeyResponse.getData().getKey();
+        FQRegisterKeyResponse registerKeyResponse = getRegisterKey(deviceInfo, requiredKeyver);
+        String key = registerKeyResponse.getData().getKey();
+        if (key == null) {
+            throw new Exception("registerkey 解密失败，key 为空");
+        }
+        return key;
     }
 
     /**
@@ -294,38 +307,40 @@ public class FQRegisterKeyService {
     /**
      * 确保指定设备具备可用registerkey上下文，并返回 key_register_ts
      */
-    public synchronized long ensureRegisterKeyReady(DeviceInfo deviceInfo) throws Exception {
+    public long ensureRegisterKeyReady(DeviceInfo deviceInfo) throws Exception {
         String deviceCacheKey = buildDeviceCacheKey(deviceInfo);
-        DeviceRegisterKeyCache deviceCache = getOrCreateDeviceCache(deviceInfo);
+        synchronized (getDeviceLock(deviceCacheKey)) {
+            DeviceRegisterKeyCache deviceCache = getOrCreateDeviceCache(deviceInfo);
 
-        boolean hasCurrentKey = deviceCache.currentRegisterKey != null && deviceCache.currentRegisterKey.getData() != null;
-        long currentKeyRegisterTs = normalizeKeyRegisterTs(deviceCache.keyRegisterTs);
-        if (!hasCurrentKey || currentKeyRegisterTs <= 0) {
-            log.info("registerkey上下文缺失，触发预热刷新，deviceCacheKey={}, deviceId={}, hasCurrentKey={}, key_register_ts={}",
+            boolean hasCurrentKey = deviceCache.currentRegisterKey != null && deviceCache.currentRegisterKey.getData() != null;
+            long currentKeyRegisterTs = normalizeKeyRegisterTs(deviceCache.keyRegisterTs);
+            if (!hasCurrentKey || currentKeyRegisterTs <= 0) {
+                log.info("registerkey上下文缺失，触发预热刷新，deviceCacheKey={}, deviceId={}, hasCurrentKey={}, key_register_ts={}",
+                    deviceCacheKey,
+                    safeDeviceId(deviceInfo),
+                    hasCurrentKey,
+                    currentKeyRegisterTs);
+                refreshRegisterKey(deviceInfo);
+                deviceCache = getOrCreateDeviceCache(deviceInfo);
+            }
+
+            long keyRegisterTs = normalizeKeyRegisterTs(deviceCache.keyRegisterTs);
+            Long currentKeyver = deviceCache.currentRegisterKey != null && deviceCache.currentRegisterKey.getData() != null
+                ? deviceCache.currentRegisterKey.getData().getKeyver()
+                : null;
+            log.debug("registerkey上下文已就绪，deviceCacheKey={}, deviceId={}, currentKeyver={}, key_register_ts={}",
                 deviceCacheKey,
                 safeDeviceId(deviceInfo),
-                hasCurrentKey,
-                currentKeyRegisterTs);
-            refreshRegisterKey(deviceInfo);
-            deviceCache = getOrCreateDeviceCache(deviceInfo);
+                currentKeyver,
+                keyRegisterTs);
+            return keyRegisterTs;
         }
-
-        long keyRegisterTs = normalizeKeyRegisterTs(deviceCache.keyRegisterTs);
-        Long currentKeyver = deviceCache.currentRegisterKey != null && deviceCache.currentRegisterKey.getData() != null
-            ? deviceCache.currentRegisterKey.getData().getKeyver()
-            : null;
-        log.debug("registerkey上下文已就绪，deviceCacheKey={}, deviceId={}, currentKeyver={}, key_register_ts={}",
-            deviceCacheKey,
-            safeDeviceId(deviceInfo),
-            currentKeyver,
-            keyRegisterTs);
-        return keyRegisterTs;
     }
 
     /**
      * 获取指定设备当前 key_register_ts
      */
-    public synchronized long getKeyRegisterTs(DeviceInfo deviceInfo) {
+    public long getKeyRegisterTs(DeviceInfo deviceInfo) {
         DeviceRegisterKeyCache deviceCache = getOrCreateDeviceCache(deviceInfo);
         return normalizeKeyRegisterTs(deviceCache.keyRegisterTs);
     }
@@ -392,6 +407,24 @@ public class FQRegisterKeyService {
 
     private static boolean notBlank(String value) {
         return CommonUtils.isNotBlank(value);
+    }
+
+    /**
+     * 构造注册密钥请求载荷（加密逻辑从 DTO 移至 service 层，DTO 只做数据承载）
+     */
+    private FQRegisterKeyPayload buildRegisterKeyPayload(FQVariable var) throws Exception {
+        FQCrypto crypto = new FQCrypto(FQCrypto.REG_KEY);
+        FQRegisterKeyPayload payload = new FQRegisterKeyPayload();
+        payload.setContent(crypto.newRegisterKeyContent(var.getServerDeviceId(), "0"));
+        payload.setKeyver(1);
+        return payload;
+    }
+
+    /** 设备维度锁：key = deviceCacheKey，保证同设备刷新串行、不同设备并行 */
+    private final Map<String, Object> deviceLocks = new ConcurrentHashMap<>();
+
+    private Object getDeviceLock(String deviceCacheKey) {
+        return deviceLocks.computeIfAbsent(deviceCacheKey, k -> new Object());
     }
 
     private long normalizeKeyRegisterTs(Long keyRegisterTs) {

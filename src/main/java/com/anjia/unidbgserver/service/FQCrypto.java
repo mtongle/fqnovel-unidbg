@@ -11,8 +11,6 @@ import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.zip.GZIPInputStream;
 
@@ -21,7 +19,7 @@ import java.util.zip.GZIPInputStream;
  * 基于 AES-128-CBC 加密算法
  */
 @Slf4j
-public class FqCrypto {
+public class FQCrypto {
     
     /**
      * 注册密钥的固定key
@@ -30,7 +28,7 @@ public class FqCrypto {
     
     private final SecretKeySpec secretKey;
     
-    public FqCrypto(String hexKey) throws Exception {
+    public FQCrypto(String hexKey) throws Exception {
         if (hexKey == null || hexKey.length() != 32) {
             throw new IllegalArgumentException("Key length mismatch! Expected 32 hex chars, got: " + 
                 (hexKey != null ? hexKey.length() : "null"));
@@ -191,51 +189,19 @@ public class FqCrypto {
         }
     }
     
-    /**
-     * 解密注册密钥响应 (不自动去除填充)
-     * 用于调试，可以看到完整的解密结果包括填充
-     */
-    public static String decryptRegisterKeyWithPadding(String registerkeyResponseKey, String aesKeyHex) throws Exception {
-        // Base64解码
-        byte[] raw = Base64.getDecoder().decode(registerkeyResponseKey);
-        
-        if (raw.length < 16) {
-            throw new IllegalArgumentException("Encrypted data too short");
-        }
-        
-        // 前16字节是IV
-        byte[] iv = new byte[16];
-        System.arraycopy(raw, 0, iv, 0, 16);
-        
-        // 剩余部分是密文
-        byte[] cipherText = new byte[raw.length - 16];
-        System.arraycopy(raw, 16, cipherText, 0, cipherText.length);
-        
-        // 关键修复：从hex字符串解码密钥
-        byte[] keyBytes = hexStringToByteArray(aesKeyHex);
-        
-        // 创建AES解密器 - 使用NoPadding来看原始数据
-        Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
-        SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "AES");
-        IvParameterSpec ivSpec = new IvParameterSpec(iv);
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec);
-        
-        // 解密
-        byte[] decrypted = cipher.doFinal(cipherText);
-        
-        // 转换为大写十六进制字符串
-        String keyHex = byteArrayToHexString(decrypted);
-        
-        log.debug("解密后原始内容 hex (NoPadding): {}", keyHex);
-        
-        return keyHex;
-    }
     public static byte[] hexStringToByteArray(String hexString) {
+        if (hexString == null || (hexString.length() & 1) != 0) {
+            throw new IllegalArgumentException("Hex string must be non-null and have even length");
+        }
         int len = hexString.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(hexString.charAt(i), 16) << 4)
-                                 + Character.digit(hexString.charAt(i+1), 16));
+            int hi = Character.digit(hexString.charAt(i), 16);
+            int lo = Character.digit(hexString.charAt(i + 1), 16);
+            if (hi < 0 || lo < 0) {
+                throw new IllegalArgumentException("Invalid hex character at index " + i);
+            }
+            data[i / 2] = (byte) ((hi << 4) + lo);
         }
         return data;
     }
@@ -262,7 +228,7 @@ public class FqCrypto {
      */
     public static String decryptAndDecompressContent(String encryptedContent, String keyHex) throws Exception {
         // 解密内容
-        FqCrypto crypto = new FqCrypto(keyHex);
+        FQCrypto crypto = new FQCrypto(keyHex);
         byte[] decryptedBytes = crypto.decrypt(encryptedContent);
         
         // 检查是否是 gzip 压缩数据 (gzip 魔法数字: 0x1f, 0x8b)
@@ -300,39 +266,4 @@ public class FqCrypto {
         }
     }
     
-    /**
-     * 保存解密后的内容到输出目录
-     * 对应 Python 中的 save_decrypted_content 功能
-     * 
-     * @param content 解密后的内容
-     * @param outputDir 输出目录
-     * @param filename 文件名 (可选)
-     * @return 保存的文件路径
-     */
-    public static String saveDecryptedContent(String content, String outputDir, String filename) {
-        try {
-            // 创建输出目录
-            java.nio.file.Path outputPath = java.nio.file.Paths.get(outputDir);
-            if (!java.nio.file.Files.exists(outputPath)) {
-                java.nio.file.Files.createDirectories(outputPath);
-            }
-            
-            // 生成文件名
-            if (filename == null || filename.trim().isEmpty()) {
-                String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-                filename = "decrypted_content_" + timestamp + ".txt";
-            }
-            
-            // 保存文件
-            java.nio.file.Path filePath = outputPath.resolve(filename);
-            java.nio.file.Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
-            
-            log.info("解密内容已保存到: {}", filePath.toAbsolutePath());
-            return filePath.toAbsolutePath().toString();
-            
-        } catch (Exception e) {
-            log.error("保存解密内容失败", e);
-            return null;
-        }
-    }
 }

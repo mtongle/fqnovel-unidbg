@@ -60,14 +60,18 @@ public final class CommonUtils {
      * 十六进制字符串转字节数组
      */
     public static byte[] hexToBytes(String hexString) {
-        if (hexString == null || hexString.isEmpty()) {
-            return new byte[0];
+        if (hexString == null || (hexString.length() & 1) != 0) {
+            throw new IllegalArgumentException("Hex string must be non-null and have even length");
         }
         int len = hexString.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(hexString.charAt(i), 16) << 4)
-                    + Character.digit(hexString.charAt(i + 1), 16));
+            int hi = Character.digit(hexString.charAt(i), 16);
+            int lo = Character.digit(hexString.charAt(i + 1), 16);
+            if (hi < 0 || lo < 0) {
+                throw new IllegalArgumentException("Invalid hex character at index " + i);
+            }
+            data[i / 2] = (byte) ((hi << 4) + lo);
         }
         return data;
     }
@@ -148,40 +152,6 @@ public final class CommonUtils {
             return s;
         }
     }
-
-//    // ========== 图片 URL 标准化 ==========
-//
-//    /**
-//     * 标准化图片 URL：
-//     * - HEIC/HEIF 格式 → 代理路由 /api/img/proxy（服务端转换为 JPEG）
-//     * - 非 HEIC → 返回 HTTPS URL（直连 CDN）
-//     *
-//     * 注意：不能直接改 .heic → .jpg，CDN 返回 403
-//     *
-//     * 支持识别格式：.heic, .heif, ~heic, ~heif（带查询参数也能识别）
-//     */
-//    public static String normalizeImageUrl(String url) {
-//        if (url == null || url.isEmpty()) return url;
-//
-//        // 统一使用 HTTPS
-//        String result = url.replace("http://", "https://");
-//
-//        // 提取路径部分（去掉查询参数）再检查后缀
-//        String path = result;
-//        int qIdx = path.indexOf('?');
-//        if (qIdx > 0) path = path.substring(0, qIdx);
-//
-//        String lowerPath = path.toLowerCase();
-//        boolean isHeic = lowerPath.endsWith(".heic") || lowerPath.endsWith(".heif")
-//                      || lowerPath.endsWith("~heic") || lowerPath.endsWith("~heif");
-//
-//        if (isHeic) {
-//            String proxiedUrl = "/api/img/proxy?url=" + urlEncode(result);
-//            return proxiedUrl;
-//        }
-//
-//        return result;
-//    }
 
     // ========== 响应错误检测 ==========
 
