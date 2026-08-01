@@ -56,15 +56,18 @@ public class AdminAuthFilter implements Filter {
         // 使用解码后的路径匹配，防止 URL 编码绕过（如 /api/%61dmin/config）
         String path = request.getRequestURI();
         String decodedPath = URLDecoder.decode(path, StandardCharsets.UTF_8);
+        // 兼容尾斜杠：/api/admin 与 /api/admin/ 均视为管理根路径
+        String normalizedPath = decodedPath.length() > 1 && decodedPath.endsWith("/")
+                ? decodedPath.substring(0, decodedPath.length() - 1) : decodedPath;
 
         // 仅拦截 /api/admin 路径（含精确匹配 /api/admin）
-        if (!(decodedPath.equals("/api/admin") || decodedPath.startsWith("/api/admin/"))) {
+        if (!(normalizedPath.equals("/api/admin") || normalizedPath.startsWith("/api/admin/"))) {
             chain.doFilter(request, response);
             return;
         }
 
         // 放行认证接口、健康检查、登录页跳转（无需令牌）
-        if (PUBLIC_PATHS.contains(decodedPath) || decodedPath.equals("/api/admin")) {
+        if (PUBLIC_PATHS.contains(normalizedPath) || normalizedPath.equals("/api/admin")) {
             chain.doFilter(request, response);
             return;
         }
