@@ -8,7 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- (placeholder for upcoming changes)
+- 新增 `FQCryptoTest` 加解密单元测试（round-trip / registerkey / gzip / hex 校验）
+- 新增全局 `GlobalExceptionHandler` 统一错误响应结构（缺失参数/类型错误 → 400）
+
+### Security
+- `AdminAuthFilter`：URL 解码防 `/api/%61dmin` 编码绕过、fail-closed 校验、令牌 24h TTL + 过期清理、兼容尾斜杠
+- `AdminController`：移除 `admin123` 默认密码（改为必填环境变量 `APPLICATION_ADMIN_PASSWORD`）、常量时间密码比较、`/config` 返回敏感键脱敏
+- `application.yml`：删除 Redis 明文密码（改 `REDIS_PASSWORD` 注入）、host 0.0.0.0→127.0.0.1、删除幽灵 `profiles.active=prod`
+- 全 service 签名结果含 `error` 键时中止（原把 error 当 HTTP header 静默发出）
+- `LoggingAspect`：query string 敏感参数脱敏、POST body 经 `ContentCachingRequestWrapper` 真实读取
+
+### Fixed
+- `FQNovelService`：批量章节 `dataMap.get(itemIds.get(0))` 双重 NPE 判空
+- `FullBookDownloadService`：章节排序按 chapterIndex（原按标题字典序）、Flux 取消检查、除零保护
+- `FQEncryptServiceWorker`：线程池耗尽时无限忙等改有限次重试
+- `CommentEnrichmentService`：段评图标段落索引与 API `para_index` 对齐（空段/标题行错位修复）
+- `RedisService.deleteBook`：补删 novel 前缀孤儿 key
+- `DeviceManagementService`：移除 `System.exit(0)` 自杀式重启、`registerDeviceAndRestart` 补齐 autoRestart 行为
+- `FQRegisterKeyService`：方法级 synchronized 改设备维度分段锁
+- 搜索/分类接口：count/limit/offset 范围校验、quickSearch 补默认 tabType
+
+### Changed
+- 构建升级：Spring Boot 2.6.3→2.7.18、spring-cloud 2021.0.7→2021.0.9、Java 11→17
+- 命名统一：6 个 `Fq` 前缀类重命名为 `FQ`（`git mv` 保留历史）
+- DTO 清理：`FQRegisterKeyPayload`/`FQBatchFullResponse` 内嵌加密/解密逻辑移至 service 层
+- `bin/restart.sh`：端口 9999→8099、`mvn`→`./mvnw`
+- 删除 jib 死配置、SleuthAsyncConfig 无引用 Bean、断链符号链接、模板文件与遗留日志
+- `FQEncryptController`：`.get()` 阻塞改返回 CompletableFuture
 
 ## [v0.0.5] - 2026-07-17
 
