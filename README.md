@@ -1,7 +1,7 @@
 # fqnovel-unidbg
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Java-11%2B-blue?logo=openjdk" alt="Java 11+">
+  <img src="https://img.shields.io/badge/Java-17-blue?logo=openjdk" alt="Java 17">
   <img src="https://img.shields.io/badge/Spring%20Boot-2.6.3-brightgreen?logo=spring" alt="Spring Boot 2.6.3">
   <img src="https://img.shields.io/badge/Unidbg-0.9.8-purple" alt="Unidbg 0.9.8">
   <img src="https://img.shields.io/badge/Maven-3.6%2B-red?logo=apachemaven" alt="Maven 3.6+">
@@ -40,7 +40,7 @@
 
 | 组件 | 选型 | 组件 | 选型 |
 |------|------|------|------|
-| 语言 | Java 11+ | 核心引擎 | Unidbg 0.9.8 |
+| 语言 | Java 17 | 核心引擎 | Unidbg 0.9.8 |
 | 框架 | Spring Boot 2.6.3 | 构建工具 | Maven 3.6+ / Wrapper |
 | 缓存 | Redis（可选） | 部署 | JAR / Docker |
 
@@ -48,7 +48,7 @@
 
 ### 前置要求
 
-- **JDK 11+** — 推荐 Java 11/17（Java 21+ 有兼容问题不处理）
+- **JDK 17** — 与 CI 构建一致（Java 21+ 有兼容问题不处理）
 - **Maven 3.6+** 或项目自带的 `./mvnw`
 - **Redis** — 可选，全本下载等功能需要
 
@@ -83,14 +83,17 @@ spring:
 ```bash
 # 方式一：Maven Wrapper（推荐）
 ./mvnw package -DskipTests
-java -jar target/unidbg-boot-server-0.0.5-SNAPSHOT.jar
+java -jar target/unidbg-boot-server-0.0.5.jar
 
 # 方式二：本机 Maven
-mvn package -T10 -DskipTests && java -jar target/unidbg-boot-server-0.0.5-SNAPSHOT.jar
+mvn package -T10 -DskipTests && java -jar target/unidbg-boot-server-0.0.5.jar
 
 # 方式三：快捷脚本
 ./bin/run.sh
 ```
+
+> **敏感配置**：管理后台密码通过环境变量 `APPLICATION_ADMIN_PASSWORD` 注入（不配置则 `/api/admin/auth` 不可用）；
+> Redis 密码通过 `REDIS_PASSWORD` 注入（不配置则按无密码连接）。设备参数由设备池自动生成并回写配置，无需手工维护。
 
 > Docker 方式参考 [anjia0532/unidbg-boot-server](https://github.com/anjia0532/unidbg-boot-server)。
 

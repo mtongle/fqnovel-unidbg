@@ -59,5 +59,12 @@ opencode.jsonc
 ### Runtime ###
 .hermes/
 
+### Local tooling ###
+.claude/
+.codegraph/
+
+### Python venv ###
+tools/venv/
+
 ### Build artifacts ###
 /fqnovel-unidbg.jar
