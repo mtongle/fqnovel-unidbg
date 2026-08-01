@@ -23,6 +23,12 @@ public class SsrCommentController {
             @RequestParam Integer paraIndex,
             @RequestParam(required = false) String cursor) {
 
+        if (bookId == null || bookId.trim().isEmpty()
+                || chapterId == null || chapterId.trim().isEmpty()
+                || paraIndex == null || paraIndex < 0) {
+            throw new IllegalArgumentException("bookId/chapterId/paraIndex 不能为空且 paraIndex 不能为负数");
+        }
+
         return ssrCommentService.renderCommentPage(bookId, chapterId, paraIndex, cursor);
     }
 

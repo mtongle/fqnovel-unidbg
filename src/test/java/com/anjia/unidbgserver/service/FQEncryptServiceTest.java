@@ -4,16 +4,24 @@ import com.anjia.unidbgserver.config.UnidbgProperties;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+/**
+ * FQ 签名集成测试（冒烟测试）
+ *
+ * 依赖 unidbg 原生模拟（APK 加载），启动完整 Spring 上下文约 5 秒，
+ * CI 环境无 APK 资源时可能失败，因此仅在非 CI 环境执行。
+ */
 @Slf4j
-@RunWith(SpringRunner.class)
+@DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class FQEncryptServiceTest {
 
@@ -47,8 +55,10 @@ class FQEncryptServiceTest {
         Map<String, String> result = fqEncryptService.generateSignatureHeaders(url, formattedHeader);
 
         log.info("生成的FQ签名结果: {}", result);
+        assertNotNull(result, "签名结果不应为 null");
+        assertFalse(result.containsKey("error"), "签名不应失败: " + result.get("error"));
+        assertFalse(result.isEmpty(), "签名结果不应为空");
     }
-
 
     @SneakyThrows
     @Test
@@ -74,6 +84,9 @@ class FQEncryptServiceTest {
         Map<String, String> result = fqEncryptServiceWorker.generateSignatureHeaders(url, headers).get();
 
         log.info("生成的FQ签名结果: {}", result);
+        assertNotNull(result, "签名结果不应为 null");
+        assertFalse(result.containsKey("error"), "签名不应失败: " + result.get("error"));
+        assertFalse(result.isEmpty(), "签名结果不应为空");
     }
 
 }

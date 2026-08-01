@@ -3,9 +3,11 @@ package com.anjia.unidbgserver.web;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,6 +27,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException e, WebRequest request) {
         log.warn("参数错误: {} - {}", e.getMessage(), request.getDescription(false));
         return error(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    /** 缺少必填请求参数（如 @RequestParam 未传）→ 400 */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> handleMissingParam(MissingServletRequestParameterException e) {
+        log.warn("缺少必填参数: {}", e.getParameterName());
+        return error(HttpStatus.BAD_REQUEST, "缺少必填参数: " + e.getParameterName());
+    }
+
+    /** 参数类型不匹配（如 Integer 收到非数字）→ 400 */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        log.warn("参数类型不匹配: {} = {}", e.getName(), e.getValue());
+        return error(HttpStatus.BAD_REQUEST, "参数类型不正确: " + e.getName());
     }
 
     @ExceptionHandler(Exception.class)
