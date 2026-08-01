@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.3</version>
+        <version>2.7.18</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -17,11 +17,10 @@
     <description>Unidbg Spring Boot Server</description>
 
     <properties>
-        <!-- 项目构建属性 -->
-        <java.version>11</java.version>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-        <maven.compiler.forceJavacCompilerUse>true</maven.compiler.forceJavacCompilerUse>
+        <!-- 项目构建属性：与 CI(Java 17)/bin/run.sh 保持一致 -->
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -30,9 +29,8 @@
         <commons-io.version>2.11.0</commons-io.version>
         <streamex.version>0.7.3</streamex.version>
         <commons-codec.version>1.15</commons-codec.version>
-        <jib-maven-plugin.version>3.1.4</jib-maven-plugin.version>
         <lombok.version>1.18.36</lombok.version>
-        <spring-cloud.version>2021.0.7</spring-cloud.version>
+        <spring-cloud.version>2021.0.9</spring-cloud.version>
     </properties>
 
     <dependencyManagement>
@@ -160,11 +158,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -185,8 +178,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>11</source>
-                    <target>11</target>
+                    <source>17</source>
+                    <target>17</target>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -202,40 +195,6 @@
                 </configuration>
             </plugin>
         </plugins>
-
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>com.google.cloud.tools</groupId>
-                    <artifactId>jib-maven-plugin</artifactId>
-                    <version>${jib-maven-plugin.version}</version>
-                    <configuration>
-                        <from>
-                            <image>anjia0532/openjdk-17-alpine-lib:3.2.0</image>
-                        </from>
-                        <extraDirectories>
-                            <paths>
-                                <path>src/main/docker/jib</path>
-                            </paths>
-                        </extraDirectories>
-                        <container>
-                            <entrypoint>
-                                <shell>/sbin/tini</shell>
-                                <option>--</option>
-                            </entrypoint>
-                            <args>
-                                <arg>sh</arg>
-                                <arg>-c</arg>
-                                <arg>chmod +x /entrypoint.sh &amp;&amp; /entrypoint.sh</arg>
-                            </args>
-                            <ports>
-                                <port>9999</port>
-                            </ports>
-                        </container>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
     </build>
 
 </project>

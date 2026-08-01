@@ -10,16 +10,20 @@ fi
 echo "[$(date)] 使用 JAR: $JAR_FILE"
 
 # 第一步：请求注册接口（无参，生成随机真实设备并写入配置）
+# 端口与 application.yml 保持一致（8099）
 echo "[$(date)] 调用注册接口，写入新设备配置..."
-curl -sf -X POST 'http://localhost:9999/api/device/register-and-restart' \
+if curl -sf -X POST 'http://127.0.0.1:8099/api/device/register-and-restart' \
   -H 'Content-Type: application/json' \
-  -d '{}' > /dev/null
-echo "[$(date)] 注册接口调用成功，准备重启进程..."
+  -d '{}' > /dev/null; then
+  echo "[$(date)] 注册接口调用成功"
+else
+  echo "[$(date)] 警告: 注册接口调用失败（服务可能未运行），继续重启流程"
+fi
 sleep 5
 
-# 重新打包项目
+# 重新打包项目（使用项目自带 mvnw，避免依赖系统 PATH 中的 Maven）
 echo "[$(date)] 重新打包项目..."
-mvn package -DskipTests
+./mvnw package -DskipTests
 if [ $? -ne 0 ]; then
     echo "[$(date)] 错误: Maven打包失败"
     exit 1
@@ -31,15 +35,15 @@ echo "[$(date)] 停止现有进程..."
 pkill -f "unidbg-boot-server" || echo "没有找到现有进程"
 sleep 3
 
-# 确保端口9999被释放
-echo "[$(date)] 检查端口9999(仅结束Java监听者)..."
-# 只结束占用9999端口的Java进程，避免误杀 Reqable 等其他软件
-JAVA_PIDS=$(lsof -nP -iTCP:9999 -sTCP:LISTEN 2>/dev/null | awk '/java/ {print $2}' | sort -u)
+# 确保端口8099被释放
+echo "[$(date)] 检查端口8099(仅结束Java监听者)..."
+# 只结束占用8099端口的Java进程，避免误杀 Reqable 等其他软件
+JAVA_PIDS=$(lsof -nP -iTCP:8099 -sTCP:LISTEN 2>/dev/null | awk '/java/ {print $2}' | sort -u)
 if [ -n "$JAVA_PIDS" ]; then
-  echo "[$(date)] 结束占用9999端口的Java进程: $JAVA_PIDS"
+  echo "[$(date)] 结束占用8099端口的Java进程: $JAVA_PIDS"
   echo "$JAVA_PIDS" | xargs kill -9 2>/dev/null || true
 else
-  echo "[$(date)] 端口9999无Java监听者"
+  echo "[$(date)] 端口8099无Java监听者"
 fi
 sleep 2
 
