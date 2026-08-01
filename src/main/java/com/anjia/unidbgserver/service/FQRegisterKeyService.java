@@ -184,6 +184,12 @@ public class FQRegisterKeyService {
                 Map<String, String> headers = fqApiUtils.buildRegisterKeyHeaders(currentDevice, currentTime);
                 Map<String, String> signedHeaders = fqEncryptServiceWorker.generateSignatureHeaders(fullUrl, headers).get();
 
+                // 签名失败时返回 {"error": ...}，不能当 HTTP header 静默发出
+                if (signedHeaders.containsKey("error")) {
+                    log.warn("registerkey签名生成失败: {} - attempt={}", signedHeaders.get("error"), attempt);
+                    throw new RuntimeException("签名生成失败: " + signedHeaders.get("error"));
+                }
+
                 HttpHeaders httpHeaders = new HttpHeaders();
                 signedHeaders.forEach(httpHeaders::set);
                 headers.forEach(httpHeaders::set);

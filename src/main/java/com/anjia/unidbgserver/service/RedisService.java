@@ -151,14 +151,23 @@ public class RedisService {
         return Boolean.TRUE.equals(redisTemplate.hasKey(key));
     }
 
+    /** 作品信息 key（TTL 30 天） */
+    private static final String BOOK_INFO_KEY_PREFIX = "book:";
+    private static final String BOOK_INFO_KEY_SUFFIX = ":info";
+    /** 章节列表 key（旧风格，TTL 30 天） */
+    private static final String BOOK_CHAPTER_LIST_KEY_PREFIX = "book:";
+    private static final String BOOK_CHAPTER_LIST_KEY_SUFFIX = ":chapters";
+    private static final Duration BOOK_INFO_EXPIRE = Duration.ofDays(30);
+    private static final Duration CHAPTER_LIST_EXPIRE = Duration.ofDays(30);
+
     /**
      * 保存作品信息到Redis
      */
     public void saveBookInfo(String bookId, FQNovelBookInfo bookInfo) {
         try {
-            String key = "book:" + bookId + ":info";
+            String key = BOOK_INFO_KEY_PREFIX + bookId + BOOK_INFO_KEY_SUFFIX;
             String json = objectMapper.writeValueAsString(bookInfo);
-            redisTemplate.opsForValue().set(key, json, Duration.ofDays(30));
+            redisTemplate.opsForValue().set(key, json, BOOK_INFO_EXPIRE);
             log.debug("作品信息保存成功 - bookId: {}", bookId);
         } catch (Exception e) {
             log.error("保存作品信息失败 - bookId: {}", bookId, e);
@@ -170,7 +179,7 @@ public class RedisService {
      */
     public FQNovelBookInfo getBookInfo(String bookId) {
         try {
-            String key = "book:" + bookId + ":info";
+            String key = BOOK_INFO_KEY_PREFIX + bookId + BOOK_INFO_KEY_SUFFIX;
             String json = (String) redisTemplate.opsForValue().get(key);
             if (json != null) {
                 return objectMapper.readValue(json, FQNovelBookInfo.class);
@@ -187,9 +196,9 @@ public class RedisService {
      */
     public void saveChapterList(String bookId, List<String> chapterIds) {
         try {
-            String key = "book:" + bookId + ":chapters";
+            String key = BOOK_CHAPTER_LIST_KEY_PREFIX + bookId + BOOK_CHAPTER_LIST_KEY_SUFFIX;
             String json = objectMapper.writeValueAsString(chapterIds);
-            redisTemplate.opsForValue().set(key, json, Duration.ofDays(30));
+            redisTemplate.opsForValue().set(key, json, CHAPTER_LIST_EXPIRE);
             log.debug("章节列表保存成功 - bookId: {}, 章节数量: {}", bookId, chapterIds.size());
         } catch (Exception e) {
             log.error("保存章节列表失败 - bookId: {}", bookId, e);
@@ -202,7 +211,7 @@ public class RedisService {
     @SuppressWarnings("unchecked")
     public List<String> getChapterList(String bookId) {
         try {
-            String key = "book:" + bookId + ":chapters";
+            String key = BOOK_CHAPTER_LIST_KEY_PREFIX + bookId + BOOK_CHAPTER_LIST_KEY_SUFFIX;
             String json = (String) redisTemplate.opsForValue().get(key);
             if (json != null) {
                 return objectMapper.readValue(json, List.class);
@@ -219,7 +228,7 @@ public class RedisService {
      */
     public boolean hasBookInfo(String bookId) {
         try {
-            String key = "book:" + bookId + ":info";
+            String key = BOOK_INFO_KEY_PREFIX + bookId + BOOK_INFO_KEY_SUFFIX;
             return Boolean.TRUE.equals(redisTemplate.hasKey(key));
         } catch (Exception e) {
             log.error("检查作品信息失败 - bookId: {}", bookId, e);
@@ -232,7 +241,7 @@ public class RedisService {
      */
     public boolean hasChapterList(String bookId) {
         try {
-            String key = "book:" + bookId + ":chapters";
+            String key = BOOK_CHAPTER_LIST_KEY_PREFIX + bookId + BOOK_CHAPTER_LIST_KEY_SUFFIX;
             return Boolean.TRUE.equals(redisTemplate.hasKey(key));
         } catch (Exception e) {
             log.error("检查章节列表失败 - bookId: {}", bookId, e);
@@ -242,12 +251,33 @@ public class RedisService {
 
     /**
      * 删除作品的所有数据（包括作品信息、章节列表、所有章节内容）
+     *
+     * 注意：项目中存在两套 key 命名风格（历史遗留）：
+     * - 作品信息: book:{bookId}:info
+     * - 章节列表: book:{bookId}:chapters（旧） / novel:book:chapters:{bookId}（新，集合）
+     * - 章节内容: novel:chapter:{bookId}:{chapterId}
+     * deleteBook 需要同时清理两套，否则会留下孤儿数据。
      */
     public void deleteBook(String bookId) {
         try {
-            String pattern = "book:" + bookId + ":*";
-            Set<String> keys = scanKeys(pattern);
-            if (keys != null && !keys.isEmpty()) {
+            Set<String> keys = new java.util.HashSet<>();
+
+            // 旧前缀：book:{bookId}:*（作品信息 + 旧章节列表）
+            Set<String> legacyKeys = scanKeys("book:" + bookId + ":*");
+            if (legacyKeys != null) {
+                keys.addAll(legacyKeys);
+            }
+
+            // 新前缀：章节列表集合
+            keys.add(BOOK_CHAPTERS_KEY_PREFIX + bookId);
+
+            // 新前缀：所有章节内容 novel:chapter:{bookId}:*
+            Set<String> chapterKeys = scanKeys(CHAPTER_KEY_PREFIX + bookId + ":*");
+            if (chapterKeys != null) {
+                keys.addAll(chapterKeys);
+            }
+
+            if (!keys.isEmpty()) {
                 redisTemplate.delete(keys);
                 log.info("删除作品所有数据成功 - bookId: {}, 删除数量: {}", bookId, keys.size());
             }
@@ -281,7 +311,7 @@ public class RedisService {
         return allKeys;
     }
 
-    private Set<String> scanKeys(String pattern) {
+    private Set<String> scanKeysInternal(String pattern) {
         Set<String> keys = new java.util.HashSet<>();
         try {
             redisTemplate.execute((RedisConnection connection) -> {
@@ -301,5 +331,12 @@ public class RedisService {
             log.error("SCAN执行异常 - pattern: {}", pattern, e);
         }
         return keys;
+    }
+
+    /**
+     * 使用 SCAN 查询匹配的键（供 CacheController 等外部调用）
+     */
+    public Set<String> scanKeys(String pattern) {
+        return scanKeysInternal(pattern);
     }
 }

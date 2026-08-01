@@ -21,8 +21,6 @@ fq:
 spring:
   application:
     name: unidbg-boot-server
-  profiles:
-    active: prod
   task:
     execution:
       pool:
@@ -32,15 +30,15 @@ spring:
         max-size: 8
   sleuth:
     sampler:
-      probability: 1.0
+      probability: 0.1
     async:
       enabled: true
       configurer:
         enabled: true
   redis:
-    host: 0.0.0.0
+    host: 127.0.0.1
     port: 26586
-    password: HT5aRYBK2HpReaQuYkLcg
+    # 密码通过环境变量注入：spring.redis.password=${REDIS_PASSWORD:}
     database: 0
     timeout: 5000ms
     lettuce:

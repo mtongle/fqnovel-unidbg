@@ -446,25 +446,27 @@ public class SsrCommentService {
 
     private static String convertEmoji(String text) {
         if (text == null || text.isEmpty()) return "";
-        String[][] emojiMap = {
-            {"[微笑]", "\uD83D\uDE0A"}, {"[偷笑]", "\uD83D\uDE48"}, {"[笑哭]", "\uD83D\uDE02"},
-            {"[害羞]", "\uD83D\uDE0A"}, {"[爱慕]", "\uD83D\uDE0D"}, {"[飞吻]", "\uD83D\uDE18"},
-            {"[奸笑]", "\uD83D\uDE0F"}, {"[尬笑]", "\uD83D\uDE05"}, {"[思考]", "\uD83E\uDD14"},
-            {"[撇嘴]", "\uD83D\uDE15"}, {"[酷]", "\uD83D\uDE0E"}, {"[翻白眼]", "\uD83D\uDE44"},
-            {"[惊呆]", "\uD83D\uDE2E"}, {"[震惊]", "\uD83D\uDE31"}, {"[送心]", "\u2764\uFE0F"},
-            {"[委屈]", "\uD83D\uDE1E"}, {"[快哭了]", "\uD83D\uDE22"}, {"[哭]", "\uD83D\uDE2D"},
-            {"[大笑]", "\uD83D\uDE04"}, {"[舔屏]", "\uD83D\uDE0B"}, {"[怒]", "\uD83D\uDE20"},
-            {"[捂脸]", "\uD83E\uDD26"}, {"[恐惧]", "\uD83D\uDE28"}, {"[抓狂]", "\uD83D\uDE2B"},
-            {"[赞]", "\uD83D\uDC4D"}, {"[爱心]", "\u2764\uFE0F"}, {"[吃瓜]", "\uD83C\uDF49"},
-            {"[你细品]", "\uD83E\uDD14"}, {"[OK]", "\uD83C\uDD97"}, {"[石化]", "\uD83D\uDE33"},
-            {"[敬礼]", "\uD83D\uDE4B"}, {"[尬]", "\uD83D\uDE05"}, {"[狗头]", "\uD83D\uDC15"},
-        };
         String result = text;
-        for (String[] pair : emojiMap) {
+        for (String[] pair : EMOJI_MAP) {
             result = result.replace(pair[0], pair[1]);
         }
         return result;
     }
+
+    /** 表情文本 → Emoji 映射（静态初始化，避免每次调用重建） */
+    private static final String[][] EMOJI_MAP = {
+        {"[微笑]", "😊"}, {"[偷笑]", "🙈"}, {"[笑哭]", "😂"},
+        {"[害羞]", "😊"}, {"[爱慕]", "😍"}, {"[飞吻]", "😘"},
+        {"[奸笑]", "😏"}, {"[尬笑]", "😅"}, {"[思考]", "🤔"},
+        {"[撇嘴]", "😕"}, {"[酷]", "😎"}, {"[翻白眼]", "🙄"},
+        {"[惊呆]", "😮"}, {"[震惊]", "😱"}, {"[送心]", "❤️"},
+        {"[委屈]", "😞"}, {"[快哭了]", "😢"}, {"[哭]", "😭"},
+        {"[大笑]", "😄"}, {"[舔屏]", "😋"}, {"[怒]", "😠"},
+        {"[捂脸]", "🤦"}, {"[恐惧]", "😨"}, {"[抓狂]", "😫"},
+        {"[赞]", "👍"}, {"[爱心]", "❤️"}, {"[吃瓜]", "🍉"},
+        {"[你细品]", "🤔"}, {"[OK]", "🆗"}, {"[石化]", "😳"},
+        {"[敬礼]", "🙋"}, {"[尬]", "😅"}, {"[狗头]", "🐕"},
+    };
 
     private static String getAvatarColor(String letter) {
         int hash = Math.abs(letter.hashCode());

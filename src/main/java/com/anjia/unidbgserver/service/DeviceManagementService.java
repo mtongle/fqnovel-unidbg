@@ -4,11 +4,11 @@ import com.anjia.unidbgserver.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
+import javax.annotation.PreDestroy;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,10 +34,18 @@ public class DeviceManagementService {
     @Autowired
     private DevicePoolService devicePoolService;
 
+    @Autowired
+    private ConfigManagementService configManagementService;
+
     @Value("${spring.config.location:classpath:application.yml}")
     private String configLocation;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+    @PreDestroy
+    public void shutdown() {
+        executorService.shutdown();
+    }
 
     /**
      * 注册设备
@@ -146,18 +154,9 @@ public class DeviceManagementService {
                     log.info("通过脚本重启项目成功");
                     return true;
                 } catch (Exception e) {
-                    log.warn("脚本重启失败，尝试其他方式: {}", e.getMessage());
+                    log.warn("脚本重启失败: {}", e.getMessage());
                 }
-                
-                // 方法3: 通过JVM退出重启 (最后手段)
-                try {
-                    restartViaJvmExit();
-                    log.info("通过JVM退出重启项目成功");
-                    return true;
-                } catch (Exception e) {
-                    log.error("JVM退出重启失败: {}", e.getMessage());
-                }
-                
+
                 log.warn("所有重启方式都失败，但配置已更新，需要手动重启");
                 return false;
                 
@@ -170,12 +169,10 @@ public class DeviceManagementService {
     
     /**
      * 通过Spring Boot Actuator重启
+     * 注意: 未引入 spring-boot-starter-actuator，此方式不可用
      */
     private void restartViaActuator() throws Exception {
-        // 这里可以调用Spring Boot Actuator的restart端点
-        // 需要添加spring-boot-starter-actuator依赖
         log.debug("尝试通过Actuator重启...");
-        // 暂时跳过，因为可能没有配置Actuator
         throw new UnsupportedOperationException("Actuator restart not configured");
     }
     
@@ -226,22 +223,11 @@ public class DeviceManagementService {
     
     /**
      * 通过JVM退出重启 (需要外部监控程序)
+     * 已禁用: System.exit(0) 会立即杀死进程，HTTP 响应无法返回，且依赖外部监控拉起，风险大于收益。
+     * 如需重启请调用 restartViaScript()（写入 bin/restart.sh 并执行）。
      */
     private void restartViaJvmExit() throws Exception {
-        log.debug("尝试通过JVM退出重启...");
-        
-        // 创建一个延迟任务来退出JVM
-        new Thread(() -> {
-            try {
-                Thread.sleep(2000); // 等待2秒让响应返回
-                log.info("正在退出JVM以触发重启...");
-                System.exit(0);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }).start();
-        
-        log.info("JVM退出任务已启动，将在2秒后退出");
+        throw new UnsupportedOperationException("JVM exit restart disabled: use script restart instead");
     }
     
     /**
@@ -382,9 +368,18 @@ public class DeviceManagementService {
                             );
                         }
 
-                        return CompletableFuture.completedFuture(
-                            DeviceManagementResult.success("设备注册成功，已更新配置。请执行外部重启脚本。", deviceInfo)
-                        );
+                        // autoRestart=true 时触发内部重启（写入并执行 bin/restart.sh）
+                        boolean autoRestart = safeRequest.getAutoRestart() == null || safeRequest.getAutoRestart();
+                        if (!autoRestart) {
+                            return CompletableFuture.completedFuture(
+                                DeviceManagementResult.success("设备注册成功，已更新配置。autoRestart=false，需手动重启。", deviceInfo)
+                            );
+                        }
+
+                        return restartProject()
+                            .thenApply(restartSuccess -> restartSuccess
+                                ? DeviceManagementResult.success("设备注册成功，已更新配置，重启已触发", deviceInfo)
+                                : DeviceManagementResult.error("设备注册成功但重启失败，请检查日志后手动重启"));
                     });
             });
     }
@@ -462,52 +457,10 @@ public class DeviceManagementService {
     }
 
     /**
-     * 获取配置文件路径
+     * 获取配置文件路径（复用 ConfigManagementService 的缓存查找逻辑）
      */
     private String getConfigFilePath() {
-        if (configLocation.startsWith("classpath:")) {
-            // 如果是classpath路径，尝试多种方式获取实际文件路径
-            try {
-                // 方法1: 通过ClassPathResource获取
-                ClassPathResource resource = new ClassPathResource("application.yml");
-                if (resource.exists()) {
-                    return resource.getFile().getAbsolutePath();
-                }
-            } catch (Exception e) {
-                log.warn("无法通过ClassPathResource获取配置文件路径: {}", e.getMessage());
-            }
-            
-            try {
-                // 方法2: 通过系统属性获取
-                String userDir = System.getProperty("user.dir");
-                String configPath = userDir + "/src/main/resources/application.yml";
-                File configFile = new File(configPath);
-                if (configFile.exists()) {
-                    log.info("使用项目根目录下的配置文件: {}", configPath);
-                    return configPath;
-                }
-            } catch (Exception e) {
-                log.warn("无法通过项目根目录获取配置文件路径: {}", e.getMessage());
-            }
-            
-            try {
-                // 方法3: 通过当前工作目录获取
-                String currentDir = System.getProperty("user.dir");
-                String configPath = currentDir + "/src/main/resources/application.yml";
-                File configFile = new File(configPath);
-                if (configFile.exists()) {
-                    log.info("使用当前目录下的配置文件: {}", configPath);
-                    return configPath;
-                }
-            } catch (Exception e) {
-                log.warn("无法通过当前目录获取配置文件路径: {}", e.getMessage());
-            }
-            
-            log.error("无法获取配置文件路径，使用默认路径");
-            return "src/main/resources/application.yml";
-        } else {
-            return configLocation;
-        }
+        return configManagementService.getConfigFilePath();
     }
 
     /**

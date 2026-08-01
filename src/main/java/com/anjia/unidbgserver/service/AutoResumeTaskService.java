@@ -20,26 +20,28 @@ public class AutoResumeTaskService {
 
     /**
      * 定时检查未完成的任务（每30分钟执行一次）
+     *
+     * 使用 fixedDelay 而非 fixedRate：上一次全量恢复可能超过 30 分钟
+     * （大书多本），fixedRate 会导致任务重叠执行。
      */
-    @Scheduled(fixedRate = 30 * 60 * 1000) // 30分钟
+    @Scheduled(fixedDelay = 30 * 60 * 1000) // 30分钟（上次执行结束后再等30分钟）
     public void scheduledAutoResume() {
         log.info("开始定时检查未完成的下载任务");
-        
-        CompletableFuture.runAsync(() -> {
-            try {
-                FullBookDownloadService.AutoResumeAllResult result = 
-                    fullBookDownloadService.autoResumeAllDownloads().get();
-                
+
+        // autoResumeAllDownloads 本身已返回 CompletableFuture（在 bizExecutor 中执行），
+        // 无需再包一层 runAsync 消耗公共 ForkJoinPool
+        fullBookDownloadService.autoResumeAllDownloads()
+            .thenAccept(result -> {
                 if (result.isSuccess()) {
                     log.info("定时自动恢复任务完成 - {}", result.getMessage());
                 } else {
                     log.error("定时自动恢复任务失败 - {}", result.getMessage());
                 }
-                
-            } catch (Exception e) {
+            })
+            .exceptionally(e -> {
                 log.error("定时自动恢复任务执行失败", e);
-            }
-        });
+                return null;
+            });
     }
 
     /**

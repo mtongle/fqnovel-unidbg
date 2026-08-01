@@ -382,7 +382,7 @@ class SsrCommentServiceTest {
         String result = (String) m.invoke(service, "error");
 
         assertTrue(result.contains("toggleTheme"), "Should contain theme toggle script");
-        assertTrue(result.contains("fa-moon"), "Should contain moon icon for dark mode");
+        assertTrue(result.contains("✦"), "Should contain toggle theme icon");
     }
 
     // ==================== Helper Methods ====================

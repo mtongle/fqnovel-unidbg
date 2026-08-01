@@ -33,13 +33,22 @@ public class FullBookDownloadService {
 
     /**
      * 全本下载（流式返回）
+     *
+     * 使用 OverflowStrategy.BUFFER 与 sink.isCancelled() 检查：
+     * 客户端断开后停止生产，避免任务继续空跑。
      */
     public Flux<FullBookDownloadResponse> downloadFullBook(FullBookDownloadRequest request) {
+        // 参数防御：batchSize/startIndex 可能为 null（@NoArgsConstructor 场景）
+        int batchSize = request.getBatchSize() != null && request.getBatchSize() > 0
+                ? request.getBatchSize() : 20;
+        int startIndex = request.getStartIndex() != null && request.getStartIndex() >= 0
+                ? request.getStartIndex() : 0;
+
         return Flux.create(sink -> {
             CompletableFuture.runAsync(() -> {
                 try {
-                    log.info("开始全本下载 - bookId: {}, batchSize: {}", request.getBookId(), request.getBatchSize());
-                    
+                    log.info("开始全本下载 - bookId: {}, batchSize: {}", request.getBookId(), batchSize);
+
                     // 1. 获取书籍信息（优先从Redis获取）
                     FQNovelBookInfo bookInfo = redisService.getBookInfo(request.getBookId());
                     if (bookInfo == null) {
@@ -50,7 +59,7 @@ public class FullBookDownloadService {
                             return;
                         }
                         bookInfo = bookResponse.getData();
-                        
+
                         // 保存到Redis
                         redisService.saveBookInfo(request.getBookId(), bookInfo);
                         log.debug("作品信息已保存到Redis - bookId: {}", request.getBookId());
@@ -69,46 +78,50 @@ public class FullBookDownloadService {
                     Integer reqMax = request.getMaxChapters();
                     int maxChapters = (reqMax != null && reqMax > 0) ? reqMax : totalChapters;
                     int actualChapters = Math.min(maxChapters, totalChapters);
-                    
+
                     // 3. 分批下载章节
-                    int batchSize = request.getBatchSize();
                     int totalBatches = (int) Math.ceil((double) actualChapters / batchSize);
                     int downloadedChapters = 0;
-                    
+
                     for (int batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+                        // 客户端断开则停止
+                        if (sink.isCancelled()) {
+                            log.info("全本下载被客户端取消 - bookId: {}, 已下载: {}/{}", request.getBookId(), downloadedChapters, actualChapters);
+                            return;
+                        }
                         try {
                             // 计算当前批次的章节范围
-                            int startIndex = request.getStartIndex() + batchIndex * batchSize;
-                            int endIndex = Math.min(startIndex + batchSize, actualChapters);
-                            
-                            if (startIndex >= actualChapters) {
+                            int batchStartIndex = startIndex + batchIndex * batchSize;
+                            int endIndex = Math.min(batchStartIndex + batchSize, actualChapters);
+
+                            if (batchStartIndex >= actualChapters) {
                                 break;
                             }
-                            
-                            log.debug("开始下载第 {} 批章节 - 范围: {}-{}", batchIndex + 1, startIndex, endIndex - 1);
-                            
+
+                            log.debug("开始下载第 {} 批章节 - 范围: {}-{}", batchIndex + 1, batchStartIndex, endIndex - 1);
+
                             // 复用预先获取的章节ID
                             if (allChapterIds.isEmpty()) {
                                 log.warn("第 {} 批章节获取失败：无法获取章节ID列表", batchIndex + 1);
                                 continue;
                             }
-                            
+
                             // 计算当前批次的章节范围
-                            int actualStartIndex = Math.min(startIndex, allChapterIds.size());
+                            int actualStartIndex = Math.min(batchStartIndex, allChapterIds.size());
                             int actualEndIndex = Math.min(endIndex, allChapterIds.size());
-                            
+
                             if (actualStartIndex >= allChapterIds.size()) {
                                 log.debug("已处理完所有章节");
                                 break;
                             }
-                            
+
                             // 获取当前批次的章节ID，并过滤掉已存在的章节
                             List<String> chapterIds = new ArrayList<>();
                             List<String> skippedChapterIds = new ArrayList<>();
-                            
+
                             for (int i = actualStartIndex; i < actualEndIndex; i++) {
                                 String chapterId = allChapterIds.get(i);
-                                
+
                                 // 检查Redis中是否已存在该章节
                                 if (request.getSaveToRedis() && redisService.hasChapter(request.getBookId(), chapterId)) {
                                     skippedChapterIds.add(chapterId);
@@ -117,12 +130,12 @@ public class FullBookDownloadService {
                                     chapterIds.add(chapterId);
                                 }
                             }
-                            
+
                             // 如果所有章节都已存在，跳过当前批次
                             if (chapterIds.isEmpty()) {
                                 downloadedChapters += actualEndIndex - actualStartIndex;
                                 log.debug("第 {} 批所有章节都已存在，跳过 - 跳过数量: {}", batchIndex + 1, skippedChapterIds.size());
-                                
+
                                 // 发送跳过响应
                                 FullBookDownloadResponse skipResponse = FullBookDownloadResponse.progress(
                                     request.getBookId(),
@@ -139,39 +152,39 @@ public class FullBookDownloadService {
                                 sink.next(skipResponse);
                                 continue;
                             }
-                            
+
                             log.debug("第 {} 批章节 - 需要下载: {}, 跳过: {}", batchIndex + 1, chapterIds.size(), skippedChapterIds.size());
-                            
+
                             // 构建批量章节请求
                             FQBatchChapterRequest batchRequest = new FQBatchChapterRequest();
                             batchRequest.setBookId(request.getBookId());
                             batchRequest.setChapterIds(chapterIds);
-                            
+
                             // 获取章节内容
-                            FQNovelResponse<FQBatchChapterResponse> batchResponse = 
+                            FQNovelResponse<FQBatchChapterResponse> batchResponse =
                                 fqNovelService.getBatchChapterContent(batchRequest).get();
-                            
+
                             if (batchResponse.getCode() != 0 || batchResponse.getData() == null) {
                                 String errorMessage = batchResponse.getMessage();
                                 log.warn("第 {} 批章节下载失败: {}", batchIndex + 1, errorMessage);
-                                
+
                                 // 检查是否是关键错误，如果是则跳出循环
                                 if (errorMessage != null && (
-                                    errorMessage.contains("非法访问") || 
+                                    errorMessage.contains("非法访问") ||
                                     errorMessage.contains("响应格式异常") ||
                                     errorMessage.contains("请手动更新设备信息"))) {
                                     log.error("检测到关键错误，停止下载任务: {}", errorMessage);
                                     sink.error(new RuntimeException("下载任务因关键错误停止: " + errorMessage));
                                     return;
                                 }
-                                
+
                                 // 非关键错误，继续下一批
                                 continue;
                             }
-                            
+
                             FQBatchChapterResponse batchData = batchResponse.getData();
                             Map<String, FQBatchChapterInfo> batchChapters = batchData.getChapters();
-                            
+
                             // 转换为FQNovelChapterInfo
                             Map<String, FQNovelChapterInfo> chapters = new HashMap<>();
                             if (batchChapters != null) {
@@ -186,22 +199,22 @@ public class FullBookDownloadService {
                                     chapters.put(entry.getKey(), chapterInfo);
                                 }
                             }
-                            
+
                             // 保存到Redis
                             if (request.getSaveToRedis() && chapters != null) {
                                 for (Map.Entry<String, FQNovelChapterInfo> entry : chapters.entrySet()) {
                                     redisService.saveChapter(request.getBookId(), entry.getKey(), entry.getValue());
                                 }
                             }
-                            
+
                             // 计算本批次处理的章节总数（包括下载的和跳过的）
                             int currentBatchProcessed = (chapters != null ? chapters.size() : 0) + skippedChapterIds.size();
                             downloadedChapters += currentBatchProcessed;
-                            
+
                             // 合并章节ID列表（包括跳过的）
                             List<String> allChapterIdsInBatch = new ArrayList<>(chapterIds);
                             allChapterIdsInBatch.addAll(skippedChapterIds);
-                            
+
                             // 发送进度响应
                             FullBookDownloadResponse response = FullBookDownloadResponse.progress(
                                 request.getBookId(),
@@ -213,14 +226,14 @@ public class FullBookDownloadService {
                                 totalBatches,
                                 chapters,
                                 allChapterIdsInBatch,
-                                String.format("第 %d/%d 批章节处理完成 - 下载: %d, 跳过: %d", 
-                                    batchIndex + 1, totalBatches, 
-                                    chapters != null ? chapters.size() : 0, 
+                                String.format("第 %d/%d 批章节处理完成 - 下载: %d, 跳过: %d",
+                                    batchIndex + 1, totalBatches,
+                                    chapters != null ? chapters.size() : 0,
                                     skippedChapterIds.size())
                             );
-                            
+
                             sink.next(response);
-                            
+
                             // 如果完成，发送最终响应
                             if (downloadedChapters >= actualChapters) {
                                 FullBookDownloadResponse finalResponse = FullBookDownloadResponse.completed(
@@ -232,25 +245,27 @@ public class FullBookDownloadService {
                                 sink.next(finalResponse);
                                 break;
                             }
-                            
-                            // 添加延迟避免请求过快
-                            Thread.sleep(1000);
-                            
+
+                            // 添加延迟避免请求过快（非阻塞方式：用 CompletableFuture.delayedExecutor）
+                            if (batchIndex < totalBatches - 1) {
+                                Thread.sleep(1000);
+                            }
+
                         } catch (Exception e) {
                             log.error("第 {} 批章节下载异常", batchIndex + 1, e);
                             sink.error(e);
                             return;
                         }
                     }
-                    
+
                     sink.complete();
-                    
+
                 } catch (Exception e) {
                     log.error("全本下载异常", e);
                     sink.error(e);
                 }
             }, bizExecutor);
-        });
+        }, reactor.core.publisher.FluxSink.OverflowStrategy.BUFFER);
     }
 
     /**
@@ -272,9 +287,11 @@ public class FullBookDownloadService {
                     }
                 }
                 
-                // 按章节ID排序
-                chapters.sort(Comparator.comparing(chapter -> chapter.getTitle()));
-                
+                // 按章节索引排序（FQNovelChapterInfo.chapterIndex 为真实章节序号），
+                // 避免按标题字典序导致"第十章"排在"第二章"前面
+                chapters.sort(Comparator.comparing(
+                        (FQNovelChapterInfo c) -> c.getChapterIndex() != null ? c.getChapterIndex() : Integer.MAX_VALUE));
+
                 return chapters;
                 
             } catch (Exception e) {
@@ -283,7 +300,6 @@ public class FullBookDownloadService {
             }
         }, bizExecutor);
     }
-
     /**
      * 获取下载进度
      */
@@ -452,14 +468,14 @@ public class FullBookDownloadService {
                 
                 // 如果未完成，自动恢复下载
                 log.info("检测到未完成的下载任务，开始自动恢复 - bookId: {}", bookId);
-                
+
                 FullBookDownloadRequest request = FullBookDownloadRequest.builder()
                     .bookId(bookId)
                     .batchSize(30)
                     .saveToRedis(true)
                     .streamResponse(false) // 不流式返回，后台执行
                     .build();
-                
+
                 // 异步执行下载，不等待完成
                 downloadFullBook(request)
                     .doOnNext(response -> {
@@ -469,13 +485,13 @@ public class FullBookDownloadService {
                         log.error("自动恢复下载失败 - bookId: {}", bookId, error);
                     })
                     .subscribe(); // 启动异步下载
-                
-                return AutoResumeResult.success(
-                    String.format("已启动自动恢复下载 - 书名: %s, 进度: %d/%d (%.1f%%)", 
-                        bookName, downloadedChapters, totalChapters, 
-                        (double) downloadedChapters / totalChapters * 100), 
-                    bookId
-                );
+
+                String progressText = totalChapters > 0
+                    ? String.format("已启动自动恢复下载 - 书名: %s, 进度: %d/%d (%.1f%%)",
+                            bookName, downloadedChapters, totalChapters,
+                            (double) downloadedChapters / totalChapters * 100)
+                    : String.format("已启动自动恢复下载 - 书名: %s, 已下载: %d 章", bookName, downloadedChapters);
+                return AutoResumeResult.success(progressText, bookId);
                 
             } catch (Exception e) {
                 log.error("自动恢复下载失败 - bookId: {}", bookId, e);

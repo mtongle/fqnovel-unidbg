@@ -92,14 +92,14 @@ class CommentEnrichmentServiceTest {
         int commaIdx150 = base64Part150.indexOf(',');
         String svgBase64150 = base64Part150.substring(0, commaIdx150);
         String decoded150 = new String(Base64.getDecoder().decode(svgBase64150), StandardCharsets.UTF_8);
-        assertTrue(decoded150.contains("width=\"39\""), "count=150 should have width=39");
+        assertTrue(decoded150.contains("width=\"33\""), "count=150 should have width=33");
 
         String result1500 = invokeGenerateSvgDataUri(1500, "http://example.com");
         String base64Part1500 = result1500.substring("data:image/svg+xml;base64,".length());
         int commaIdx1500 = base64Part1500.indexOf(',');
         String svgBase641500 = base64Part1500.substring(0, commaIdx1500);
         String decoded1500 = new String(Base64.getDecoder().decode(svgBase641500), StandardCharsets.UTF_8);
-        assertTrue(decoded1500.contains("width=\"48\""), "count=1500 should have width=48");
+        assertTrue(decoded1500.contains("width=\"40\""), "count=1500 should have width=40");
     }
 
     @Test
@@ -184,19 +184,34 @@ class CommentEnrichmentServiceTest {
     void injectCommentIcons_titleLine_noIconOnTitle() throws Exception {
         String content = "第一章 开始\n\n正文第一段\n\n正文第二段";
         Map<Integer, Integer> commentCounts = new HashMap<>();
-        commentCounts.put(0, 5); // first content paragraph has 5 comments
-        commentCounts.put(1, 3); // second content paragraph has 3 comments
+        commentCounts.put(2, 5); // first content paragraph (index 2) has 5 comments
+        commentCounts.put(4, 3); // second content paragraph (index 4) has 3 comments
 
         String result = invokeInjectCommentIcons(content, commentCounts, "b1", "c1", "第一章 开始");
         assertTrue(result.startsWith("<p>第一章 开始</p>"),
                 "Title line should be rendered without icon");
-        assertTrue(result.contains("paraIndex=0") && result.contains("paraIndex=1"),
-                "Content paragraphs should use paraIndex=0 and paraIndex=1");
+        // 段落索引与 API para_index 对齐：标题行(0)、空行(1)、正文第一段(2)、空行(3)、正文第二段(4)
+        assertTrue(result.contains("paraIndex=2") && result.contains("paraIndex=4"),
+                "Content paragraphs should use paraIndex=2 and paraIndex=4 (title + blank lines occupy 0-1 and 3)");
         // Title is before first img; ensure no img between title and first content
         int titleEnd = result.indexOf("</p>") + 4;
         int firstImg = result.indexOf("<img");
         assertTrue(firstImg > titleEnd,
                 "First img should appear after title paragraph, not on it");
+    }
+
+    @Test
+    void injectCommentIcons_blankLines_keepIndexAligned() throws Exception {
+        // 空段落也占用 para_index（与 API 统计对齐），图标不因空行错位
+        String content = "第一段\n\n第三段";
+        Map<Integer, Integer> commentCounts = new HashMap<>();
+        commentCounts.put(2, 5); // 第三段的评论在 para_index=2
+
+        String result = invokeInjectCommentIcons(content, commentCounts, "b1", "c1");
+        assertTrue(result.contains("paraIndex=2"),
+                "Blank line should advance index so para 3 maps to index 2");
+        assertFalse(result.contains("paraIndex=1"),
+                "No icon should be placed at the blank line index");
     }
 
     private String invokeGenerateSvgDataUri(int count, String clickUrl) throws Exception {

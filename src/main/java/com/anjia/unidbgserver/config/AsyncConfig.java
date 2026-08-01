@@ -4,14 +4,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionHandler;
 
+/**
+ * 异步任务线程池配置
+ *
+ * 注意：yml 中 spring.task.execution.pool.* 是线程池的权威配置，
+ * 这里不再用 Math.max(corePoolSize, cores*2+1) 覆盖用户配置（原实现导致
+ * 配置在多数机器上不生效）。
+ */
 @Slf4j
 @Configuration
-@EnableAsync
 public class AsyncConfig {
 
     @Value("${spring.task.execution.pool.core-size:8}")
@@ -25,22 +31,26 @@ public class AsyncConfig {
 
     @Bean("bizExecutor")
     public Executor bizExecutor() {
-        int cores = Runtime.getRuntime().availableProcessors();
-        int actualCore = Math.max(corePoolSize, cores * 2 + 1);
-        int actualMax = Math.max(maxPoolSize, actualCore * 2);
-
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(actualCore);
-        executor.setMaxPoolSize(actualMax);
+        executor.setCorePoolSize(corePoolSize);
+        executor.setMaxPoolSize(maxPoolSize);
         executor.setKeepAliveSeconds(60);
         executor.setQueueCapacity(queueCapacity);
         executor.setThreadNamePrefix("biz-pool-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setRejectedExecutionHandler((r, exec) -> {
-            log.warn("bizExecutor 任务被拒绝：队列已满({}), 活动线程: {}, 最大线程: {}",
-                queueCapacity, exec.getActiveCount(), actualMax);
-        });
+        // 队列满时由调用线程执行任务（降级而非丢弃，避免下载/评论任务静默丢失）
+        executor.setRejectedExecutionHandler(callerRunsPolicy());
         executor.initialize();
+        log.info("bizExecutor 初始化完成: core={}, max={}, queue={}",
+                corePoolSize, maxPoolSize, queueCapacity);
         return executor;
+    }
+
+    private RejectedExecutionHandler callerRunsPolicy() {
+        return (r, exec) -> {
+            log.warn("bizExecutor 队列已满，任务将由调用线程执行（CallerRunsPolicy）: active={}, max={}",
+                    exec.getActiveCount(), maxPoolSize);
+            r.run();
+        };
     }
 }

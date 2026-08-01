@@ -54,6 +54,17 @@ public class FQSearchController {
             );
         }
 
+        if (count == null || count < 1 || count > 50) {
+            return CompletableFuture.completedFuture(
+                FQNovelResponse.error("count 必须在 1-50 之间")
+            );
+        }
+        if (offset == null || offset < 0) {
+            return CompletableFuture.completedFuture(
+                FQNovelResponse.error("offset 不能为负数")
+            );
+        }
+
         // 构建搜索请求
         FQSearchRequest searchRequest = new FQSearchRequest();
         searchRequest.setQuery(query.trim());
@@ -91,6 +102,17 @@ public class FQSearchController {
         if (searchRequest.getTabType() == null) {
             return CompletableFuture.completedFuture(
                 FQNovelResponse.error("搜索类型tabType不能为空")
+            );
+        }
+
+        if (searchRequest.getCount() == null || searchRequest.getCount() < 1 || searchRequest.getCount() > 50) {
+            return CompletableFuture.completedFuture(
+                FQNovelResponse.error("count 必须在 1-50 之间")
+            );
+        }
+        if (searchRequest.getOffset() != null && searchRequest.getOffset() < 0) {
+            return CompletableFuture.completedFuture(
+                FQNovelResponse.error("offset 不能为负数")
             );
         }
 
@@ -167,9 +189,10 @@ public class FQSearchController {
             );
         }
 
-        // 使用默认参数进行搜索
+        // 使用默认参数进行搜索（tabType=3 书籍搜索，与 GET/POST /books 语义一致）
         FQSearchRequest searchRequest = new FQSearchRequest();
         searchRequest.setQuery(query.trim());
+        searchRequest.setTabType(3);
         searchRequest.setOffset(0);
         searchRequest.setCount(10); // 快速搜索返回较少结果
 

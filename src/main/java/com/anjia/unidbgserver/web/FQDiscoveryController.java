@@ -71,6 +71,14 @@ public class FQDiscoveryController {
             return CompletableFuture.completedFuture(
                     FQNovelResponse.error("分类ID不能为空"));
         }
+        if (limit < 1 || limit > 50) {
+            return CompletableFuture.completedFuture(
+                    FQNovelResponse.error("limit 必须在 1-50 之间"));
+        }
+        if (offset < 0) {
+            return CompletableFuture.completedFuture(
+                    FQNovelResponse.error("offset 不能为负数"));
+        }
         return discoveryService.getCategoryLandingPage(
                 categoryId.trim(), offset, limit,
                 subCategoryId, sortBy, bookStatus, wordNumber);

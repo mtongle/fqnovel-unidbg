@@ -12,3 +12,24 @@ fq:
     device-pool:
       enabled: true
       size: 5
+
+spring:
+  sleuth:
+    sampler:
+      probability: 0.1
+    async:
+      enabled: true
+      configurer:
+        enabled: true
+  redis:
+    host: 127.0.0.1
+    port: 26586
+    # 密码通过环境变量注入：spring.redis.password=${REDIS_PASSWORD:}
+    database: 0
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms

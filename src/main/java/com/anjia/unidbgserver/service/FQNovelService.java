@@ -109,6 +109,12 @@ public class FQNovelService {
                     Map<String, String> headers = fqApiUtils.buildCommonHeaders(currentDevice);
                     Map<String, String> signedHeaders = fqEncryptServiceWorker.generateSignatureHeaders(fullUrl, headers).get();
 
+                    // 签名失败时返回 {"error": ...}，不能当 HTTP header 静默发出
+                    if (signedHeaders.containsKey("error")) {
+                        log.warn("batch_full签名生成失败: {} - attempt={}", signedHeaders.get("error"), attempt);
+                        throw new RuntimeException("签名生成失败: " + signedHeaders.get("error"));
+                    }
+
                     HttpHeaders httpHeaders = new HttpHeaders();
                     signedHeaders.forEach(httpHeaders::set);
                     headers.forEach(httpHeaders::set);
@@ -137,13 +143,16 @@ public class FQNovelService {
 
                     FqIBatchFullResponse batchResponse = objectMapper.readValue(responseBody, FqIBatchFullResponse.class);
 
-                    if (containsInvalidItemPayload(batchResponse, currentDevice, registerKeyService.getKeyRegisterTs(currentDevice))) {
+                    // 使用循环开始时获取的 keyRegisterTs，避免重复查询
+                    long currentKeyRegisterTs = registerKeyService.getKeyRegisterTs(currentDevice);
+
+                    if (containsInvalidItemPayload(batchResponse, currentDevice, currentKeyRegisterTs)) {
                         log.warn("检测到无效章节载荷(如 content=Invalid)，attempt={}/{}, deviceId={}, deviceCacheKey={}, key_register_ts={}, fixedDevice={}",
                             attempt,
                             maxAttempts,
                             currentDevice != null ? currentDevice.getDeviceId() : null,
                             deviceCacheKey,
-                            registerKeyService.getKeyRegisterTs(currentDevice),
+                            currentKeyRegisterTs,
                             requestedDevice != null);
 
                         if (requestedDevice != null) {
@@ -299,6 +308,34 @@ public class FQNovelService {
         return CommonUtils.preview(content);
     }
 
+    /**
+     * 从批量响应数据中查找第一个可用的 novelData
+     * （优先按请求的 itemId 顺序查找，找不到时遍历整个 dataMap）
+     *
+     * @return 找到的 novelData；不存在时返回 null（调用方需判空）
+     */
+    private FQNovelData findFirstNovelData(Map<String, ItemContent> dataMap, List<String> itemIds) {
+        if (dataMap == null || dataMap.isEmpty()) {
+            return null;
+        }
+        // 先按请求顺序找
+        if (itemIds != null) {
+            for (String itemId : itemIds) {
+                ItemContent item = dataMap.get(itemId);
+                if (item != null && item.getNovelData() != null) {
+                    return item.getNovelData();
+                }
+            }
+        }
+        // 兜底：遍历整个 map
+        for (ItemContent item : dataMap.values()) {
+            if (item != null && item.getNovelData() != null) {
+                return item.getNovelData();
+            }
+        }
+        return null;
+    }
+
     private boolean containsInvalidItemPayload(FqIBatchFullResponse batchResponse, DeviceInfo currentDevice, long keyRegisterTs) {
         if (batchResponse == null || batchResponse.getData() == null || batchResponse.getData().isEmpty()) {
             return false;
@@ -355,87 +392,6 @@ public class FQNovelService {
                 refreshEx);
         }
     }
-
-/*
-    public CompletableFuture<FQNovelResponse<FqIBatchFullResponse>> batchFull(String itemIds, String bookId, boolean download) {
-        return CompletableFuture.supplyAsync(() -> {
-            int maxAttempts = 1;
-            for (int attempt = 0; attempt <= maxAttempts; attempt++) {
-                try {
-                    FqVariable var = getDefaultFqVariable();
-                    String url = fqApiUtils.getBaseUrl() + "/reading/reader/batch_full/v";
-                    Map<String, String> params = fqApiUtils.buildBatchFullParams(var, itemIds, bookId, download);
-                    String fullUrl = fqApiUtils.buildUrlWithParams(url, params);
-
-                    Map<String, String> headers = fqApiUtils.buildCommonHeaders();
-                    Map<String, String> signedHeaders = fqEncryptServiceWorker.generateSignatureHeaders(fullUrl, headers).get();
-
-                    HttpHeaders httpHeaders = new HttpHeaders();
-                    signedHeaders.forEach(httpHeaders::set);
-                    headers.forEach(httpHeaders::set);
-
-                    HttpEntity<String> entity = new HttpEntity<>(httpHeaders);
-                    ResponseEntity<byte[]> response = restTemplate.exchange(fullUrl, HttpMethod.GET, entity, byte[].class);
-
-                    byte[] body = response.getBody();
-                    boolean isGzip = false;
-                    List<String> contentEncoding = response.getHeaders().get("Content-Encoding");
-                    if (contentEncoding != null) {
-                        isGzip = contentEncoding.stream().anyMatch(e -> e.toLowerCase().contains("gzip"));
-                    }
-                    // 简单判断GZIP头
-                    if (!isGzip && body != null && body.length >= 2 && body[0] == (byte)0x1f && body[1] == (byte)0x8b) {
-                        isGzip = true;
-                    }
-
-                    if (!isGzip) {
-                        // 非GZIP，解析JSON
-                        String rawBody = new String(body, StandardCharsets.UTF_8);
-                        ObjectMapper mapper = new ObjectMapper();
-                        JsonNode node = mapper.readTree(rawBody);
-                        int code = node.has("code") ? node.get("code").asInt() : -1;
-                        String message = node.has("message") ? node.get("message").asText() : "";
-                        if (code == 110 && "ILLEGAL_ACCESS".equals(message)) {
-                            log.warn("检测到ILLEGAL_ACCESS，尝试刷新registerkey，第{}次", attempt);
-                            try {
-                                registerKeyService.refreshRegisterKey();
-                            } catch (Exception e) {
-                                log.error("刷新registerkey失败", e);
-                                return FQNovelResponse.error("刷新registerkey失败: " + e.getMessage());
-                            }
-                            continue; // 重试
-                        } else {
-                            // 非非法访问，直接返回对应code和message
-                            return FQNovelResponse.error("code: " + code + ", message: " + message);
-                        }
-                    }
-
-                    // GZIP解压
-                    String responseBody = "";
-                    try (GZIPInputStream gzipInputStream = new GZIPInputStream(new ByteArrayInputStream(body))) {
-                        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                        byte[] buffer = new byte[1024];
-                        int length;
-                        while ((length = gzipInputStream.read(buffer)) != -1) {
-                            byteArrayOutputStream.write(buffer, 0, length);
-                        }
-                        responseBody = new String(byteArrayOutputStream.toByteArray(), StandardCharsets.UTF_8);
-                    } catch (Exception e) {
-                        log.error("GZIP 解压失败", e);
-                    }
-
-                    FqIBatchFullResponse batchResponse = objectMapper.readValue(responseBody, FqIBatchFullResponse.class);
-                    return FQNovelResponse.success(batchResponse);
-
-                } catch (Exception e) {
-                    log.error("批量获取章节内容失败 - itemIds: {}", itemIds, e);
-                    return FQNovelResponse.error("批量获取章节内容失败: " + e.getMessage());
-                }
-            }
-            return FQNovelResponse.error("批量获取章节内容失败: 超过最大重试次数");
-        });
-    }
-*/
 
     /**
      * 获取书籍信息 (从目录接口获取完整信息)
@@ -796,27 +752,33 @@ public class FQNovelService {
                 response.setBookId(request.getBookId());
                 response.setRequestedRange(request.getChapterRange());
                 response.setTotalRequested(chapterIds.size());
-                // 获取第一个itemId的novelData信息
-                FQNovelData novelData = dataMap.get(itemIds.get(0)).getNovelData();
 
-                // 构建书籍信息 (简化版本)
-                FQNovelBookInfo bookInfo = new FQNovelBookInfo();
-                bookInfo.setBookId(request.getBookId());
-                bookInfo.setBookName(novelData.getBookName());
-                bookInfo.setAuthor(novelData.getAuthor());
-                bookInfo.setCoverUrl(novelData.getThumbUrl());
-                bookInfo.setStatus(novelData.getStatus());
-                // 使用content_chapter_number字段获取章节数，而不是wordNumber（字数）
-                String contentChapterNumber = novelData.getContentChapterNumber();
-                if (contentChapterNumber != null && !contentChapterNumber.isEmpty()) {
-                    try {
-                        bookInfo.setTotalChapters(Integer.parseInt(contentChapterNumber));
-                    } catch (NumberFormatException e) {
-                        log.warn("解析章节数失败 - contentChapterNumber: {}", contentChapterNumber);
+                // 从任一成功章节的 novelData 提取书籍信息
+                // （API 返回的 key 可能与请求 itemId 不一致，需判空避免整批失败）
+                FQNovelData novelData = findFirstNovelData(dataMap, itemIds);
+                FQNovelBookInfo bookInfo = null;
+                if (novelData != null) {
+                    // 构建书籍信息 (简化版本)
+                    bookInfo = new FQNovelBookInfo();
+                    bookInfo.setBookId(request.getBookId());
+                    bookInfo.setBookName(novelData.getBookName());
+                    bookInfo.setAuthor(novelData.getAuthor());
+                    bookInfo.setCoverUrl(novelData.getThumbUrl());
+                    bookInfo.setStatus(novelData.getStatus());
+                    // 使用content_chapter_number字段获取章节数，而不是wordNumber（字数）
+                    String contentChapterNumber = novelData.getContentChapterNumber();
+                    if (contentChapterNumber != null && !contentChapterNumber.isEmpty()) {
+                        try {
+                            bookInfo.setTotalChapters(Integer.parseInt(contentChapterNumber));
+                        } catch (NumberFormatException e) {
+                            log.warn("解析章节数失败 - contentChapterNumber: {}", contentChapterNumber);
+                            bookInfo.setTotalChapters(0);
+                        }
+                    } else {
                         bookInfo.setTotalChapters(0);
                     }
                 } else {
-                    bookInfo.setTotalChapters(0);
+                    log.warn("批量章节响应中未找到 novelData，书籍信息将为空 - bookId: {}", request.getBookId());
                 }
                 response.setBookInfo(bookInfo);
 

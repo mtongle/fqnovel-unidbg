@@ -35,14 +35,7 @@ public class FQEncryptServiceWorker extends Worker {
         this.unidbgProperties = unidbgProperties;
     }
 
-    public FQEncryptServiceWorker() {
-        super(WorkerPoolFactory.create(FQEncryptServiceWorker::new, Runtime.getRuntime().availableProcessors()));
-    }
-
-    public FQEncryptServiceWorker(WorkerPool pool) {
-        super(pool);
-    }
-
+    /** 唯一合法构造入口：由 Spring 注入配置，或由 WorkerPool 工厂调用 */
     @Autowired
     public FQEncryptServiceWorker(UnidbgProperties unidbgProperties,
                                     @Value("${spring.task.execution.pool.core-size:4}") int poolSize) {
@@ -57,7 +50,13 @@ public class FQEncryptServiceWorker extends Worker {
         }
     }
 
-    public FQEncryptServiceWorker(boolean dynarmic, boolean verbose, WorkerPool pool) {
+    /** WorkerPool 内部回调构造（仅供 unidbg WorkerPoolFactory 使用，不应被 Spring 注入） */
+    private FQEncryptServiceWorker(WorkerPool pool) {
+        super(pool);
+    }
+
+    /** 仅供 WorkerPool 工厂创建内部 worker 使用 */
+    private FQEncryptServiceWorker(boolean dynarmic, boolean verbose, WorkerPool pool) {
         super(pool);
         this.unidbgProperties = new UnidbgProperties();
         unidbgProperties.setDynarmic(dynarmic);
@@ -90,13 +89,29 @@ public class FQEncryptServiceWorker extends Worker {
                 err.put("error", "FQ签名线程池不可用");
                 return CompletableFuture.completedFuture(err);
             }
-            while (true) {
-                if ((worker = currentPool.borrow(2, TimeUnit.SECONDS)) == null) {
+            // 有限次重试，避免线程池耗尽时无限忙等空转 CPU
+            int maxBorrowAttempts = 3;
+            worker = null;
+            result = null;
+            for (int borrowAttempt = 1; borrowAttempt <= maxBorrowAttempts; borrowAttempt++) {
+                worker = currentPool.borrow(2, TimeUnit.SECONDS);
+                if (worker == null) {
+                    log.warn("FQ签名线程池 borrow 超时，attempt={}/{}，池可能已满",
+                            borrowAttempt, maxBorrowAttempts);
                     continue;
                 }
-                result = worker.doWork(url, headers);
-                currentPool.release(worker);
+                try {
+                    result = worker.doWork(url, headers);
+                } finally {
+                    currentPool.release(worker);
+                }
                 break;
+            }
+            if (worker == null) {
+                log.error("FQ签名线程池 borrow 连续 {} 次超时，签名失败", maxBorrowAttempts);
+                Map<String, String> err = new java.util.HashMap<>();
+                err.put("error", "FQ签名线程池繁忙，请稍后重试");
+                return CompletableFuture.completedFuture(err);
             }
         } else {
             synchronized (this) {

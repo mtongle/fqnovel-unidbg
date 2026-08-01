@@ -5,7 +5,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -18,7 +17,6 @@ import java.util.List;
 @EnableAsync(proxyTargetClass = true)
 @EnableScheduling
 @ConfigurationPropertiesScan
-@EnableConfigurationProperties
 @SpringBootApplication(scanBasePackages = {"com.anjia"})
 public class UnidbgServerApplication {
 

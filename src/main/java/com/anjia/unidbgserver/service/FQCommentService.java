@@ -130,6 +130,12 @@ public class FQCommentService {
                 headers.put("Content-Type", "application/json");
                 Map<String, String> signedHeaders = fqEncryptServiceWorker.generateSignatureHeaders(fullUrl, headers).get();
 
+                // 签名失败时返回 {"error": ...}，不能当 HTTP header 静默发出
+                if (signedHeaders.containsKey("error")) {
+                    log.warn("{}签名生成失败: {} - chapterId: {}", apiLabel, signedHeaders.get("error"), chapterId);
+                    throw new RuntimeException("签名生成失败: " + signedHeaders.get("error"));
+                }
+
                 Object commentSource = bodyMap.get("comment_source");
 
                 HttpHeaders httpHeaders = new HttpHeaders();
@@ -141,7 +147,11 @@ public class FQCommentService {
                 httpHeaders.set("server-channel", "17");
 
                 HttpEntity<String> entity = new HttpEntity<>(body, httpHeaders);
-                log.warn("段评请求 - url={}, headers={}, body={}", fullUrl, httpHeaders, body);
+                // 只记录脱敏后的调试信息（完整 headers 含 Cookie/签名头，WARN 级刷屏且泄密）
+                log.debug("段评请求 - url={}, body={}, cookie={}",
+                        fullUrl,
+                        CommonUtils.preview(body, 512),
+                        currentDevice != null ? currentDevice.getCookie() : null);
                 ResponseEntity<byte[]> response = restTemplate.exchange(fullUrl, HttpMethod.POST, entity, byte[].class);
 
                 String responseBody = decompressGzipResponse(response.getBody());

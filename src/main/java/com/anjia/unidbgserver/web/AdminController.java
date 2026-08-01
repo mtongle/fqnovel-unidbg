@@ -19,10 +19,11 @@ import org.springframework.web.bind.annotation.*;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -61,7 +62,8 @@ public class AdminController {
     @Value("${application.http-client.max-connections-per-route:20}")
     private int httpMaxConnectionsPerRoute;
 
-    @Value("${application.admin-password:admin123}")
+    /** 管理后台密码（必须通过环境变量/配置注入，无默认值） */
+    @Value("${application.admin-password:}")
     private String adminPassword;
 
     @Autowired(required = false)
@@ -70,13 +72,18 @@ public class AdminController {
     @PostMapping("/auth")
     public ResponseEntity<Map<String, Object>> auth(@RequestBody Map<String, String> body) {
         Map<String, Object> result = new LinkedHashMap<>();
+        if (adminPassword == null || adminPassword.isEmpty()) {
+            result.put("success", false);
+            result.put("message", "管理后台未配置密码，请通过环境变量 APPLICATION_ADMIN_PASSWORD 设置");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(result);
+        }
         String password = body != null ? body.get("password") : null;
         if (password == null || password.trim().isEmpty()) {
             result.put("success", false);
             result.put("message", "密码不能为空");
             return ResponseEntity.badRequest().body(result);
         }
-        if (Objects.equals(password, adminPassword)) {
+        if (constantTimeEquals(password, adminPassword)) {
             // 认证成功 → 创建服务端令牌
             String token = adminAuthFilter.createToken();
             result.put("success", true);
@@ -89,6 +96,15 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(result);
     }
 
+    /**
+     * 常量时间比较，避免时序攻击
+     */
+    private boolean constantTimeEquals(String a, String b) {
+        return MessageDigest.isEqual(
+                a.getBytes(StandardCharsets.UTF_8),
+                b.getBytes(StandardCharsets.UTF_8));
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<Map<String, Object>> logout(@RequestHeader("X-Admin-Token") String token) {
         adminAuthFilter.removeToken(token);
@@ -98,15 +114,46 @@ public class AdminController {
         return ResponseEntity.ok(result);
     }
 
+    /** 配置中需要脱敏的敏感键（匹配到即输出 ****） */
+    private static final java.util.regex.Pattern SENSITIVE_KEYS = java.util.regex.Pattern.compile(
+            "^(password|passwd|secret|token|api-key|api_key|access-key|access_key|cookie)$",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
     @GetMapping("/config")
     public ResponseEntity<String> getConfig() {
         try {
             String yaml = configManagementService.getConfigAsYaml();
-            return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(yaml);
+            return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(redactSensitiveConfig(yaml));
         } catch (Exception e) {
             log.error("读取配置失败", e);
-            return ResponseEntity.internalServerError().body("读取配置失败: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("读取配置失败");
         }
+    }
+
+    /**
+     * 对配置 YAML 中的敏感键值进行脱敏（密码/密钥/cookie 等输出为 ****），
+     * 避免管理后台接口泄露明文凭据。
+     */
+    static String redactSensitiveConfig(String yaml) {
+        if (yaml == null || yaml.isEmpty()) {
+            return yaml;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String line : yaml.split("\n", -1)) {
+            String trimmed = line.trim();
+            int colonIdx = trimmed.indexOf(':');
+            if (colonIdx > 0) {
+                String key = trimmed.substring(0, colonIdx).trim().replace("\"", "").replace("'", "");
+                String value = trimmed.substring(colonIdx + 1).trim();
+                if (!value.isEmpty() && !value.startsWith("#") && SENSITIVE_KEYS.matcher(key).matches()) {
+                    String indent = line.substring(0, line.length() - line.stripLeading().length());
+                    sb.append(indent).append(trimmed, 0, colonIdx + 1).append(" ****").append('\n');
+                    continue;
+                }
+            }
+            sb.append(line).append('\n');
+        }
+        return sb.toString();
     }
 
     @PutMapping("/config")
@@ -127,7 +174,7 @@ public class AdminController {
             log.error("保存配置失败", e);
             Map<String, Object> result = new HashMap<>();
             result.put("success", false);
-            result.put("message", "保存失败: " + e.getMessage());
+            result.put("message", "保存失败");
             return ResponseEntity.internalServerError().body(result);
         }
     }
@@ -282,7 +329,7 @@ public class AdminController {
         } catch (Exception e) {
             log.error("热重载失败", e);
             result.put("success", false);
-            result.put("message", "热重载失败: " + e.getMessage());
+            result.put("message", "热重载失败");
             return ResponseEntity.internalServerError().body(result);
         }
     }

@@ -153,6 +153,9 @@ public class CommentEnrichmentService {
 
         String[] paragraphs = content.split("\n", -1);
         StringBuilder enriched = new StringBuilder();
+        // 段落索引与 API 段评统计的 para_index 对齐：
+        // API 按"原始段落顺序"计数（含空段与标题行），因此每次渲染一个段落
+        // （无论是否为空、是否是标题行）都要递增 paraIndex，否则图标错位。
         int paraIndex = 0;
         boolean firstNonEmpty = true;
 
@@ -162,8 +165,10 @@ public class CommentEnrichmentService {
                 continue;
             }
 
+            // 空段落（纯空白）不渲染 <p>，但索引仍然递增
             String trimmedPara = escapeHtml(para.trim());
             if (trimmedPara.isEmpty()) {
+                paraIndex++;
                 continue;
             }
 
@@ -174,6 +179,7 @@ public class CommentEnrichmentService {
                     && para.trim().equals(title);
             firstNonEmpty = false;
 
+            // 标题行不注入图标（但 paraIndex 已在上方递增）
             if (!isTitleLine) {
                 Integer count = commentCounts.get(paraIndex);
                 if (count != null && count > 0) {
@@ -188,8 +194,8 @@ public class CommentEnrichmentService {
                                 .append("' style='display:inline-block;vertical-align:middle'/>");
                     }
                 }
-                paraIndex++;
             }
+            paraIndex++;
 
             enriched.append("</p>\n");
         }

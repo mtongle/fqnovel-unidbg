@@ -9,6 +9,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -81,7 +82,7 @@ public class ConfigManagementService {
             throw new IllegalArgumentException("YAML 内容为空或无效");
         }
         String path = getConfigFilePath();
-        Files.write(Paths.get(path), yamlContent.getBytes());
+        Files.write(Paths.get(path), yamlContent.getBytes(StandardCharsets.UTF_8));
         log.info("配置已保存至 {}", path);
     }
 

@@ -62,6 +62,12 @@ public class FQDiscoveryService {
                     Map<String, String> signedHeaders = fqEncryptServiceWorker
                             .generateSignatureHeaders(fullUrl, headers).get();
 
+                    // 签名失败时返回 {"error": ...}，不能当 HTTP header 静默发出
+                    if (signedHeaders.containsKey("error")) {
+                        log.warn("分类发现页签名生成失败: {}", signedHeaders.get("error"));
+                        throw new RuntimeException("签名生成失败: " + signedHeaders.get("error"));
+                    }
+
                     HttpHeaders httpHeaders = new HttpHeaders();
                     signedHeaders.forEach(httpHeaders::set);
                     headers.forEach(httpHeaders::set);
@@ -117,6 +123,12 @@ public class FQDiscoveryService {
                     Map<String, String> signedHeaders = fqEncryptServiceWorker
                             .generateSignatureHeaders(fullUrl, headers).get();
 
+                    // 签名失败时返回 {"error": ...}，不能当 HTTP header 静默发出
+                    if (signedHeaders.containsKey("error")) {
+                        log.warn("分类落地页签名生成失败: {}", signedHeaders.get("error"));
+                        throw new RuntimeException("签名生成失败: " + signedHeaders.get("error"));
+                    }
+
                     HttpHeaders httpHeaders = new HttpHeaders();
                     signedHeaders.forEach(httpHeaders::set);
                     headers.forEach(httpHeaders::set);
@@ -166,6 +178,12 @@ public class FQDiscoveryService {
                     Map<String, String> headers = fqApiUtils.buildCommonHeaders(currentDevice);
                     Map<String, String> signedHeaders = fqEncryptServiceWorker
                             .generateSignatureHeaders(fullUrl, headers).get();
+
+                    // 签名失败时返回 {"error": ...}，不能当 HTTP header 静默发出
+                    if (signedHeaders.containsKey("error")) {
+                        log.warn("分类Cell数据签名生成失败: {}", signedHeaders.get("error"));
+                        throw new RuntimeException("签名生成失败: " + signedHeaders.get("error"));
+                    }
 
                     HttpHeaders httpHeaders = new HttpHeaders();
                     signedHeaders.forEach(httpHeaders::set);
@@ -230,10 +248,12 @@ public class FQDiscoveryService {
             String subCategoryId, String sortBy, String bookStatus, String wordNumber) {
         FqVariable var = new FqVariable(device);
         Map<String, String> params = fqApiUtils.buildCommonApiParams(var);
-        params.put("category_id", categoryId);
-        params.put("offset", String.valueOf(offset));
+        if (categoryId != null && !categoryId.isEmpty()) {
+            params.put("category_id", categoryId);
+        }
+        params.put("offset", String.valueOf(Math.max(offset, 0)));
         // limit 不能超过 50
-        params.put("limit", String.valueOf(Math.min(limit, 50)));
+        params.put("limit", String.valueOf(Math.min(Math.max(limit, 1), 50)));
         if (subCategoryId != null && !subCategoryId.isEmpty()) {
             params.put("sub_category_id", subCategoryId);
         }
