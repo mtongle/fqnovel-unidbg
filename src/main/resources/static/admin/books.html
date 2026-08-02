@@ -37,7 +37,10 @@
 <main class="content">
   <section class="section active" style="display:block;">
     <div class="section-header">
-      <h2><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg> 已下载书籍</h2>
+      <div class="section-header-main">
+        <h2><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg> 已下载书籍</h2>
+        <p class="section-header-desc">管理本地已下载的书籍,查看章节与下载进度</p>
+      </div>
       <div class="section-header-actions">
         <button class="btn btn-sm" id="btn-refresh-books"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 刷新</button>
       </div>
@@ -76,22 +79,24 @@
   var _allBooks = [];
 
   async function refreshBooks() {
+    // T9 骨架屏:加载期替换占位
+    showSkeleton($('books-grid-area'), 4, 'block');
     showLoading();
     try {
       var resp = await fetch('/api/fullbook/check-all-status');
       var result = await resp.json();
       if (!result || !result.success) {
-        $('books-grid-area').innerHTML = '<div class="detail-empty">✦ 加载失败</div>';
+        renderEmpty($('books-grid-area'), '加载失败', '点击右上角「刷新」重试', '✕');
         showToast((result&&result.message)||'获取数据失败', 'error');
         return;
       }
       renderBooks(result.books);
-    } catch(e) { $('books-grid-area').innerHTML = '<div class="detail-empty">✦ 加载失败</div>'; showToast('刷新失败: '+e.message, 'error'); }
+    } catch(e) { renderEmpty($('books-grid-area'), '加载失败', '点击右上角「刷新」重试', '✕'); showToast('刷新失败: '+e.message, 'error'); }
     finally { hideLoading(); }
   }
 
   function renderBooks(data) {
-    if (!data) { $('books-grid-area').innerHTML = '<div class="detail-empty">✦ 暂无数据</div>'; return; }
+    if (!data) { renderEmpty($('books-grid-area'), '暂无数据', '可前往「全本下载」页发起下载', '✦'); return; }
 
     var allBooks = (data.completeBooks || []).concat(data.incompleteBookList || []);
     _allBooks = allBooks;
@@ -100,7 +105,7 @@
     $('books-complete').textContent = (data.completeBooks || []).length;
     $('books-incomplete').textContent = data.incompleteBooks || 0;
 
-    if (!allBooks.length) { $('books-grid-area').innerHTML = '<div class="detail-empty">✦ 暂无已下载的书籍</div>'; return; }
+    if (!allBooks.length) { renderEmpty($('books-grid-area'), '暂无已下载的书籍', '可前往「全本下载」页发起下载', '✦'); return; }
 
     var html = '<div class="books-grid">' + allBooks.map(function(b){
       var pct = b.progress != null ? Math.round(b.progress) : 0;

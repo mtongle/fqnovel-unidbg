@@ -33,7 +33,10 @@
 <main class="public-content">
   <section class="section active" style="display:block;">
     <div class="section-header">
-      <h2><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg> 全本下载管理</h2>
+      <div class="section-header-main">
+        <h2><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg> 全本下载管理</h2>
+        <p class="section-header-desc">发起整本下载并跟踪任务进度,支持断点恢复(Ctrl+K 快速聚焦)</p>
+      </div>
       <div class="section-header-actions">
         <button class="btn btn-accent" id="btn-check-status"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 检查所有</button>
         <button class="btn btn-primary" id="btn-resume-all"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 恢复所有</button>
@@ -166,6 +169,7 @@
     _statusTimer = setTimeout(function() { _statusTimer = null; checkAllStatus(true); }, 800);
   }
 
+  // T9 进度条细化:每任务显示完成度百分比与状态徽章,进度条上带数值标签
   function renderActiveDownloads() {
     var container = $('dl-progress-list');
     var noActive = $('dl-no-active');
@@ -183,7 +187,8 @@
       return '<div style="padding:12px 0;border-bottom:1px solid var(--border-light);">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
         '<span style="font-weight:600;">' + escapeHtml(dl.bookName) + '</span>' +
-        '<span style="font-size:0.82rem;color:var(--text-secondary);font-family:var(--font-mono);">' + dl.downloaded + ' / ' + dl.total + ' (' + pct + '%)</span></div>' +
+        '<span><span class="badge ' + (pct >= 100 ? 'badge-green' : 'badge-gold') + '">' + (pct >= 100 ? '已完成' : '下载中') + '</span>' +
+        '<span style="font-size:0.82rem;color:var(--text-secondary);font-family:var(--font-mono);margin-left:8px;">' + dl.downloaded + ' / ' + dl.total + ' 章 · ' + pct + '%</span></span></div>' +
         '<div class="progress-bar" style="height:8px;margin-bottom:4px;"><div class="progress-fill" style="width:' + pct + '%;background:' + (pct>=100?'var(--accent-green)':'var(--accent-gold)') + ';"></div></div></div>';
     }).join('');
     $('dl-progress-count').textContent = activeKeys.length + ' 个活跃任务';
@@ -212,7 +217,7 @@
       var statusText = completed ? '<span class="badge badge-green">已完成</span>' : '<span class="badge badge-gold">下载中</span>';
       return '<tr><td><a href="/books.html?bookId='+encodeURIComponent(b.bookId)+'" style="font-weight:600;">'+escapeHtml(b.bookName||'--')+'</a></td>' +
         '<td style="font-size:0.75rem;font-family:var(--font-mono);">'+escapeHtml(b.bookId)+'</td>' +
-        '<td style="min-width:120px;"><div class="progress-bar" style="height:6px;margin:4px 0;"><div class="progress-fill" style="width:'+pct+'%;background:'+(completed?'var(--accent-green)':(pct>0?'var(--accent-gold)':'var(--text-muted)'))+';"></div></div></td>' +
+        '<td style="min-width:140px;"><div style="display:flex;align-items:center;gap:6px;"><div class="progress-bar" style="flex:1;height:6px;"><div class="progress-fill" style="width:'+pct+'%;background:'+(completed?'var(--accent-green)':(pct>0?'var(--accent-gold)':'var(--text-muted)'))+';"></div></div><span style="font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);min-width:36px;text-align:right;">'+pct+'%</span></div></td>' +
         '<td style="font-family:var(--font-mono);">'+(b.downloadedChapters!=null?b.downloadedChapters:'?')+' / '+(b.totalChapters!=null?b.totalChapters:'?')+'</td>' +
         '<td>'+statusText+'</td>' +
         '<td><button class="btn btn-sm btn-outline resume-book-btn" data-book-id="'+escapeHtml(b.bookId)+'" '+(completed?'disabled':'')+'><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 恢复</button> <button class="btn btn-sm btn-danger delete-book-btn" data-book-id="'+escapeHtml(b.bookId)+'">删除</button></td></tr>';
@@ -260,7 +265,7 @@
 
   document.addEventListener('DOMContentLoaded', function() {
     $('btn-start-download').addEventListener('click', startDownload);
-    $('btn-check-status').addEventListener('click', checkAllStatus);
+    $('btn-check-status').addEventListener('click', function(){ checkAllStatus(); });
     $('btn-resume-all').addEventListener('click', resumeAll);
     $('btn-resume-book').addEventListener('click', function(){
       var bid = $('dl-book-id').value.trim();
@@ -268,6 +273,9 @@
     });
     $('dl-book-id').addEventListener('keydown', function(e){ if (e.key === 'Enter') startDownload(); });
     checkAllStatus();
+
+    // T9 快捷键:Ctrl+K 聚焦 Book ID
+    registerShortcut('ctrl+k', function(e){ e.preventDefault(); var b = $('dl-book-id'); if (b) { b.focus(); b.select(); } });
 
     // Mobile sidebar toggle
     var menuBtn = $('mobile-menu-toggle');

@@ -36,7 +36,12 @@
 
 <main class="content">
   <section class="section active" style="display:block;">
-    <div class="section-header"><h2>✦ 书籍搜索</h2></div>
+    <div class="section-header">
+      <div class="section-header-main">
+        <h2>✦ 书籍搜索</h2>
+        <p class="section-header-desc">按书名 / 作者关键词搜索番茄小说全量书目(Ctrl+K 快速聚焦)</p>
+      </div>
+    </div>
     <div class="card mb-12">
       <div class="card-body">
         <div class="search-bar">
@@ -45,6 +50,7 @@
           </select>
           <input type="text" id="bs-query" class="search-input" placeholder="输入书名/作者关键词" autocomplete="off">
           <button class="btn btn-primary" id="btn-bs-search">✦ 搜索</button>
+          <button class="btn btn-outline" id="btn-bs-clear">✦ 清空</button>
         </div>
       </div>
     </div>
@@ -197,6 +203,24 @@
   document.addEventListener('DOMContentLoaded', function() {
     $('btn-bs-search').addEventListener('click', function(){ searchBooks(0); });
     $('bs-query').addEventListener('keydown', function(e){ if (e.key === 'Enter') searchBooks(0); });
+
+    // T9 表单直觉化:清空按钮恢复初始态
+    var clearBtn = $('btn-bs-clear');
+    if (clearBtn) clearBtn.addEventListener('click', function(){
+      $('bs-query').value = '';
+      var body = $('bs-result-body');
+      if (body) body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px;">✦ 输入关键词开始搜索</td></tr>';
+      var count = $('bs-result-count');
+      if (count) count.textContent = '';
+      var pg = $('bs-pagination');
+      if (pg) pg.innerHTML = '';
+      var dc = $('bs-detail-container');
+      if (dc) dc.innerHTML = '';
+      $('bs-query').focus();
+    });
+
+    // T9 快捷键:Ctrl+K 聚焦搜索框
+    registerShortcut('ctrl+k', function(e){ e.preventDefault(); var q = $('bs-query'); if (q) { q.focus(); q.select(); } });
   });
 })();
 </script>

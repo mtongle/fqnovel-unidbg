@@ -8,6 +8,55 @@
   }
 })();
 
+/* ============ T9 阅读字号调节(与公开/管理 reader 同 key:localStorage.fontSize) ============
+   读取 fontSize(数字 px)写入 --reader-font-size CSS 变量,联动 .comment-text/.reply-text;
+   模板结构零改动,控制按钮由本文件动态注入 .theme-toggle 左侧 */
+(function(){
+  var FONT_KEY = 'fontSize';
+  var FONT_MIN = 12, FONT_MAX = 28, FONT_STEP = 2;
+
+  function currentSize() {
+    var v = parseInt(localStorage.getItem(FONT_KEY), 10);
+    return (v >= FONT_MIN && v <= FONT_MAX) ? v : 16;
+  }
+
+  function applySize(px) {
+    document.documentElement.style.setProperty('--reader-font-size', px + 'px');
+  }
+
+  function saveSize(px) {
+    localStorage.setItem(FONT_KEY, String(px));
+    applySize(px);
+  }
+
+  function initFontSize() {
+    applySize(currentSize());
+    var toggle = document.querySelector('.theme-toggle');
+    if (!toggle) return;
+    var box = document.createElement('div');
+    box.className = 'font-size-controls';
+    box.innerHTML =
+      '<button type="button" data-dir="-1" title="减小字号">A-</button>' +
+      '<button type="button" data-dir="0" title="重置字号">重置</button>' +
+      '<button type="button" data-dir="1" title="增大字号">A+</button>';
+    box.addEventListener('click', function(e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var dir = parseInt(btn.getAttribute('data-dir'), 10);
+      var next = dir === 0 ? 16 : currentSize() + dir * FONT_STEP;
+      next = Math.max(FONT_MIN, Math.min(FONT_MAX, next));
+      saveSize(next);
+    });
+    document.body.appendChild(box);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFontSize);
+  } else {
+    initFontSize();
+  }
+})();
+
 function toggleTheme(){
   document.body.classList.toggle('light');
   localStorage.setItem('theme',

@@ -32,7 +32,12 @@
 
 <main class="public-content">
   <section class="section active" style="display:block;">
-    <div class="section-header"><h2>✦ 段评查询</h2></div>
+    <div class="section-header">
+      <div class="section-header-main">
+        <h2>✦ 段评查询</h2>
+        <p class="section-header-desc">按章节查询段落评论统计与详情,回车直接触发查询(Ctrl+K 快速聚焦)</p>
+      </div>
+    </div>
     <div class="card mb-12">
       <div class="card-body">
         <div class="search-bar flex-wrap">
@@ -41,6 +46,7 @@
           <input type="number" id="cm-para-idx" class="search-input" style="max-width:100px;" placeholder="段落索引" value="0">
           <button class="btn btn-primary" id="btn-cm-idea">✦ 统计</button>
           <button class="btn btn-accent" id="btn-cm-list">✦ 查询</button>
+          <button class="btn btn-outline" id="btn-cm-clear">✦ 清空</button>
         </div>
       </div>
     </div>
@@ -188,13 +194,27 @@
     finally { hideLoading(); }
   }
 
+  function clearComments() {
+    $('cm-book-id').value = '';
+    $('cm-chapter-id').value = '';
+    $('cm-para-idx').value = '0';
+    if ($('cm-list-count')) $('cm-list-count').textContent = '';
+    renderEmpty($('cm-list-result'), '暂无数据', '输入 Book ID 与 Chapter ID 后点击「查询」');
+    renderEmpty($('cm-idea-result'), '暂无数据', '输入 Chapter ID 后点击「统计」');
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     var params = new URLSearchParams(location.search);
     if (params.get('bookId')) $('cm-book-id').value = params.get('bookId');
     if (params.get('chapterId')) $('cm-chapter-id').value = params.get('chapterId');
     $('btn-cm-idea').addEventListener('click', queryIdea);
     $('btn-cm-list').addEventListener('click', queryList);
-    $('cm-chapter-id').addEventListener('keydown', function(e){ if (e.key === 'Enter') queryIdea(); });
+    var clearBtn = $('btn-cm-clear');
+    if (clearBtn) clearBtn.addEventListener('click', clearComments);
+    $('cm-chapter-id').addEventListener('keydown', function(e){ if (e.key === 'Enter') queryList(); });
+
+    // T9 快捷键:Ctrl+K 聚焦 Book ID
+    registerShortcut('ctrl+k', function(e){ e.preventDefault(); var b = $('cm-book-id'); if (b) { b.focus(); b.select(); } });
 
     // Mobile sidebar toggle
     var menuBtn = $('mobile-menu-toggle');

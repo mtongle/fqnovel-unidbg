@@ -37,7 +37,10 @@
 <main class="content">
   <section class="section active" style="display:block;">
     <div class="section-header">
-      <h2>设备池管理</h2>
+      <div class="section-header-main">
+        <h2>设备池管理</h2>
+        <p class="section-header-desc">查看设备池运行状态与设备健康情况,支持添加、移除与重建</p>
+      </div>
       <div class="section-header-actions">
         <button class="btn btn-sm" id="btn-refresh-pool"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 刷新</button>
         <button class="btn btn-sm btn-primary" id="btn-add-device">✦ 添加设备</button>
@@ -49,7 +52,7 @@
         <div class="pool-stats" id="pool-stats"></div>
         <div class="table-wrapper">
           <table class="data-table" id="device-table">
-            <thead><tr><th>deviceId</th><th>品牌</th><th>型号</th><th>installId</th><th>版本</th><th>操作</th></tr></thead>
+            <thead><tr><th>状态</th><th>deviceId</th><th>品牌</th><th>型号</th><th>installId</th><th>版本</th><th>操作</th></tr></thead>
             <tbody id="device-table-body"></tbody>
           </table>
         </div>
@@ -67,12 +70,24 @@
 <script src="/admin/js/admin-common.js?v=2.0.0"></script>
 <script>
 (function(){
+  // T9 健康徽章:基于现有 fetch 数据(DeviceInfo 字段)派生设备健康状态
+  function deviceHealth(d) {
+    if (d && d.deviceId && d.installId && d.cookie) return { label: '在线', cls: 'badge badge-green' };
+    if (d && d.deviceId) return { label: '重试', cls: 'badge badge-orange' };
+    return { label: '离线', cls: 'badge badge-red' };
+  }
+
   async function refresh() {
     var tbody = $('device-table-body');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px;">✦ 正在加载设备池...</td></tr>';
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="7" style="padding:16px;">' +
+        '<div style="display:flex;gap:12px;flex-direction:column;">' +
+        '<div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div>' +
+        '</div></td></tr>';
+    }
     var data = await safeFetch(function(){ return apiGet('/device-pool'); }, '加载设备池失败');
     if (!data) {
-      if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px;">✦ 加载失败</td></tr>';
+      if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px;">✦ 加载失败</td></tr>';
       return;
     }
     renderPoolStats(data);
@@ -81,8 +96,11 @@
   function renderPoolStats(data) {
     var el = $('pool-stats');
     if (!el) return;
+    var poolBadge = data.enabled
+      ? '<span class="badge badge-green">在线</span>'
+      : '<span class="badge badge-red">离线</span>';
     el.innerHTML =
-      '<div class="pool-stat-item"><span class="stat-value">' + (data.enabled ? '✓' : '✕') + '</span><span class="stat-label">状态</span></div>' +
+      '<div class="pool-stat-item"><span class="stat-value">' + poolBadge + '</span><span class="stat-label">状态</span></div>' +
       '<div class="pool-stat-item"><span class="stat-value">' + (data.currentSize || 0) + '</span><span class="stat-label">当前数量</span></div>' +
       '<div class="pool-stat-item"><span class="stat-value">' + (data.targetSize || 0) + '</span><span class="stat-label">目标数量</span></div>' +
       '<div class="pool-stat-item"><span class="stat-value">' + (data.nextIndex || 0) + '</span><span class="stat-label">轮询索引</span></div>';
@@ -91,11 +109,13 @@
     var tbody = $('device-table-body');
     if (!tbody) return;
     if (!devices || !devices.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px;">暂无设备数据</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:30px;">暂无设备数据</td></tr>';
       return;
     }
     tbody.innerHTML = devices.map(function(d){
-      return '<tr><td style="font-size:0.75rem;">' + escapeHtml(d.deviceId||'--') + '</td>' +
+      var h = deviceHealth(d);
+      return '<tr><td><span class="' + h.cls + '">' + h.label + '</span></td>' +
+        '<td style="font-size:0.75rem;">' + escapeHtml(d.deviceId||'--') + '</td>' +
         '<td>' + escapeHtml(d.deviceBrand||'--') + '</td>' +
         '<td>' + escapeHtml(d.deviceType||'--') + '</td>' +
         '<td style="font-size:0.75rem;">' + escapeHtml((d.installId||'--').slice(0,16)) + '…</td>' +

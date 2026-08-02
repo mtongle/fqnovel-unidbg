@@ -37,8 +37,13 @@
 <main class="content">
   <section class="section active" style="display:block;">
     <div class="section-header">
-      <h2>系统监控</h2>
-      <button class="btn btn-sm" id="btn-refresh-system"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 刷新</button>
+      <div class="section-header-main">
+        <h2>系统监控</h2>
+        <p class="section-header-desc">JVM、HTTP、Redis、线程与磁盘详情</p>
+      </div>
+      <div class="section-header-actions">
+        <button class="btn btn-sm" id="btn-refresh-system"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 刷新</button>
+      </div>
     </div>
     <div class="system-grid">
       <div class="card"><div class="card-header">JVM 详情</div><div class="card-body" id="jvm-detail"></div></div>

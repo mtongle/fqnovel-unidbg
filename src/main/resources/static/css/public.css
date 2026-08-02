@@ -713,10 +713,41 @@ body.light ::selection {
   letter-spacing: 0.5px;
 }
 
+/* T9 统一页头:标题 + 说明 + 操作区 */
+.section-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.section-header-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+  line-height: 1.5;
+}
+
 .section-header-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* T9 阅读页字号调节(公开 / 管理 reader 共用) */
+.font-size-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.font-size-controls .fs-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  font-family: var(--font-mono);
+  font-weight: 600;
 }
 
 /* ============================================================

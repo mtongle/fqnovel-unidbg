@@ -32,7 +32,12 @@
 
 <main class="public-content">
   <section class="section active" style="display:block;">
-    <div class="section-header"><h2>✦ 章节阅读</h2></div>
+    <div class="section-header">
+      <div class="section-header-main">
+        <h2>✦ 章节阅读</h2>
+        <p class="section-header-desc">输入 Book ID 与 Chapter ID 加载章节正文,支持字号调节(Ctrl+K 快速聚焦)</p>
+      </div>
+    </div>
     <div class="card mb-12">
       <div class="card-body">
         <div class="search-bar">
@@ -42,6 +47,11 @@
           <button class="btn btn-sm" id="btn-cv-prev" disabled>← 上一章</button>
           <button class="btn btn-sm" id="btn-cv-next" disabled>下一章 →</button>
           <a href="/comments.html" class="btn btn-sm btn-accent" id="btn-cv-comments"><svg class="ic"><use href="/css/icons.svg#icon-comment"/></svg> 段评</a>
+          <span class="font-size-controls">
+            <button class="btn btn-sm fs-btn" id="btn-font-sm" title="减小字号">A-</button>
+            <button class="btn btn-sm fs-btn" id="btn-font-reset" title="重置字号">重置</button>
+            <button class="btn btn-sm fs-btn" id="btn-font-lg" title="增大字号">A+</button>
+          </span>
         </div>
       </div>
     </div>
@@ -97,6 +107,23 @@
   function prevChapter() { if (_state.prevId) { $('cv-chapter-id').value = _state.prevId; loadChapter(); } }
   function nextChapter() { if (_state.nextId) { $('cv-chapter-id').value = _state.nextId; loadChapter(); } }
 
+  // T9 字号调节:localStorage.fontSize(数字 px,12-28 步进 2),与主题 key 同规则统一单一 key
+  var FONT_KEY = 'fontSize';
+  var FONT_MIN = 12, FONT_MAX = 28, FONT_STEP = 2;
+  function currentFontSize() {
+    var v = parseInt(localStorage.getItem(FONT_KEY), 10);
+    return (v >= FONT_MIN && v <= FONT_MAX) ? v : 16;
+  }
+  function applyFontSize(px) {
+    var el = $('cv-content');
+    if (el) el.style.fontSize = px + 'px';
+  }
+  function saveFontSize(px) {
+    px = Math.max(FONT_MIN, Math.min(FONT_MAX, px));
+    localStorage.setItem(FONT_KEY, String(px));
+    applyFontSize(px);
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     var params = new URLSearchParams(location.search);
     if (params.get('bookId')) $('cv-book-id').value = params.get('bookId');
@@ -106,6 +133,15 @@
     $('btn-cv-next').addEventListener('click', nextChapter);
     $('cv-chapter-id').addEventListener('keydown', function(e){ if (e.key === 'Enter') loadChapter(); });
     $('cv-book-id').addEventListener('keydown', function(e){ if (e.key === 'Enter') loadChapter(); });
+
+    // T9 字号调节按钮
+    applyFontSize(currentFontSize());
+    $('btn-font-lg').addEventListener('click', function(){ saveFontSize(currentFontSize() + FONT_STEP); });
+    $('btn-font-sm').addEventListener('click', function(){ saveFontSize(currentFontSize() - FONT_STEP); });
+    $('btn-font-reset').addEventListener('click', function(){ saveFontSize(16); });
+
+    // T9 快捷键:Ctrl+K 聚焦 Book ID
+    registerShortcut('ctrl+k', function(e){ e.preventDefault(); var b = $('cv-book-id'); if (b) { b.focus(); b.select(); } });
 
     // Mobile sidebar toggle
     var menuBtn = $('mobile-menu-toggle');

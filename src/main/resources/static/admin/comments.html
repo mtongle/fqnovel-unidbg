@@ -36,7 +36,12 @@
 
 <main class="content">
   <section class="section active" style="display:block;">
-    <div class="section-header"><h2>✦ 段评查询</h2></div>
+    <div class="section-header">
+      <div class="section-header-main">
+        <h2>✦ 段评查询</h2>
+        <p class="section-header-desc">按章节查询段落评论统计与详情,回车直接触发查询(Ctrl+K 快速聚焦)</p>
+      </div>
+    </div>
     <div class="card mb-12">
       <div class="card-body">
         <div class="search-bar flex-wrap">
@@ -211,6 +216,9 @@
     $('btn-cm-list').addEventListener('click', queryList);
     $('btn-cm-clear').addEventListener('click', clearComments);
     $('cm-chapter-id').addEventListener('keydown', function(e){ if (e.key === 'Enter') queryList(); });
+
+    // T9 快捷键:Ctrl+K 聚焦 Book ID
+    registerShortcut('ctrl+k', function(e){ e.preventDefault(); var b = $('cm-book-id'); if (b) { b.focus(); b.select(); } });
   });
 })();
 </script>
