@@ -1,4 +1,5 @@
-// Comment Page — Ink & Parchment
+// Comment Page — Literary Scroll v2 (书卷风)
+// 明暗主题:body.light 类切换(与 SSR head 防闪脚本一致);主题 key 兼容旧 comment-theme
 (function(){
   var theme = localStorage.getItem('theme') || localStorage.getItem('comment-theme');
   var prefersDark = window.matchMedia('(prefers-color-scheme:dark)').matches;

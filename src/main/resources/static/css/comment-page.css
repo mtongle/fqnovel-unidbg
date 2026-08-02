@@ -1,38 +1,64 @@
-/* Comment Page — Ink & Parchment
-   Visual sibling of the admin panel, reading-focused */
+/* ============================================================
+   fqnovel-unidbg Comment Page — Literary Scroll v2 (书卷风)
+   Version: 2.0.0
+   调色板: 墨 #2A2A33 / 宣纸 #F7F2E7 / 朱砂 #B03A2E / 金 #C4A84A / 墨绿 #3E5C50
+   深色「墨韵」为默认主题,米白「宣纸」为浅色主题(body.light)
+   SSR 页独立加载本文件(SSR head 只 link comment-page.css),令牌全部自带
+   字体栈与 public.css v2 一致(宋体为主、楷体降级),无字体文件引入 / 远程字体
+   ============================================================ */
 
 :root {
-  --bg-canvas: #141322;
-  --bg-surface: #1D1C33;
-  --bg-raised: #26254A;
-  --bg-hover: #2A2950;
-  --bg-active: #2F2E5A;
-  --bg-input: #1D1C33;
-  --text-primary: #EEE8D8;
-  --text-secondary: #A89A86;
-  --text-muted: #7A6E5E;
+  /* ── v2 Palette(固定调色板,与 public.css 一致) ── */
+  --ink: #2A2A33;            /* 墨 — 主文字 / 深色背景 */
+  --paper: #F7F2E7;          /* 宣纸 — 浅色背景 */
+  --vermilion: #B03A2E;      /* 朱砂 — 点缀 / 强调 */
+  --gold: #C4A84A;           /* 金 — 点缀 */
+  --ink-green: #3E5C50;      /* 墨绿 — 次级点缀 */
+
+  /* ── Canvas & Surface(墨韵深色) ── */
+  --bg-canvas: #2A2A33;
+  --bg-surface: #32323D;
+  --bg-raised: #3A3A46;
+  --bg-hover: #41414E;
+  --bg-active: #484856;
+  --bg-input: #32323D;
+
+  /* ── Text(宣纸暖白) ── */
+  --text-primary: #F2EBD9;
+  --text-secondary: #B8AC96;
+  --text-muted: #8A7E66;
+  --text-accent: #C4A84A;
+
+  /* ── Borders ── */
+  --border-color: #3E3E4A;
+  --border-light: #363640;
+
+  /* ── Accents(金 / 朱砂 / 绿 / 橙 / 蓝) ── */
   --accent-gold: #C4A84A;
   --accent-gold-bg: rgba(196, 168, 74, 0.10);
   --accent-gold-dim: #8A7E4A;
   --accent-green: #5AAA78;
   --accent-green-bg: rgba(90, 170, 120, 0.10);
-  --accent-red: #D45A5A;
-  --accent-red-bg: rgba(212, 90, 90, 0.10);
+  --accent-red: #B03A2E;
+  --accent-red-bg: rgba(176, 58, 46, 0.10);
   --accent-orange: #D4A04A;
   --accent-orange-bg: rgba(212, 160, 74, 0.10);
   --accent-blue: #5A8CB4;
   --accent-blue-bg: rgba(90, 140, 180, 0.10);
-  --border-color: #2D2C4A;
-  --border-light: #252442;
+
+  /* ── Sizing / Shadow / Motion ── */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.25);
   --shadow-elevated: 0 6px 24px rgba(0, 0, 0, 0.35);
   --transition: 0.2s ease;
-  --font-display: "Noto Serif SC", "Source Han Serif SC", "STSong", serif;
-  --font-body: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", "Fira Code", monospace;
+
+  /* ── Typography(宋体为主,楷体点缀) ── */
+  --font-display: "Noto Serif SC", "KaiTi", "STKaiti", "Source Han Serif SC", "STSong", serif;
+  --font-body: "Noto Serif SC", "KaiTi", "STKaiti", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", "Fira Code", "Consolas", monospace;
+  --font-kai: "KaiTi", "STKaiti", "Noto Serif SC", serif;
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
@@ -41,14 +67,27 @@ body {
   font-family: var(--font-body);
   background: var(--bg-canvas);
   color: var(--text-primary);
-  line-height: 1.6;
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
+}
+
+/* 书卷底纹:墨韵底色上浮一层若隐若现的暖色纸光 */
+body::before {
+  content:"";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 360px at 50% -80px, rgba(196,168,74,0.06), transparent 70%),
+    radial-gradient(900px 500px at 50% 120%, rgba(58,90,80,0.05), transparent 70%);
+  z-index: 0;
 }
 
 /* ============ HEADER ============ */
 .page-header {
   position: sticky; top: 0; z-index: 10;
-  background: var(--bg-surface);
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-color);
   display: flex; align-items: center; gap: 12px;
   padding: 16px 18px 14px;
@@ -71,6 +110,7 @@ body {
 .loading, .empty, .error {
   text-align: center; padding: 80px 20px;
   color: var(--text-muted); font-size: 15px;
+  position: relative; z-index: 1;
 }
 
 .loading .spinner {
@@ -79,28 +119,62 @@ body {
   border-top-color: var(--accent-gold);
   border-radius: 50%;
   animation: spin .8s linear infinite; margin-bottom: 12px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.error { color: var(--accent-red); }
+.error {
+  color: var(--accent-red);
+  font-family: var(--font-display);
+}
 
 .empty .icon {
   font-size: 40px; margin-bottom: 10px;
   opacity: 0.4;
 }
 
-/* ============ COMMENT LIST ============ */
-.comment-list { padding: 0 16px 24px; max-width: 720px; margin: 0 auto; }
+/* ============ COMMENT LIST(书卷主体) ============ */
+.comment-list {
+  padding: 0 16px 40px;
+  max-width: 720px; margin: 0 auto;
+  position: relative; z-index: 1;
+}
+
+/* 卷轴诗签:列表顶部一小截金色题签 */
+.comment-list::before {
+  content: "✦ 段评";
+  display: block;
+  width: fit-content;
+  margin: 20px auto 8px;
+  padding: 2px 18px;
+  font-family: var(--font-display);
+  font-size: 13px; letter-spacing: 6px;
+  color: var(--accent-gold-dim);
+  border: 1px solid var(--border-color);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: var(--bg-surface);
+  opacity: 0.9;
+}
 
 .comment-item,
 .comment-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-gold-dim);
   border-radius: var(--radius-md);
   padding: 16px 18px;
   margin: 12px 0;
   box-shadow: var(--shadow-card);
+  position: relative;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.comment-item:hover,
+.comment-card:hover {
+  border-left-color: var(--accent-gold);
+  box-shadow: var(--shadow-elevated);
 }
 
 /* SSR comment card overrides */
@@ -115,9 +189,11 @@ body {
   width: 36px; height: 36px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 14px; font-weight: 600; flex-shrink: 0;
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   overflow: hidden; position: relative;
-  flex-shrink: 0;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-color);
+  color: var(--accent-gold);
 }
 
 .avatar-img {
@@ -139,12 +215,14 @@ body {
 .user-name {
   font-size: 14px; font-weight: 600; color: var(--text-primary);
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-family: var(--font-display);
 }
 
 .user-name .badge {
   display: inline-block; font-size: 10px;
   padding: 1px 7px; border-radius: 10px;
   font-weight: 600; letter-spacing: 0.3px;
+  font-family: var(--font-body);
 }
 
 /* SSR name row */
@@ -156,7 +234,8 @@ body {
   display: inline-block; font-size: 10px;
   padding: 1px 7px; border-radius: 10px;
   font-weight: 600; letter-spacing: 0.3px;
-  background: var(--accent-orange-bg); color: var(--accent-orange);
+  background: var(--accent-red-bg); color: var(--accent-red);
+  border: 1px solid var(--accent-red-bg);
 }
 
 .tag-sticker {
@@ -166,8 +245,8 @@ body {
   background: var(--accent-gold-bg); color: var(--accent-gold-dim);
 }
 
-.badge.author { background: var(--accent-orange-bg); color: var(--accent-orange); }
-.badge.vip { background: var(--accent-blue-bg); color: var(--accent-blue); }
+.badge.author { background: var(--accent-red-bg); color: var(--accent-red); }
+.badge.vip { background: var(--accent-gold-bg); color: var(--accent-gold-dim); }
 
 .comment-time {
   font-size: 11px; color: var(--text-muted);
@@ -176,7 +255,7 @@ body {
 
 .comment-text {
   font-size: 15px; color: var(--text-primary);
-  line-height: 1.7; word-break: break-word;
+  line-height: 1.85; word-break: break-word;
 }
 
 .comment-text.collapsed {
@@ -190,7 +269,10 @@ body {
   font-size: 13px; color: var(--accent-gold);
   cursor: pointer; display: inline-block; margin: 4px 0;
   font-family: var(--font-body);
+  background: none; border: none; padding: 0;
 }
+
+.expand-btn:hover { color: #DDC060; text-decoration: underline; }
 
 /* ============ COMMENT IMAGES ============ */
 .comment-images {
@@ -205,6 +287,7 @@ body {
   cursor: pointer;
   transition: opacity var(--transition);
   background: var(--bg-raised);
+  border: 1px solid var(--border-color);
 }
 
 .comment-image:hover { opacity: 0.9; }
@@ -216,7 +299,7 @@ body {
 .comment-footer {
   display: flex; align-items: center; gap: 16px;
   margin-top: 10px; padding-top: 8px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px dashed var(--border-light);
 }
 
 .comment-footer .stat {
@@ -239,11 +322,13 @@ body {
   font-size: 14px; color: var(--accent-gold);
   cursor: pointer; transition: all var(--transition);
   text-decoration: none;
+  letter-spacing: 2px;
 }
 
 .load-more:hover {
   background: var(--bg-hover);
-  border-color: var(--accent-gold-dim);
+  border-color: var(--accent-gold);
+  color: #DDC060;
 }
 
 .load-more:active { background: var(--bg-active); }
@@ -264,17 +349,18 @@ body {
 /* ============ REPLY SECTION ============ */
 .reply-section{margin-top:12px;padding-left:0; /* offset by avatar width+gap */}
 .reply-toggle{font-size:13px;color:var(--accent-gold);cursor:pointer;background:none;border:none;padding:6px 0;display:flex;align-items:center;gap:4px;font-family:var(--font-body)}
-.reply-toggle:hover{color:#DDC060}
+.reply-toggle:hover{color:#DDC060;text-decoration:underline}
 .reply-list{display:none;margin-top:10px}
 .reply-card{padding:12px 14px;margin-bottom:8px;background:var(--bg-raised);border-radius:var(--radius-sm);border-left:3px solid var(--border-color)}
+.reply-card:hover{border-left-color:var(--ink-green)}
 .reply-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.reply-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;overflow:hidden;position:relative;font-family:var(--font-mono)}
+.reply-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;overflow:hidden;position:relative;font-family:var(--font-display);background:var(--bg-surface);border:1px solid var(--border-color);color:var(--accent-gold)}
 .reply-avatar-img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;border-radius:50%}
-.reply-user-name{font-size:13px;font-weight:600;color:var(--text-primary)}
+.reply-user-name{font-size:13px;font-weight:600;color:var(--text-primary);font-family:var(--font-display)}
 .reply-to{font-size:12px;color:var(--text-muted)}
 .reply-to .at-user{color:var(--accent-gold)}
 .reply-time{font-size:11px;color:var(--text-muted);margin-left:auto;font-family:var(--font-mono)}
-.reply-text{font-size:14px;color:var(--text-primary);line-height:1.6;word-break:break-word}
+.reply-text{font-size:14px;color:var(--text-primary);line-height:1.75;word-break:break-word}
 .reply-footer{display:flex;align-items:center;gap:12px;margin-top:4px}
 .reply-footer .stat{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:3px}
 .sub-reply{margin-top:6px;padding-left:16px;border-left:2px solid var(--border-color)}
@@ -283,7 +369,7 @@ body {
 .reply-empty,.reply-error{font-size:13px;color:var(--text-muted);padding:8px}
 .reply-error{color:var(--accent-red)}
 .reply-load-more{display:block;width:100%;text-align:center;padding:8px;margin-top:8px;color:var(--accent-gold);background:var(--bg-raised);border:1px solid var(--border-color);border-radius:6px;font-size:13px;cursor:pointer;font-family:var(--font-body);transition:background var(--transition)}
-.reply-load-more:hover{background:var(--bg-hover)}
+.reply-load-more:hover{background:var(--bg-hover);color:#DDC060}
 
 /* ============ THEME TOGGLE ============ */
 .theme-toggle {
@@ -298,33 +384,37 @@ body {
 }
 .theme-toggle:hover {
   background: var(--bg-hover);
-  border-color: var(--accent-gold-dim);
+  border-color: var(--accent-gold);
 }
 
-/* ============ LIGHT THEME ============ */
+/* ============ LIGHT THEME(宣纸) ============ */
 body.light {
-  --bg-canvas: #F7F3EC;
-  --bg-surface: #FFFFFF;
-  --bg-raised: #F0ECE4;
-  --bg-hover: #E8E3D8;
-  --bg-active: #E0DACF;
+  --bg-canvas: var(--paper);            /* 宣纸 #F7F2E7 */
+  --bg-surface: #FDFBF3;
+  --bg-raised: #F0E9D8;
+  --bg-hover: #E9E1CD;
+  --bg-active: #E0D6BF;
   --bg-input: #FFFFFF;
-  --text-primary: #2C2420;
-  --text-secondary: #6B6258;
-  --text-muted: #9C9285;
-  --accent-gold: #A08A3A;
-  --accent-gold-bg: rgba(160, 138, 58, 0.10);
-  --accent-gold-dim: #7A6830;
-  --accent-green: #4A8E68;
-  --accent-green-bg: rgba(74, 142, 104, 0.10);
-  --accent-red: #B84A4A;
-  --accent-red-bg: rgba(184, 74, 74, 0.10);
-  --accent-orange: #B88A3A;
-  --accent-orange-bg: rgba(184, 138, 58, 0.10);
-  --accent-blue: #4A7A9E;
-  --accent-blue-bg: rgba(74, 122, 158, 0.10);
-  --border-color: #E5DDD0;
-  --border-light: #EDE7DD;
+  --text-primary: var(--ink);          /* 墨字 #2A2A33 */
+  --text-secondary: #4C4B52;
+  --text-muted: #6C685C;
+  --text-accent: #8A6D1F;
+
+  --border-color: #E2DAC7;
+  --border-light: #EAE4D3;
+
+  --accent-gold: #7E6115;                /* 深金,宣纸底对比 ≈5.2:1 */
+  --accent-gold-bg: rgba(126, 97, 21, 0.10);
+  --accent-gold-dim: #6E5615;
+  --accent-green: var(--ink-green);      /* 墨绿 #3E5C50 */
+  --accent-green-bg: rgba(62, 92, 80, 0.10);
+  --accent-red: var(--vermilion);        /* 朱砂 #B03A2E,宣纸底 ≈5.5:1 */
+  --accent-red-bg: rgba(176, 58, 46, 0.10);
+  --accent-orange: #9A6B14;
+  --accent-orange-bg: rgba(154, 107, 20, 0.10);
+  --accent-blue: #3E6B8E;
+  --accent-blue-bg: rgba(62, 107, 142, 0.10);
+
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
@@ -333,6 +423,7 @@ body.light {
 @media(min-width:768px){
   body{padding:0;}
   .page-header{padding:18px 24px;max-width:768px;margin:0 auto}
-  .comment-list{padding:0 20px 32px}
+  .comment-list{padding:0 20px 48px}
   .comment-item{padding:20px 22px;border-radius:var(--radius-lg)}
+  .comment-card{padding:20px 22px;border-radius:var(--radius-lg)}
 }
