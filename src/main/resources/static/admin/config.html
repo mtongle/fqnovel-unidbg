@@ -39,20 +39,39 @@
     <div class="section-header">
       <h2>配置编辑器</h2>
       <div class="section-header-actions">
-        <button class="btn btn-sm" id="btn-load-config"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 加载</button>
-        <button class="btn btn-sm btn-primary" id="btn-save-config">✦ 保存</button>
+        <button class="btn btn-sm" id="btn-load-config"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 重新加载</button>
+        <button class="btn btn-sm btn-primary" id="btn-save-config" disabled>✦ 保存</button>
       </div>
     </div>
-    <div class="card">
-      <div class="card-body">
-        <div class="config-editor-wrapper">
-          <textarea id="config-editor" class="config-textarea" placeholder="正在加载配置..."></textarea>
-        </div>
-        <div class="config-actions">
-          <div id="config-message" class="message hidden"></div>
-          <button class="btn btn-accent" id="btn-hot-reload"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 热重载</button>
-        </div>
+
+    <div class="cfg-tabs" role="tablist" aria-label="编辑模式">
+      <button class="cfg-tab active" id="tab-form" data-mode="form" role="tab" aria-selected="true">可视化表单</button>
+      <button class="cfg-tab" id="tab-yaml" data-mode="yaml" role="tab" aria-selected="false">高级 YAML</button>
+    </div>
+
+    <div class="cfg-statusbar" id="cfg-statusbar">
+      <span>应用标识: <span class="cfg-appname" id="cfg-app-name">-</span> <span class="cfg-badge-readonly">只读</span></span>
+      <span id="cfg-loaded-note">尚未加载</span>
+      <span id="cfg-unknown-note"></span>
+      <span class="cfg-mode-hint" id="cfg-mode-hint">表单仅修改已知键的值行,未知键 / 注释 / 空行逐字保留</span>
+    </div>
+
+    <div id="cfg-masked-warnings" class="cfg-warn-box hidden"></div>
+
+    <div id="pane-form">
+      <div id="cfg-groups"></div>
+    </div>
+
+    <div id="pane-yaml" class="hidden">
+      <div class="config-editor-wrapper">
+        <textarea id="config-editor" class="config-textarea" spellcheck="false" placeholder="正在加载配置..."></textarea>
       </div>
+      <div class="cfg-hint">修改后保存:提交前自动全文档检测「已脱敏」值(<code> ****</code>),未处理将阻止保存,防止敏感配置被覆盖丢失。</div>
+    </div>
+
+    <div class="config-actions">
+      <div id="config-message" class="message hidden"></div>
+      <button class="btn btn-accent" id="btn-hot-reload"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg> 热重载</button>
     </div>
   </section>
 </main>
@@ -65,47 +84,613 @@
 <script src="/js/public.js?v=2.0.0"></script>
 <script src="/admin/js/admin-common.js?v=2.0.0"></script>
 <script>
-(function(){
-  var loaded = false;
-  async function loadConfig(force) {
-    if (loaded && !force) return;
-    var r = await safeFetch(function(){ return apiGet('/config'); }, '加载配置失败');
-    if (!r) return;
-    $('config-editor').value = r.text || '';
-    $('config-message').classList.add('hidden');
-    loaded = true;
+(function () {
+  'use strict';
+
+  /* ============================================================
+     配置表单 Schema(8 组 29 业务字段;默认值以 application.yml 现值校准)
+     spring.application.name 为只读标识,单独展示
+     ============================================================ */
+  var SCHEMA = [
+    { gid: 'server', title: '服务器 · Server', fields: [
+      { key: 'server.port', label: '端口', desc: '服务监听端口', type: 'number', def: '8099' },
+      { key: 'server.address', label: '绑定地址', desc: '监听地址,0.0.0.0 表示所有网卡', type: 'text', def: '0.0.0.0' }
+    ]},
+    { gid: 'application.unidbg', title: 'Unidbg 引擎', fields: [
+      { key: 'application.unidbg.dynarmic', label: 'Dynarmic 后端', desc: '是否启用 dynarmic 后端模拟', type: 'bool', def: 'false' },
+      { key: 'application.unidbg.verbose', label: '详细日志', desc: 'unidbg 详细日志(生产关闭,开启后极慢)', type: 'bool', def: 'false' },
+      { key: 'application.unidbg.async', label: '异步签名', desc: '异步签名 WorkerPool', type: 'bool', def: 'true' }
+    ]},
+    { gid: 'application.http-client', title: 'HTTP 客户端', fields: [
+      { key: 'application.http-client.connect-timeout-ms', label: '连接超时', desc: '连接超时(毫秒)', type: 'number', def: '5000' },
+      { key: 'application.http-client.read-timeout-ms', label: '读取超时', desc: '读取超时(毫秒)', type: 'number', def: '15000' },
+      { key: 'application.http-client.max-connections', label: '最大连接数', desc: '连接池最大连接数', type: 'number', def: '50' },
+      { key: 'application.http-client.max-connections-per-route', label: '单路由最大连接', desc: '每个路由的最大连接数', type: 'number', def: '20' }
+    ]},
+    { gid: 'fq.api', title: 'FQ API 接口', fields: [
+      { key: 'fq.api.base-url', label: '接口地址', desc: '番茄小说 API 基础地址', type: 'text', def: 'https://api5-normal-sinfonlineb.fqnovel.com' },
+      { key: 'fq.api.cookie', label: 'Cookie', desc: '请求携带的 Cookie(敏感字段,服务端返回已脱敏)', type: 'password', def: '' },
+      { key: 'fq.api.device-pool.enabled', label: '设备池启用', desc: '是否启用设备池轮询', type: 'bool', def: 'true' },
+      { key: 'fq.api.device-pool.size', label: '设备池大小', desc: '设备池设备数量', type: 'number', def: '5' }
+    ]},
+    { gid: 'spring.task', title: 'Spring Task 线程池', fields: [
+      { key: 'spring.task.execution.pool.allow-core-thread-timeout', label: '核心线程超时', desc: '是否允许核心线程空闲超时回收', type: 'bool', def: 'true' },
+      { key: 'spring.task.execution.pool.core-size', label: '核心线程数', desc: '线程池核心线程数', type: 'number', def: '8' },
+      { key: 'spring.task.execution.pool.keep-alive', label: '空闲存活时间', desc: '核心线程空闲存活时间', type: 'text', def: '60s' },
+      { key: 'spring.task.execution.pool.max-size', label: '最大线程数', desc: '线程池最大线程数', type: 'number', def: '8' }
+    ]},
+    { gid: 'spring.sleuth', title: 'Sleuth 链路追踪', fields: [
+      { key: 'spring.sleuth.sampler.probability', label: '采样概率', desc: '链路采样概率(0-1)', type: 'slider', def: '0.1' },
+      { key: 'spring.sleuth.async.enabled', label: '异步追踪', desc: '是否追踪异步执行', type: 'bool', def: 'true' },
+      { key: 'spring.sleuth.async.configurer.enabled', label: '异步配置器', desc: '是否启用异步配置器', type: 'bool', def: 'true' }
+    ]},
+    { gid: 'spring.redis', title: 'Redis 缓存', fields: [
+      { key: 'spring.redis.host', label: '主机', desc: 'Redis 主机地址', type: 'text', def: '127.0.0.1' },
+      { key: 'spring.redis.port', label: '端口', desc: 'Redis 端口', type: 'number', def: '26586' },
+      { key: 'spring.redis.database', label: '数据库', desc: 'Redis 数据库编号', type: 'number', def: '0' },
+      { key: 'spring.redis.timeout', label: '超时', desc: '连接超时', type: 'text', def: '5000ms' },
+      { key: 'spring.redis.lettuce.pool.max-active', label: '最大活跃连接', desc: '连接池最大活跃连接', type: 'number', def: '8' },
+      { key: 'spring.redis.lettuce.pool.max-idle', label: '最大空闲连接', desc: '连接池最大空闲连接', type: 'number', def: '8' },
+      { key: 'spring.redis.lettuce.pool.min-idle', label: '最小空闲连接', desc: '连接池最小空闲连接', type: 'number', def: '0' },
+      { key: 'spring.redis.lettuce.pool.max-wait', label: '最大等待', desc: '获取连接最大等待时间', type: 'text', def: '-1ms' }
+    ]},
+    { gid: 'logging', title: '日志 · Logging', fields: [
+      { key: 'logging.level.root', label: '日志级别', desc: '根日志级别(info / debug / warn / error)', type: 'text', def: 'info' }
+    ]}
+  ];
+
+  var APP_NAME_PATH = 'spring.application.name';
+
+  /* ====CFG-PURE-START==== */
+  /* 行级 YAML 工具(纯函数,无 DOM 依赖)
+     约束:本文件不引入任何 YAML 第三方库(严格手写行级解析,无 CDN 依赖)。
+     语义与 SnakeYAML 对齐:重复键 last-wins(取末个命中行)。 */
+  function cfgIsPlainScalarSafe(v) {
+    if (v === '') return false;
+    /* 无空格、无冒号/井号/引号等特殊字符的常见字面量可裸写 */
+    return /^[A-Za-z0-9._@/+=\-]+$/.test(v);
   }
-  async function saveConfig() {
-    var content = $('config-editor').value;
-    if (!content.trim()) { showToast('配置内容不能为空', 'error'); return; }
-    var btn = $('btn-save-config');
-    if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
-    var r = await safeFetch(function(){ return apiPut('/config', content, 'text/plain'); }, '保存配置失败');
-    if (btn) { btn.disabled = false; btn.textContent = '✦ 保存'; }
-    if (!r) return;
-    if (r.success) {
-      showToast(r.message || '配置已保存', 'success');
-      $('config-message').textContent = r.message;
-      $('config-message').className = 'message success';
-      $('config-message').classList.remove('hidden');
+  function cfgEscapeSingle(v) { return String(v).replace(/'/g, "''"); }
+  function cfgQuoteValue(v, originalStyle) {
+    v = String(v == null ? '' : v);
+    if (originalStyle === '"') return '"' + v.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+    if (originalStyle === "'") return "'" + cfgEscapeSingle(v) + "'";
+    if (cfgIsPlainScalarSafe(v)) return v;
+    return "'" + cfgEscapeSingle(v) + "'";
+  }
+  /* 双/单引号字符串的结束位置(处理转义) */
+  function cfgFindQuoteEnd(s, q) {
+    var i = 1;
+    while (i < s.length) {
+      if (q === '"' && s.charAt(i) === '\\') { i += 2; continue; }
+      if (s.charAt(i) === q) return i;
+      i++;
+    }
+    return s.length - 1;
+  }
+  function cfgIndexOfInlineComment(s) {
+    /* 纯标量值中 ' #' 起注释(前导空格;引号内由引号分支处理,不进入本函数) */
+    var idx = s.indexOf(' #');
+    return idx >= 0 ? idx : -1;
+  }
+  /* 解析一行 'key: value' 为 {key,keyRaw,value,inlineComment,quoteStyle,isBlock};非键行返回 null */
+  function cfgSplitKeyValue(trimmed) {
+    var colon = trimmed.indexOf(':');
+    if (colon <= 0) return null;
+    var keyRaw = trimmed.substring(0, colon).trim();
+    if (!keyRaw) return null;
+    var key = keyRaw.replace(/^["']|["']$/g, '');
+    var rest = trimmed.substring(colon + 1).trim();
+    var quoteStyle = null, value = '', inlineComment = null, isBlock = false;
+    var c0 = rest.charAt(0);
+    if (c0 === '"' || c0 === "'") {
+      quoteStyle = c0;
+      var end = cfgFindQuoteEnd(rest, c0);
+      value = rest.substring(1, end);
+      var after = rest.substring(end + 1).trim();
+      if (after.charAt(0) === '#') inlineComment = after;
     } else {
-      showToast(r.message || '保存失败', 'error');
-      $('config-message').textContent = r.message;
-      $('config-message').className = 'message error';
-      $('config-message').classList.remove('hidden');
+      var ci = cfgIndexOfInlineComment(rest);
+      if (ci >= 0) { value = rest.substring(0, ci).trim(); inlineComment = rest.substring(ci).trim(); }
+      else value = rest;
+      isBlock = value.charAt(0) === '|' || value.charAt(0) === '>';
+    }
+    return { key: key, keyRaw: keyRaw, value: value, inlineComment: inlineComment, quoteStyle: quoteStyle, isBlock: isBlock };
+  }
+  /* 解析 YAML 全文为行模型(缩进感知);注释/空行/未知行逐字保留于 raw */
+  function cfgParseLines(text) {
+    var lines = [];
+    var stack = [];
+    var parts = String(text == null ? '' : text).split('\n');
+    for (var i = 0; i < parts.length; i++) {
+      var raw = parts[i];
+      var indent = 0;
+      while (indent < raw.length && raw.charAt(indent) === ' ') indent++;
+      var trimmed = raw.substring(indent).trim();
+      var line = {
+        no: i, raw: raw, indent: indent, trimmed: trimmed,
+        isEmpty: trimmed === '', isComment: trimmed.charAt(0) === '#',
+        key: null, keyRaw: null, keyPath: null,
+        value: null, inlineComment: null, quoteStyle: null, isBlock: false, blockLen: 0
+      };
+      if (!line.isEmpty && !line.isComment) {
+        var kv = cfgSplitKeyValue(trimmed);
+        if (kv) {
+          line.key = kv.key;
+          line.keyRaw = kv.keyRaw;
+          line.value = kv.value;
+          line.inlineComment = kv.inlineComment;
+          line.quoteStyle = kv.quoteStyle;
+          line.isBlock = kv.isBlock;
+          while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
+          var parentPath = stack.length ? stack[stack.length - 1].path : '';
+          line.keyPath = parentPath ? parentPath + '.' + kv.key : kv.key;
+          stack.push({ indent: indent, key: kv.key, path: line.keyPath });
+        }
+      }
+      lines.push(line);
+    }
+    /* 块标量( | > )的行长:之后属于其块体的行(空行或缩进更深) */
+    for (var j = 0; j < lines.length; j++) {
+      if (lines[j].isBlock) {
+        var len = 0, k = j + 1;
+        while (k < lines.length && (lines[k].isEmpty || (lines[k].indent > lines[j].indent && !lines[k].isComment))) { len++; k++; }
+        lines[j].blockLen = len;
+      }
+    }
+    return lines;
+  }
+  /* 全文档脱敏扫描:值为 ' ****' 的键(不限于 schema——服务端正则对任意匹配键名脱敏)。
+     返回 {masked:[{path,line}], byPath:{path:[line]}, deadlock:[path]} */
+  function cfgScanMasked(lines) {
+    var masked = [], byPath = {};
+    for (var i = 0; i < lines.length; i++) {
+      var l = lines[i];
+      if (!l.isEmpty && !l.isComment && l.key && l.value === '****') {
+        masked.push({ path: l.keyPath, line: l.no + 1 });
+        (byPath[l.keyPath] = byPath[l.keyPath] || []).push(l.no + 1);
+      }
+    }
+    var deadlock = [];
+    for (var p in byPath) { if (byPath[p].length > 1) deadlock.push(p); }
+    return { masked: masked, byPath: byPath, deadlock: deadlock };
+  }
+  /* 重复键检测(按 key path):[{path, lines:[行号]}] */
+  function cfgFindDuplicates(lines) {
+    var byPath = {};
+    for (var i = 0; i < lines.length; i++) {
+      var l = lines[i];
+      if (!l.isEmpty && !l.isComment && l.keyPath) (byPath[l.keyPath] = byPath[l.keyPath] || []).push(l.no + 1);
+    }
+    var dups = [];
+    for (var p in byPath) { if (byPath[p].length > 1) dups.push({ path: p, lines: byPath[p] }); }
+    return dups;
+  }
+  /* 替换目标行的值部分:保持缩进;行内注释逐字保留;自动按需加引号 */
+  function cfgReplaceLine(line, newValue) {
+    var indent = line.raw.substring(0, line.indent);
+    var val = cfgQuoteValue(newValue, line.quoteStyle);
+    return indent + line.keyRaw + ': ' + val + (line.inlineComment ? ' ' + line.inlineComment : '');
+  }
+  /* 计算缺失键的最近已存在祖先深度与插入行(组缩进层级末尾;整组缺失 → YAML 末尾按组缩进追加) */
+  function cfgPlanInsertions(lines, missing) {
+    var prev = {};
+    for (var i = 0; i < lines.length; i++) if (lines[i].keyPath) prev[lines[i].keyPath] = true;
+    var groups = {};
+    missing.forEach(function (m) {
+      var segs = m.path.split('.');
+      var depth = 0, cur = '';
+      for (var j = 0; j < segs.length; j++) {
+        cur = cur ? cur + '.' + segs[j] : segs[j];
+        if (prev[cur]) depth = j + 1;
+        else break;
+      }
+      var anc = segs.slice(0, depth).join('.');
+      if (!groups[anc]) groups[anc] = { depth: depth, leaves: [] };
+      groups[anc].leaves.push({ segs: segs.slice(depth), value: m.value });
+    });
+    var result = [];
+    Object.keys(groups).forEach(function (anc) {
+      var g = groups[anc];
+      var root = { val: undefined, child: {} };
+      g.leaves.forEach(function (leaf) {
+        var node = root;
+        leaf.segs.forEach(function (s, idx) {
+          if (!node.child[s]) node.child[s] = { val: undefined, child: {} };
+          if (idx === leaf.segs.length - 1) node.child[s].val = leaf.value;
+          node = node.child[s];
+        });
+      });
+      var out = [];
+      var walk = function (node, level) {
+        Object.keys(node.child).forEach(function (s) {
+          var n = node.child[s];
+          var indentStr = new Array((g.depth + level) * 2 + 1).join(' ');
+          if (n.val !== undefined) out.push(indentStr + s + ': ' + cfgQuoteValue(n.val, null));
+          else { out.push(indentStr + s + ':'); walk(n, level + 1); }
+        });
+      };
+      walk(root, 0);
+      var anchor = -1;
+      if (anc) {
+        for (var m = 0; m < lines.length; m++) {
+          var lp = lines[m].keyPath;
+          if (lp && (lp === anc || lp.indexOf(anc + '.') === 0)) anchor = m;
+        }
+      }
+      result.push({ anchor: anchor, lines: out });
+    });
+    return result;
+  }
+  /* 核心:行级 YAML 修补。
+     patches: [{path,value}] —— 只改已知键的值行;缺失键按默认值插入;其余行逐字保留。
+     重复键:按 key path+缩进匹配末个命中(SnakeYAML last-wins 语义)。 */
+  function cfgApplyPatch(text, patches) {
+    var lines = cfgParseLines(text);
+    var lastIdx = {};
+    for (var i = 0; i < lines.length; i++) if (lines[i].keyPath) lastIdx[lines[i].keyPath] = i;
+    var replace = {}, missing = [];
+    patches.forEach(function (p) {
+      if (lastIdx[p.path] != null) replace[lastIdx[p.path]] = p.value;
+      else missing.push(p);
+    });
+    var outLines = [];
+    for (var k = 0; k < lines.length; k++) {
+      var l = lines[k];
+      if (k in replace) {
+        outLines.push(cfgReplaceLine(l, replace[k]));
+        k += (l.blockLen || 0); /* 块标量:整行替换为带引号新值,块体一并移除 */
+      } else {
+        outLines.push(l.raw);
+      }
+    }
+    var ins = cfgPlanInsertions(lines, missing);
+    var insertAfter = {}, append = [];
+    ins.forEach(function (g) {
+      if (g.anchor === -1) append = append.concat(g.lines);
+      else insertAfter[g.anchor] = (insertAfter[g.anchor] || []).concat(g.lines);
+    });
+    var finalLines = [];
+    for (var m = 0; m < outLines.length; m++) {
+      finalLines.push(outLines[m]);
+      if (insertAfter[m]) finalLines = finalLines.concat(insertAfter[m]);
+    }
+    if (append.length) finalLines = finalLines.concat(append);
+    return finalLines.join('\n');
+  }
+  /* ====CFG-PURE-END==== */
+
+  /* ============================================================
+     页面状态
+     ============================================================ */
+  var state = {
+    currentText: '',      /* 最近一次从服务端加载(或保存成功)的 YAML */
+    values: {},           /* keyPath -> {exists, masked, v} */
+    unknown: [],          /* 非 schema 叶键路径 */
+    dirty: false,
+    busy: false,
+    mode: 'form'
+  };
+
+  function fieldInputId(path) { return 'cfg-' + path.replace(/\./g, '__'); }
+  function escapeAttr(s) { return escapeHtml(s); }
+
+  function showMessage(msg, cls) {
+    var el = $('config-message');
+    if (!msg) { el.classList.add('hidden'); return; }
+    el.textContent = msg;
+    el.className = 'message ' + (cls || 'info');
+    el.classList.remove('hidden');
+  }
+
+  /* ============================================================
+     数据加载
+     ============================================================ */
+  async function loadConfig(force) {
+    if (state.busy) return;
+    var r = await safeFetch(function () { return apiGet('/config'); }, '加载配置失败');
+    if (!r) return;
+    state.currentText = r.text || '';
+    state.dirty = false;
+    buildModel();
+    renderAll();
+    showMessage('', null);
+  }
+
+  function buildModel() {
+    var lines = cfgParseLines(state.currentText);
+    state.lines = lines;
+    var vals = {};
+    for (var i = 0; i < lines.length; i++) {
+      var l = lines[i];
+      if (!l.isEmpty && !l.isComment && l.keyPath) {
+        var masked = l.value === '****';
+        vals[l.keyPath] = { exists: true, masked: masked, v: l.value };
+      }
+    }
+    SCHEMA.forEach(function (g) {
+      g.fields.forEach(function (f) {
+        if (!vals[f.key]) vals[f.key] = { exists: false, masked: false, v: null };
+      });
+    });
+    if (!vals[APP_NAME_PATH]) vals[APP_NAME_PATH] = { exists: false, masked: false, v: 'unidbg-boot-server' };
+    state.values = vals;
+
+    var schemaLeaf = {};
+    SCHEMA.forEach(function (g) { g.fields.forEach(function (f) { schemaLeaf[f.key] = true; }); });
+    schemaLeaf[APP_NAME_PATH] = true;
+    state.unknown = [];
+    for (var k = 0; k < lines.length; k++) {
+      var l2 = lines[k];
+      if (l2.key && l2.keyPath && !schemaLeaf[l2.keyPath]) {
+        /* 父级映射行(value 为空且未加引号)不视为配置叶键 */
+        if (!(l2.value === '' && !l2.quoteStyle)) state.unknown.push({ path: l2.keyPath, v: l2.value, masked: l2.value === '****' });
+      }
     }
   }
-  async function hotReload() {
-    var r = await safeFetch(function(){ return apiPost('/refresh'); }, '热重载失败');
-    if (!r) return;
-    if (r.success) { var keys = r.changedKeys; showToast(r.message + (keys && keys.length ? ' 变更键: ' + keys.join(', ') : ''), 'success'); }
-    else { showToast(r.message || '热重载失败', 'error'); }
+
+  /* ============================================================
+     表单渲染
+     ============================================================ */
+  function controlHtml(f, id, masked, exists, v) {
+    var val = (v && v.exists && !v.masked) ? String(v.v) : '';
+    var dis = !exists ? ' disabled' : '';
+    switch (f.type) {
+      case 'bool':
+        return '<label class="cfg-toggle" title="' + escapeAttr(f.label) + '">' +
+          '<input type="checkbox" id="' + id + '"' + (val === 'true' ? ' checked' : '') + dis + '>' +
+          '<span class="cfg-toggle-slider"></span></label>';
+      case 'number':
+        return '<input type="number" id="' + id + '" class="cfg-input cfg-input-number" step="any" value="' + escapeAttr(val) + '"' + dis + '>';
+      case 'slider':
+        return '<input type="range" id="' + id + '" class="cfg-input cfg-range" min="0" max="1" step="0.01" value="' + escapeAttr(val) + '"' + dis + '>' +
+          '<output class="cfg-range-val" id="' + id + '__out">' + escapeHtml(val) + '</output>';
+      case 'password':
+        return '<input type="password" id="' + id + '" class="cfg-input" autocomplete="off" placeholder="' + (masked ? '已脱敏,请重新输入' : '') + '"' + dis + '>';
+      default:
+        return '<input type="text" id="' + id + '" class="cfg-input" value="' + escapeAttr(val) + '"' + dis + '>';
+    }
   }
-  document.addEventListener('DOMContentLoaded', function() {
-    loadConfig();
-    $('btn-load-config').addEventListener('click', function(){ loadConfig(true); });
-    $('btn-save-config').addEventListener('click', saveConfig);
+
+  function fieldRow(f, v, dupLines) {
+    var id = fieldInputId(f.key);
+    var masked = !!(v && v.masked);
+    var exists = !!(v && v.exists);
+    var extra = '';
+    if (masked) extra += '<div class="cfg-extra"><span class="cfg-mask-warn">⚠ 已脱敏,需重新输入</span></div>';
+    if (!exists) extra += '<div class="cfg-extra"><span class="cfg-missing-hint">该键当前不在 YAML 中,保存时将以默认值新增(默认: ' + escapeHtml(f.def) + ')</span></div>';
+    var dupWarn = '';
+    if (dupLines && dupLines.length > 1) {
+      dupWarn = '<div class="cfg-extra"><span class="cfg-warn">⚠ 重复键 ' + escapeHtml(f.key) + ' 存在 ' + dupLines.length + ' 处(第 ' + dupLines.join('、') + ' 行),保存将按末行生效</span></div>';
+    }
+    return '<div class="cfg-field" data-path="' + escapeAttr(f.key) + '">' +
+      '<div class="cfg-label"><span>' + escapeHtml(f.label) + '</span>' +
+      '<span class="cfg-key">' + escapeHtml(f.key) + '</span>' +
+      (masked ? ' <span class="cfg-mask-warn">已脱敏</span>' : '') +
+      '</div>' +
+      '<div class="cfg-control">' + controlHtml(f, id, masked, exists, v) + '</div>' +
+      '<div class="cfg-desc">' + escapeHtml(f.desc) + '</div>' + extra + dupWarn +
+      '</div>';
+  }
+
+  function renderForm() {
+    var dups = cfgFindDuplicates(state.lines);
+    var dupByPath = {};
+    dups.forEach(function (d) { dupByPath[d.path] = d.lines; });
+    var html = '';
+    SCHEMA.forEach(function (g) {
+      var fHtml = g.fields.map(function (f) { return fieldRow(f, state.values[f.key], dupByPath[f.key]); }).join('');
+      html += '<div class="card cfg-group-card" data-group="' + escapeAttr(g.gid) + '">' +
+        '<div class="card-body">' +
+        '<div class="cfg-group-head"><h3>' + escapeHtml(g.title) + '</h3>' +
+        '<span class="cfg-group-path">' + escapeHtml(g.gid) + '</span></div>' + fHtml +
+        '</div></div>';
+    });
+    var unknownHtml = '';
+    if (state.unknown.length) {
+      var rows = state.unknown.map(function (u) {
+        return '<div class="cfg-unknown-row"><span>' + escapeHtml(u.path) + '</span>' +
+          '<span class="' + (u.masked ? 'cfg-mask-warn' : '') + '">' + (u.masked ? '已脱敏' : escapeHtml(u.v)) + '</span></div>';
+      }).join('');
+      unknownHtml = '<div class="card cfg-group-card" data-group="__unknown">' +
+        '<div class="card-body"><div class="cfg-group-head"><h3>其他未知键(只读)</h3>' +
+        '<span class="cfg-group-path">保存时逐字保留</span></div>' + rows + '</div></div>';
+    }
+    $('cfg-groups').innerHTML = html + unknownHtml;
+  }
+
+  function renderStatusbar() {
+    var app = state.values[APP_NAME_PATH];
+    $('cfg-app-name').textContent = app && app.v ? app.v : 'unidbg-boot-server';
+    $('cfg-loaded-note').textContent = '已加载 ' + (SCHEMA.reduce(function (n, g) { return n + g.fields.length; }, 0)) + ' 项配置';
+    $('cfg-unknown-note').textContent = state.unknown.length ? '未知键 ' + state.unknown.length + ' 项(保存时逐字保留)' : '';
+  }
+
+  function renderAll() {
+    renderForm();
+    renderStatusbar();
+    $('pane-form').classList.toggle('hidden', state.mode !== 'form');
+    $('pane-yaml').classList.toggle('hidden', state.mode !== 'yaml');
+    if (state.mode === 'yaml') $('config-editor').value = state.currentText;
+    $('cfg-mode-hint').textContent = state.mode === 'form'
+      ? '表单仅修改已知键的值行,未知键 / 注释 / 空行逐字保留'
+      : '高级模式:直接编辑完整 YAML;提交前同样全文档检测已脱敏值';
+    setDirty(state.dirty, true);
+  }
+
+  /* ============================================================
+     Dirty / 保存
+     ============================================================ */
+  function setDirty(d, silent) {
+    state.dirty = d;
+    var btn = $('btn-save-config');
+    if (btn) { btn.disabled = d ? false : true; }
+  }
+
+  function readControl(f, v) {
+    var el = document.getElementById(fieldInputId(f.key));
+    if (!el) return String(f.def);
+    switch (f.type) {
+      case 'bool': return el.checked ? 'true' : 'false';
+      case 'number': return el.value === '' ? String(f.def) : el.value;
+      case 'slider': return el.value;
+      default: return el.value;
+    }
+  }
+
+  function buildPatchList() {
+    var patches = [];
+    SCHEMA.forEach(function (g) {
+      g.fields.forEach(function (f) {
+        var v = state.values[f.key];
+        var exists = v && v.exists;
+        var masked = v && v.masked;
+        if (masked) {
+          var el = document.getElementById(fieldInputId(f.key));
+          var typed = el ? el.value : '';
+          if (typed) patches.push({ path: f.key, value: typed });
+          /* 未重新输入:不改动该行(保持 ****),由全文档扫描拦截 */
+        } else if (exists) {
+          patches.push({ path: f.key, value: readControl(f, v) });
+        } else {
+          patches.push({ path: f.key, value: String(f.def) });
+        }
+      });
+    });
+    return patches;
+  }
+
+  /* 全文档脱敏扫描(两种模式共用):整份待写 YAML 中值为 ' ****' 的键 → 拦截 */
+  function scanMaskedInText(outputText, isFormMode) {
+    var lines = cfgParseLines(outputText);
+    var scan = cfgScanMasked(lines);
+    if (!scan.masked.length) return null;
+    if (isFormMode && scan.deadlock.length) {
+      return { deadlock: true, paths: scan.deadlock };
+    }
+    return { deadlock: false, paths: scan.masked.map(function (m) { return m.path + ' (第 ' + m.line + ' 行)'; }) };
+  }
+
+  function renderMaskedWarning(bad) {
+    var box = $('cfg-masked-warnings');
+    var list = bad.paths.map(function (p) { return '<li>' + escapeHtml(p) + '</li>'; }).join('');
+    if (bad.deadlock) {
+      box.innerHTML = '<strong>⚠ 重复敏感键死锁:以下键在 YAML 中存在多行且全部已脱敏,表单模式无法安全定位。</strong>' +
+        '<ul>' + list + '</ul><div>请删除重复键后,在「高级 YAML」模式中处理。</div>';
+    } else {
+      box.innerHTML = '<strong>⚠ 已脱敏,需重新输入:以下敏感键仍为脱敏值( **** ),未重新输入前禁止保存,防止覆盖真实配置。</strong>' +
+        '<ul>' + list + '</ul>';
+    }
+    box.classList.remove('hidden');
+    var btn = $('btn-save-config');
+    if (btn) btn.disabled = false;
+  }
+
+  async function doSave() {
+    if (state.busy || !state.dirty) return;
+    var output;
+    if (state.mode === 'form') {
+      output = cfgApplyPatch(state.currentText, buildPatchList());
+    } else {
+      output = $('config-editor').value;
+    }
+    if (!output.trim()) { showToast('配置内容不能为空', 'error'); return; }
+
+    var bad = scanMaskedInText(output, state.mode === 'form');
+    if (bad) { renderMaskedWarning(bad); showToast('存在已脱敏字段,保存被拦截', 'error'); return; }
+
+    $('cfg-masked-warnings').classList.add('hidden');
+    state.busy = true;
+    var btn = $('btn-save-config');
+    if (btn) { btn.disabled = true; btn.textContent = '保存中...'; }
+    showLoading();
+    try {
+      var r = await apiPut('/config', output, 'text/plain');
+      if (!r) return; /* 401 → 已重定向登录 */
+      if (r.success) {
+        state.currentText = output;
+        state.dirty = false;
+        showToast((r.message || '配置已保存') + ',可点击「热重载」或重启生效', 'success');
+        showMessage(r.message || '配置已保存,可使用热重载或重启加载生效', 'success');
+        /* 重新加载,以服务端视角刷新(敏感键将重新脱敏) */
+        await loadConfig(true);
+      } else {
+        showMessage(r.message || '保存失败', 'error');
+        showToast(r.message || '保存失败', 'error');
+        state.dirty = true;
+      }
+    } catch (e) {
+      /* PUT 失败:保留表单状态 + 展示服务端错误 */
+      state.dirty = true;
+      showMessage('保存失败: ' + (e && e.message ? e.message : e), 'error');
+      showToast('保存失败: ' + (e && e.message ? e.message : e), 'error');
+    } finally {
+      state.busy = false;
+      hideLoading();
+      if (btn) { btn.disabled = !state.dirty; btn.textContent = '✦ 保存'; }
+    }
+  }
+
+  /* ============================================================
+     热重载
+     ============================================================ */
+  async function hotReload() {
+    var r = await safeFetch(function () { return apiPost('/refresh'); }, '热重载失败');
+    if (!r) return;
+    if (r.success) {
+      var keys = r.changedKeys;
+      showToast(r.message + (keys && keys.length ? ' 变更键: ' + keys.join(', ') : ''), 'success');
+    } else {
+      showToast(r.message || '热重载失败', 'error');
+    }
+  }
+
+  /* ============================================================
+     模式切换
+     ============================================================ */
+  async function switchMode(mode) {
+    if (mode === state.mode) return;
+    if (state.dirty) {
+      var ok = await confirmDialog('切换编辑模式', '当前有未保存的修改,切换后这些修改将被丢弃。继续?');
+      if (!ok) return;
+    }
+    state.mode = mode;
+    $('tab-form').classList.toggle('active', mode === 'form');
+    $('tab-yaml').classList.toggle('active', mode === 'yaml');
+    $('tab-form').setAttribute('aria-selected', mode === 'form' ? 'true' : 'false');
+    $('tab-yaml').setAttribute('aria-selected', mode === 'yaml' ? 'true' : 'false');
+    state.dirty = false;
+    renderAll();
+  }
+
+  /* ============================================================
+     事件绑定
+     ============================================================ */
+  document.addEventListener('DOMContentLoaded', function () {
+    $('btn-load-config').addEventListener('click', function () { loadConfig(true); });
+    $('btn-save-config').addEventListener('click', doSave);
     $('btn-hot-reload').addEventListener('click', hotReload);
+    $('tab-form').addEventListener('click', function () { switchMode('form'); });
+    $('tab-yaml').addEventListener('click', function () { switchMode('yaml'); });
+    $('config-editor').addEventListener('input', function () { setDirty(true); });
+
+    var formPane = $('pane-form');
+    formPane.addEventListener('input', function (e) {
+      var t = e.target;
+      if (!t || !t.id || t.id.indexOf('cfg-') !== 0) return;
+      if (t.type === 'range') {
+        var out = document.getElementById(t.id + '__out');
+        if (out) out.textContent = t.value;
+      }
+      setDirty(true);
+    });
+    formPane.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t && t.id && t.id.indexOf('cfg-') === 0) setDirty(true);
+    });
+
+    registerShortcut('ctrl+s', function (e) { e.preventDefault(); doSave(); });
+    loadConfig();
   });
 })();
 </script>

@@ -192,6 +192,301 @@
 }
 
 /* ============================================================
+   CONFIG EDITOR v2 — 可视化配置编辑器
+   (todo 8:双模式表单 + 高级 YAML;新样式全部落位 admin.css)
+   ============================================================ */
+.cfg-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.cfg-tab {
+  padding: 8px 18px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.cfg-tab:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-gold-dim);
+}
+
+.cfg-tab.active {
+  background: var(--accent-gold-bg);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  font-weight: 600;
+}
+
+.cfg-statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
+.cfg-appname {
+  font-family: var(--font-mono);
+  color: var(--text-accent);
+}
+
+.cfg-badge-readonly {
+  display: inline-block;
+  padding: 1px 8px;
+  margin-left: 4px;
+  font-size: var(--fs-xs);
+  color: var(--ink-green);
+  background: var(--accent-green-bg);
+  border: 1px solid var(--accent-green);
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cfg-mode-hint {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.cfg-warn-box {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent-red);
+  background: var(--accent-red-bg);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  color: var(--accent-red);
+  line-height: 1.7;
+}
+
+.cfg-warn-box ul { margin: 6px 0 4px 18px; }
+
+.cfg-group-card { margin-bottom: 16px; }
+
+.cfg-group-card .card-body { padding: 14px 18px; }
+
+.cfg-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+  border-bottom: 2px solid var(--accent-gold-dim);
+}
+
+.cfg-group-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  color: var(--text-primary);
+  letter-spacing: 1px;
+}
+
+.cfg-group-path {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.cfg-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 16px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--border-light);
+}
+
+.cfg-field:last-child { border-bottom: none; }
+
+.cfg-label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: var(--fs-base);
+  color: var(--text-primary);
+}
+
+.cfg-key {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.cfg-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cfg-input {
+  min-width: 200px;
+  padding: 6px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.cfg-input:focus {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px var(--accent-gold-bg);
+}
+
+.cfg-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cfg-input-number { min-width: 120px; }
+
+.cfg-range {
+  min-width: 160px;
+  accent-color: var(--accent-gold);
+  cursor: pointer;
+}
+
+.cfg-range-val {
+  min-width: 36px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-accent);
+}
+
+/* 开关 */
+.cfg-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.cfg-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.cfg-toggle-slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background: var(--bg-active);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.cfg-toggle-slider::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: 3px;
+  top: 3px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  transition: transform var(--transition), background var(--transition);
+}
+
+.cfg-toggle input:checked + .cfg-toggle-slider {
+  background: var(--accent-green-bg);
+  border-color: var(--accent-green);
+}
+
+.cfg-toggle input:checked + .cfg-toggle-slider::before {
+  transform: translateX(20px);
+  background: var(--accent-green);
+}
+
+.cfg-toggle input:focus-visible + .cfg-toggle-slider {
+  box-shadow: 0 0 0 2px var(--accent-gold-bg);
+}
+
+.cfg-toggle input:disabled + .cfg-toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 字段附加提示 */
+.cfg-desc {
+  grid-column: 1 / -1;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.cfg-extra {
+  grid-column: 1 / -1;
+  font-size: var(--fs-xs);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cfg-mask-warn { color: var(--accent-red); font-weight: 600; }
+
+.cfg-missing-hint { color: var(--text-muted); }
+
+.cfg-warn { color: var(--accent-orange); }
+
+.cfg-hint {
+  margin-top: 10px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.cfg-hint code {
+  font-family: var(--font-mono);
+  color: var(--accent-orange);
+}
+
+.cfg-unknown-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--border-light);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
+.cfg-unknown-row:last-child { border-bottom: none; }
+
+@media (max-width: 768px) {
+  .cfg-field { grid-template-columns: 1fr; }
+  .cfg-control { justify-content: flex-start; }
+  .cfg-input { min-width: 0; width: 100%; }
+  .cfg-range { width: 100%; }
+  .cfg-mode-hint { margin-left: 0; width: 100%; }
+}
+
+/* ============================================================
    RESPONSIVE SIDEBAR
    ============================================================ */
 @media (max-width: 768px) {
