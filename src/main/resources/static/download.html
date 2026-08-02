@@ -4,9 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>fqnovel-unidbg · 全本下载</title>
-<link rel="stylesheet" href="/css/public.css?v=0.0.6">
-<style>
-</style>
+<link rel="stylesheet" href="/css/public.css?v=2.0.0">
 </head>
 <body>
 
@@ -95,10 +93,11 @@
   <div class="loading-spinner"></div>
 </div>
 
-<script src="/js/public.js?v=0.0.6"></script>
+<script src="/js/public.js?v=2.0.0"></script>
 <script>
 (function(){
   var _activeDownloads = {};
+  var _statusTimer = null;
 
   async function startDownload() {
     var bookId = $('dl-book-id').value.trim();
@@ -106,6 +105,9 @@
     var batchSize = parseInt($('dl-batch-size').value, 10) || 30;
     var maxChapters = parseInt($('dl-max-chapters').value, 10) || 0;
 
+    var startBtn = $('btn-start-download');
+    if (startBtn.disabled) return; // A 桶:流式期间禁止重复发起
+    startBtn.disabled = true;
     showLoading();
     try {
       var resp = await fetch('/api/fullbook/download', {
@@ -137,7 +139,10 @@
       if (buffer.trim()) { try { var data = JSON.parse(buffer); updateProgress(data); } catch(e) {} }
       if (!hasData) showToast('下载任务已提交', 'success');
     } catch(e) { showToast('下载失败: ' + e.message, 'error'); }
-    finally { hideLoading(); }
+    finally {
+      hideLoading();
+      startBtn.disabled = false;
+    }
   }
 
   function updateProgress(data) {
@@ -152,7 +157,13 @@
     if (data.completed) dl.completed = true;
     if (data.completed) showToast('下载完成: ' + dl.bookName, 'success');
     renderActiveDownloads();
-    checkAllStatus();
+    scheduleStatusCheck();
+  }
+
+  // A 桶:流式进度事件高频触发时,将多次 checkAllStatus 合并为一次(防请求风暴与遮罩闪烁)
+  function scheduleStatusCheck() {
+    if (_statusTimer) return;
+    _statusTimer = setTimeout(function() { _statusTimer = null; checkAllStatus(true); }, 800);
   }
 
   function renderActiveDownloads() {
@@ -178,16 +189,16 @@
     $('dl-progress-count').textContent = activeKeys.length + ' 个活跃任务';
   }
 
-  async function checkAllStatus() {
-    showLoading();
+  async function checkAllStatus(silent) {
+    if (!silent) showLoading();
     try {
       var resp = await fetch('/api/fullbook/check-all-status');
       var result = await resp.json();
       if (!result || !result.success) { showToast((result&&result.message)||'检查失败', 'error'); return; }
       renderStatusTable(result.books);
       $('dl-summary').textContent = '共 ' + (result.books.totalBooks||0) + ' 本，已完成 ' + ((result.books.completeBooks||[]).length) + ' 本';
-    } catch(e) { showToast('检查失败: ' + e.message, 'error'); }
-    finally { hideLoading(); }
+    } catch(e) { if (!silent) showToast('检查失败: ' + e.message, 'error'); }
+    finally { if (!silent) hideLoading(); }
   }
 
   function renderStatusTable(data) {

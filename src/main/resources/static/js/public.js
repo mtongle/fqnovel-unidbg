@@ -111,7 +111,9 @@
         '<button class="btn btn-danger" id="confirm-ok">确认</button>' +
         '</div></div>';
       document.body.appendChild(overlay);
-      function cleanup() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+      function cleanup() { document.removeEventListener('keydown', onKey); if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+      function onKey(e) { if (e.key === 'Escape') { cleanup(); resolve(false); } }
+      document.addEventListener('keydown', onKey);
       qs('#confirm-cancel', overlay).addEventListener('click', function () { cleanup(); resolve(false); });
       qs('#confirm-ok', overlay).addEventListener('click', function () { cleanup(); resolve(true); });
       overlay.addEventListener('click', function (e) { if (e.target === overlay) { cleanup(); resolve(false); } });
@@ -300,10 +302,25 @@
       .catch(function (e) { console.warn('HEIC fail:', e); showFallbackAvatar(img); });
   };
 
+  // A 桶头像降级修复:原实现仅识别 SSR 的 .avatar/.comment-avatar 容器,
+  // 公开页(如 comments.html)头像无该容器类 → 图片加载失败时无任何回退。
+  // 通用回退:找不到 .avatar-letter 时,以 alt 首字符生成占位字母块替换 img。
   function showFallbackAvatar(img) {
+    var w = img.offsetWidth || 42;
+    var h = img.offsetHeight || 42;
     img.style.display = 'none';
-    var container = img.closest('.avatar, .comment-avatar');
-    if (container) { var letter = container.querySelector('.avatar-letter'); if (letter) letter.style.display = 'flex'; }
+    var container = img.closest('.avatar, .comment-avatar, .reply-avatar') || img.parentElement;
+    if (container && container !== img) {
+      var letter = container.querySelector('.avatar-letter, .reply-avatar > span');
+      if (letter) { letter.style.display = 'flex'; return; }
+    }
+    var name = (img.getAttribute('alt') || '').trim();
+    var div = document.createElement('div');
+    div.className = 'avatar-fallback';
+    div.textContent = name ? name.charAt(0) : '?';
+    div.style.width = w + 'px';
+    div.style.height = h + 'px';
+    if (img.parentNode) img.parentNode.replaceChild(div, img);
   }
 
   function loadHeic2Any() {
@@ -317,11 +334,16 @@
     });
   }
 
-  // ESC 关闭 Toast
+  // ESC 关闭 Toast(仅关最上层;confirm-overlay 打开时让与其关联的自身 Esc 处理)
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
+      if (document.querySelector('.confirm-overlay')) return;
       var c = document.querySelector('.toast-container');
-      if (c) c.innerHTML = '';
+      var toast = c && c.lastElementChild;
+      if (toast) {
+        toast.style.animation = 'toastSlideOut 0.3s ease forwards';
+        setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 350);
+      }
     }
   });
 

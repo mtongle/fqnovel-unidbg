@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>✦ fqnovel-unidbg · 段评查询</title>
-<link rel="stylesheet" href="/css/public.css?v=0.0.6">
+<link rel="stylesheet" href="/css/public.css?v=2.0.0">
 </head>
 <body>
 
@@ -60,7 +60,7 @@
   <div class="loading-spinner"></div>
 </div>
 
-<script src="/js/public.js?v=0.0.6"></script>
+<script src="/js/public.js?v=2.0.0"></script>
 <script>
 (function(){
   function jsonToVisual(obj, depth) {
@@ -69,15 +69,15 @@
     if (obj === null || obj === undefined) return '<span style="color:var(--text-muted);">null</span>';
     if (typeof obj === 'boolean') return '<span style="color:#e74c3c;font-weight:500;">' + obj + '</span>';
     if (typeof obj === 'number') return '<span style="color:#2ecc71;font-weight:500;">' + obj + '</span>';
-    if (typeof obj === 'string') { if (obj.length > 200) obj = obj.slice(0, 200) + '…'; return '<span style="color:#e0e0f0;">' + escapeHtml(obj) + '</span>'; }
+    if (typeof obj === 'string') { if (obj.length > 200) obj = obj.slice(0, 200) + '…'; return '<span style="color:var(--text-primary);">' + escapeHtml(obj) + '</span>'; }
     if (Array.isArray(obj)) {
       if (obj.length === 0) return '<span style="color:var(--text-muted);">[]</span>';
-      return obj.map(function(item, i){ return '<div style="padding:4px 0 4px '+((depth+1)*16)+'px;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="color:var(--text-muted);font-size:0.75rem;margin-right:6px;">#'+i+'</span>'+jsonToVisual(item, depth+1)+'</div>'; }).join('');
+      return obj.map(function(item, i){ return '<div style="padding:4px 0 4px '+((depth+1)*16)+'px;border-bottom:1px solid var(--border-light);"><span style="color:var(--text-muted);font-size:0.75rem;margin-right:6px;">#'+i+'</span>'+jsonToVisual(item, depth+1)+'</div>'; }).join('');
     }
     if (typeof obj === 'object') {
       var keys = Object.keys(obj);
       if (keys.length === 0) return '<span style="color:var(--text-muted);">{}</span>';
-      return keys.map(function(k){ return '<div style="display:flex;padding:5px 0 5px '+(depth*16)+'px;border-bottom:1px solid rgba(255,255,255,0.04);gap:8px;"><span style="color:var(--accent-blue);font-size:0.82rem;font-weight:500;min-width:120px;flex-shrink:0;font-family:monospace;">'+escapeHtml(k)+'</span><span style="flex:1;">'+jsonToVisual(obj[k], depth+1)+'</span></div>'; }).join('');
+      return keys.map(function(k){ return '<div style="display:flex;padding:5px 0 5px '+(depth*16)+'px;border-bottom:1px solid var(--border-light);gap:8px;"><span style="color:var(--accent-blue);font-size:0.82rem;font-weight:500;min-width:120px;flex-shrink:0;font-family:monospace;">'+escapeHtml(k)+'</span><span style="flex:1;">'+jsonToVisual(obj[k], depth+1)+'</span></div>'; }).join('');
     }
     return escapeHtml(String(obj));
   }
@@ -140,7 +140,7 @@
     return rawComments.map(function(c){
       var e = extractComment(c);
       var avatarHtml = e.avatarUrl
-        ? '<img src="'+escapeHtml(e.avatarUrl)+'" onerror="fixHeicImg(this)" style="width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+        ? '<img src="'+escapeHtml(e.avatarUrl)+'" alt="'+escapeHtml(e.userName||'')+'" onerror="fixHeicImg(this)" style="width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
         : '<div style="width:42px;height:42px;border-radius:50%;background:var(--accent-blue-bg);color:var(--accent-blue);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:600;flex-shrink:0;">'+escapeHtml((e.userName.charAt(0)||'?').toUpperCase())+'</div>';
       var genderIcon = e.gender === 1 ? '♂️' : e.gender === 2 ? '♀️' : '';
       var badges = [];

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>✦ fqnovel-unidbg · API 文档</title>
-<link rel="stylesheet" href="/css/public.css?v=0.0.6">
+<link rel="stylesheet" href="/css/public.css?v=2.0.0">
 <style>
 html { scroll-behavior: smooth; }
 .section { display: block; padding: 28px 32px; animation: fadeIn 0.3s ease; scroll-margin-top: 20px; }
@@ -47,7 +47,6 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
 .hero-section h1::after { content: " \2726"; font-size: 1.4rem; }
 .hero-section p { color: var(--text-secondary); font-size: 0.9rem; max-width: 600px; margin: 0 auto 6px; }
 .hero-section .base-url { font-family: var(--font-mono); font-size: 0.82rem; color: var(--accent-gold-dim); background: var(--accent-gold-bg); display: inline-block; padding: 4px 16px; border-radius: 12px; margin-top: 4px; }
-.section-divider { text-align: center; padding: 6px 0 16px; color: var(--text-muted); font-size: 0.75rem; letter-spacing: 6px; opacity: 0.5; user-select: none; }
 .callout { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 0.82rem; line-height: 1.6; }
 .callout-info { background: var(--accent-blue-bg); border: 1px solid rgba(90, 140, 180, 0.2); color: var(--accent-blue); }
 .callout-info .callout-icon { color: var(--accent-blue); font-size: 1rem; flex-shrink: 0; }
@@ -91,7 +90,8 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
     <a href="#section-admin" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-settings"/></svg></span>管理后台</a>
   </nav>
   <div class="public-sidebar-footer">
-    <span style="font-size:0.75rem;color:var(--text-muted);">公开文档 · 只读</span>
+    <a href="/admin/dashboard.html" class="btn btn-sm btn-outline" style="width:100%;display:flex;text-decoration:none;gap:6px;">← 返回管理后台</a>
+    <span style="font-size:0.75rem;color:var(--text-muted);display:block;margin-top:6px;text-align:center;">公开文档 · 只读</span>
   </div>
 </aside>
 
@@ -1637,7 +1637,7 @@ curl -X POST 'http://127.0.0.1:8099/api/admin/device-pool/remove' \
   <div class="loading-spinner"></div>
 </div>
 
-<script src="/js/public.js?v=0.0.6"></script>
+<script src="/js/public.js?v=2.0.0"></script>
 <script>
 (function() {
   function toggleEndpoint(header) {
@@ -1649,12 +1649,33 @@ curl -X POST 'http://127.0.0.1:8099/api/admin/device-pool/remove' \
   window.copyCode = function(btn) {
     var code = btn.parentNode;
     var text = code.textContent.replace('复制', '').trim();
+    var flash = function() {
+      var orig = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(function() { btn.textContent = orig; }, 2000);
+    };
+    // A 桶:剪贴板降级 —— clipboard API 不可用/失败时回退 execCommand,再失败则提示手动复制
+    var legacy = function() {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch(e) {}
+      document.body.removeChild(ta);
+      if (ok) flash();
+      else {
+        btn.textContent = '请手动复制';
+        setTimeout(function() { btn.textContent = '复制'; }, 2000);
+      }
+    };
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function() {
-        var orig = btn.textContent;
-        btn.textContent = '已复制';
-        setTimeout(function() { btn.textContent = orig; }, 2000);
-      });
+      navigator.clipboard.writeText(text).then(flash).catch(legacy);
+    } else {
+      legacy();
     }
   };
 
@@ -1676,12 +1697,24 @@ curl -X POST 'http://127.0.0.1:8099/api/admin/device-pool/remove' \
     });
   }
 
-  // Open first endpoint in each section by default
-  var endpoints = document.querySelectorAll('.endpoint');
-  endpoints.forEach(function(ep) {
-    var body = ep.querySelector('.endpoint-body');
-    if (body) body.classList.add('open');
+  // 锚点导航联动(A 桶):点击导航锚点 → 仅展开当前 section 的 endpoint 块,其余保持折叠;
+  // 默认全部折叠(移除原「全部展开」逻辑,与 .endpoint-body{display:none} 的默认折叠一致)
+  function expandSection(sectionId) {
+    var sec = document.getElementById(sectionId);
+    if (!sec) return;
+    document.querySelectorAll('.endpoint-body.open').forEach(function(b) { b.classList.remove('open'); });
+    sec.querySelectorAll('.endpoint-body').forEach(function(b) { b.classList.add('open'); });
+  }
+  window.expandSection = expandSection;
+  document.querySelectorAll('.public-sidebar-nav a[href^="#section-"]').forEach(function(a) {
+    a.addEventListener('click', function() {
+      var id = a.getAttribute('href').slice(1);
+      setTimeout(function() { expandSection(id); }, 0);
+    });
   });
+  if (location.hash && location.hash.indexOf('#section-') === 0) {
+    expandSection(location.hash.slice(1));
+  }
 })();
 </script>
 </body>
