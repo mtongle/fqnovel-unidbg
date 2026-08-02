@@ -814,6 +814,17 @@ body.light .seal { border-color: rgba(42, 42, 51, 0.25); }
     transparent 12px 18px
   );
 }
+
+/* ── 文间分隔线(dashboard/api 页装饰:❧ ❧ ❧ / ✦ ✦ ✦ ✦ ✦) ── */
+.section-divider {
+  text-align: center;
+  padding: 6px 0 16px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 6px;
+  opacity: 0.5;
+  user-select: none;
+}
 /* ============================================================
    BADGES
    ============================================================ */
