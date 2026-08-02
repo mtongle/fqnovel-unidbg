@@ -195,12 +195,16 @@ public class SsrCommentService {
     private String renderErrorHtml(String message) {
         return "<!DOCTYPE html>\n" +
                "<html lang=\"zh-CN\">\n<head>\n<meta charset=\"UTF-8\">\n" +
-               "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no\">\n" +
-               "<link rel=\"stylesheet\" href=\"/css/comment-page.css?v=0.0.4\">\n" +
+               "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n" +
+               "<meta name=\"description\" content=\"番茄小说段评页面 — 服务端渲染的段落评论预览,支持明暗主题切换\">\n" +
+               "<meta name=\"theme-color\" content=\"#2A2A33\">\n" +
+               "<link rel=\"icon\" href=\"/css/icons.svg\" type=\"image/svg+xml\">\n" +
+               "<script>(function(){try{if(localStorage.getItem('theme')==='light'){document.body.classList.add('light')}}catch(e){}})();</script>\n" +
+               "<link rel=\"stylesheet\" href=\"/css/comment-page.css?v=2.0.0\">\n" +
                "<title>✦ 段评</title>\n</head>\n<body>\n" +
                "<button class=\"theme-toggle\" onclick=\"toggleTheme()\" title=\"切换主题\">✦</button>\n" +
                "<div class=\"error\">✦ " + escapeHtml(message) + "</div>\n" +
-               "<script src=\"/js/comment-page.js?v=0.0.4\"></script>\n" +
+               "<script src=\"/js/comment-page.js?v=2.0.0\"></script>\n" +
                "</body>\n</html>";
     }
 
@@ -208,8 +212,12 @@ public class SsrCommentService {
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html>\n")
             .append("<html lang=\"zh-CN\">\n<head>\n<meta charset=\"UTF-8\">\n")
-            .append("<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no\">\n")
-            .append("<link rel=\"stylesheet\" href=\"/css/comment-page.css?v=0.0.4\">\n")
+            .append("<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n")
+            .append("<meta name=\"description\" content=\"番茄小说段评页面 — 服务端渲染的段落评论预览,支持明暗主题切换\">\n")
+            .append("<meta name=\"theme-color\" content=\"#2A2A33\">\n")
+            .append("<link rel=\"icon\" href=\"/css/icons.svg\" type=\"image/svg+xml\">\n")
+            .append("<script>(function(){try{if(localStorage.getItem('theme')==='light'){document.body.classList.add('light')}}catch(e){}})();</script>\n")
+            .append("<link rel=\"stylesheet\" href=\"/css/comment-page.css?v=2.0.0\">\n")
             .append("<title>✦ 段评</title>\n</head>\n<body>\n")
             .append("<button class=\"theme-toggle\" onclick=\"toggleTheme()\" title=\"切换主题\">✦</button>\n");
 
@@ -236,7 +244,7 @@ public class SsrCommentService {
                 .append("\">✦ 加载更多</a>\n");
         }
 
-        html.append("<script src=\"/js/comment-page.js?v=0.0.4\"></script>\n")
+        html.append("<script src=\"/js/comment-page.js?v=2.0.0\"></script>\n")
             .append("</body>\n</html>");
         return html.toString();
     }
