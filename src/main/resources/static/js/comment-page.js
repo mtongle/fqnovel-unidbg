@@ -1,6 +1,6 @@
 // Comment Page — Ink & Parchment
 (function(){
-  var theme = localStorage.getItem('comment-theme');
+  var theme = localStorage.getItem('theme') || localStorage.getItem('comment-theme');
   var prefersDark = window.matchMedia('(prefers-color-scheme:dark)').matches;
   if (theme === 'light' || (!theme && !prefersDark)) {
     document.body.classList.add('light');
@@ -9,7 +9,7 @@
 
 function toggleTheme(){
   document.body.classList.toggle('light');
-  localStorage.setItem('comment-theme',
+  localStorage.setItem('theme',
     document.body.classList.contains('light') ? 'light' : 'dark');
   var btn = document.getElementById('themeToggleBtn');
   if (btn) btn.textContent = document.body.classList.contains('light') ? '✦' : '✦';

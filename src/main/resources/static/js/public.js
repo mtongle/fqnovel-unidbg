@@ -61,6 +61,12 @@
     setTimeout(function () { dismiss(toast); }, 4000);
   };
 
+  window.toast = {
+    success: function (m) { showToast(m, 'success'); },
+    error: function (m) { showToast(m, 'error'); },
+    info: function (m) { showToast(m, 'info'); }
+  };
+
   /* ===========================
      加载遮罩
      =========================== */
@@ -193,6 +199,62 @@
     return rows.map(function (r) {
       return '<div class="metric-row"><span>' + escapeHtml(r[0]) + '</span><span>' + r[1] + '</span></div>';
     }).join('');
+  };
+
+  window.showSkeleton = function (container, count, type) {
+    var el = typeof container === 'string' ? document.querySelector(container) : container;
+    if (!el) return;
+    var n = count || 3;
+    var variant = type === 'line' ? 'line' : type === 'circle' ? 'circle' : 'block';
+    var html = '';
+    for (var i = 0; i < n; i++) html += '<div class="skeleton skeleton-' + variant + '"></div>';
+    el.innerHTML = html;
+  };
+
+  window.removeSkeleton = function (container) {
+    var el = typeof container === 'string' ? document.querySelector(container) : container;
+    if (!el) return;
+    var nodes = el.querySelectorAll('.skeleton');
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      if (nodes[i].parentNode === el) el.removeChild(nodes[i]);
+    }
+  };
+
+  window.renderEmpty = function (container, text, hint, icon) {
+    var el = typeof container === 'string' ? document.querySelector(container) : container;
+    var html =
+      '<div class="empty-state">' +
+      '<div class="empty-state-icon">' + escapeHtml(icon || '\u2726') + '</div>' +
+      '<div class="empty-state-text">' + escapeHtml(text || '暂无数据') + '</div>' +
+      (hint ? '<div class="empty-state-hint">' + escapeHtml(hint) + '</div>' : '') +
+      '</div>';
+    if (el) el.innerHTML = html;
+    return html;
+  };
+
+  window.registerShortcut = function () {
+    var eventName = 'keydown', key, handler, targetSelector;
+    if (arguments.length >= 3) {
+      eventName = arguments[0];
+      key = arguments[1];
+      handler = arguments[2];
+      targetSelector = arguments[3];
+    } else {
+      key = arguments[0];
+      handler = arguments[1];
+    }
+    var parts = String(key).toLowerCase().split('+');
+    var needMod = parts.indexOf('ctrl') !== -1 || parts.indexOf('meta') !== -1;
+    var k = parts[parts.length - 1];
+    var scope = targetSelector ? document.querySelector(targetSelector) : document;
+    if (!scope || typeof handler !== 'function') return;
+    scope.addEventListener(eventName, function (e) {
+      var hasMod = e.ctrlKey || e.metaKey;
+      if (hasMod === needMod && String(e.key).toLowerCase() === k) {
+        e.preventDefault();
+        handler(e);
+      }
+    });
   };
 
   /* ===========================

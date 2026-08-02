@@ -163,11 +163,11 @@
   <script>
     (function() {
       // Theme toggle
-      var adminTheme = localStorage.getItem('admin-theme');
+      var adminTheme = localStorage.getItem('theme');
       if (adminTheme === 'light') document.body.classList.add('light');
       window.toggleAdminTheme = function() {
         document.body.classList.toggle('light');
-        localStorage.setItem('admin-theme', document.body.classList.contains('light') ? 'light' : 'dark');
+        localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
       };
 
       var form = document.getElementById('login-form');
