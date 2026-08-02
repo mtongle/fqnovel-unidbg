@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>fqnovel-unidbg · 全本下载</title>
-<link rel="stylesheet" href="/css/public.css?v=0.0.6">
-<link rel="stylesheet" href="/admin/css/admin.css?v=0.0.6">
+<link rel="stylesheet" href="/css/public.css?v=2.0.0">
+<link rel="stylesheet" href="/admin/css/admin.css?v=2.0.0">
 </head>
 <body>
 
@@ -30,6 +30,7 @@
   </nav>
   <div class="sidebar-footer">
     <button class="btn btn-sm btn-outline" onclick="lockPanel()" title="锁定面板">✦ 锁定</button>
+    <a href="/dashboard.html" class="btn btn-sm btn-outline">← 返回公开面板</a>
   </div>
 </aside>
 
@@ -82,7 +83,7 @@
               <tr><th>书名</th><th>Book ID</th><th>进度</th><th>已下载 / 总数</th><th>完成度</th><th>操作</th></tr>
             </thead>
             <tbody id="dl-status-body">
-              <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px;">✦ 点击「检查所有」查看下载状态</td></tr>
+              <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px;">✦ 正在自动检查下载状态...</td></tr>
             </tbody>
           </table>
         </div>
@@ -96,8 +97,8 @@
   <div class="loading-spinner"></div>
 </div>
 
-<script src="/js/public.js?v=0.0.6"></script>
-<script src="/admin/js/admin-common.js?v=0.0.6"></script>
+<script src="/js/public.js?v=2.0.0"></script>
+<script src="/admin/js/admin-common.js?v=2.0.0"></script>
 <script>
 (function(){
   var _activeDownloads = {};

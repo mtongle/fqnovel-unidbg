@@ -46,6 +46,9 @@
   // 高亮当前页面在导航栏中
   document.addEventListener('DOMContentLoaded', function () {
     var cur = location.pathname.split('/').pop().replace(/\.html$/, '') || 'dashboard';
+    // F1: data-section 与文件名不匹配的页面映射(devices/search/reader/comments)
+    var sectionMap = { devices: 'device-pool', search: 'book-search', reader: 'chapter-viewer', comments: 'comment-viewer' };
+    cur = sectionMap[cur] || cur;
     document.querySelectorAll('.nav-item').forEach(function (el) {
       var section = el.getAttribute('data-section') || '';
       if (section === cur) el.classList.add('active');

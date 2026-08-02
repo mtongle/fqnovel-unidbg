@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>fqnovel-unidbg · 登录</title>
-<link rel="stylesheet" href="/css/public.css?v=0.0.6">
-<link rel="stylesheet" href="/admin/css/admin.css?v=0.0.6">
+<link rel="stylesheet" href="/css/public.css?v=2.0.0">
+<link rel="stylesheet" href="/admin/css/admin.css?v=2.0.0">
 <style>
   .login-body {
     display: flex;
@@ -160,16 +160,10 @@
     </div>
   </div>
 
+  <script src="/js/public.js?v=2.0.0"></script>
+  <script src="/admin/js/admin-common.js?v=2.0.0"></script>
   <script>
     (function() {
-      // Theme toggle
-      var adminTheme = localStorage.getItem('theme');
-      if (adminTheme === 'light') document.body.classList.add('light');
-      window.toggleAdminTheme = function() {
-        document.body.classList.toggle('light');
-        localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
-      };
-
       var form = document.getElementById('login-form');
       var passInput = document.getElementById('password');
       var errorEl = document.getElementById('login-error');

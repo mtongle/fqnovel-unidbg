@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>fqnovel-unidbg · 段评查询</title>
-<link rel="stylesheet" href="/css/public.css?v=0.0.6">
-<link rel="stylesheet" href="/admin/css/admin.css?v=0.0.6">
+<link rel="stylesheet" href="/css/public.css?v=2.0.0">
+<link rel="stylesheet" href="/admin/css/admin.css?v=2.0.0">
 </head>
 <body>
 
@@ -30,6 +30,7 @@
   </nav>
   <div class="sidebar-footer">
     <button class="btn btn-sm btn-outline" onclick="lockPanel()" title="锁定面板">✦ 锁定</button>
+    <a href="/dashboard.html" class="btn btn-sm btn-outline">← 返回公开面板</a>
   </div>
 </aside>
 
@@ -44,6 +45,7 @@
           <input type="number" id="cm-para-idx" class="search-input" style="max-width:100px;" placeholder="段落索引" value="0">
           <button class="btn btn-primary" id="btn-cm-idea">✦ 统计</button>
           <button class="btn btn-accent" id="btn-cm-list">✦ 查询</button>
+          <button class="btn btn-outline" id="btn-cm-clear">✦ 清空</button>
         </div>
       </div>
     </div>
@@ -63,8 +65,8 @@
   <div class="loading-spinner"></div>
 </div>
 
-<script src="/js/public.js?v=0.0.6"></script>
-<script src="/admin/js/admin-common.js?v=0.0.6"></script>
+<script src="/js/public.js?v=2.0.0"></script>
+<script src="/admin/js/admin-common.js?v=2.0.0"></script>
 <script>
 (function(){
   function jsonToVisual(obj, depth) {
@@ -192,13 +194,23 @@
     finally { hideLoading(); }
   }
 
+  function clearComments() {
+    $('cm-book-id').value = '';
+    $('cm-chapter-id').value = '';
+    $('cm-para-idx').value = '0';
+    if ($('cm-list-count')) $('cm-list-count').textContent = '';
+    $('cm-list-result').innerHTML = '<div class="detail-empty">✦ 暂无数据</div>';
+    $('cm-idea-result').innerHTML = '<div class="detail-empty">✦ 暂无数据</div>';
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     var params = new URLSearchParams(location.search);
     if (params.get('bookId')) $('cm-book-id').value = params.get('bookId');
     if (params.get('chapterId')) $('cm-chapter-id').value = params.get('chapterId');
     $('btn-cm-idea').addEventListener('click', queryIdea);
     $('btn-cm-list').addEventListener('click', queryList);
-    $('cm-chapter-id').addEventListener('keydown', function(e){ if (e.key === 'Enter') queryIdea(); });
+    $('btn-cm-clear').addEventListener('click', clearComments);
+    $('cm-chapter-id').addEventListener('keydown', function(e){ if (e.key === 'Enter') queryList(); });
   });
 })();
 </script>

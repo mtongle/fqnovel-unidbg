@@ -4,37 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>fqnovel-unidbg · 已下载书籍</title>
-<link rel="stylesheet" href="/css/public.css?v=0.0.6">
-<link rel="stylesheet" href="/admin/css/admin.css?v=0.0.6">
-<style>
-.books-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 16px;
-}
-.books-grid .book-card {
-  background: var(--bg-raised);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 18px;
-  transition: all var(--transition);
-}
-.books-grid .book-card:hover {
-  background: var(--bg-hover);
-  border-color: var(--accent-gold-dim);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-elevated);
-}
-.book-card-name { font-family: var(--font-display); font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
-.book-card-meta { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 8px; }
-.book-card-progress { margin: 6px 0; }
-.book-card-stats { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-muted); }
-.book-card-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
-.chapter-list { max-height: 400px; overflow-y: auto; }
-.chapter-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 0.82rem; }
-.chapter-item:last-child { border-bottom: none; }
-.detail-empty { text-align: center; padding: 40px; color: var(--text-muted); }
-</style>
+<link rel="stylesheet" href="/css/public.css?v=2.0.0">
+<link rel="stylesheet" href="/admin/css/admin.css?v=2.0.0">
 </head>
 <body>
 
@@ -59,6 +30,7 @@
   </nav>
   <div class="sidebar-footer">
     <button class="btn btn-sm btn-outline" onclick="lockPanel()" title="锁定面板">✦ 锁定</button>
+    <a href="/dashboard.html" class="btn btn-sm btn-outline">← 返回公开面板</a>
   </div>
 </aside>
 
@@ -97,8 +69,8 @@
   <div class="loading-spinner"></div>
 </div>
 
-<script src="/js/public.js?v=0.0.6"></script>
-<script src="/admin/js/admin-common.js?v=0.0.6"></script>
+<script src="/js/public.js?v=2.0.0"></script>
+<script src="/admin/js/admin-common.js?v=2.0.0"></script>
 <script>
 (function(){
   var _allBooks = [];
@@ -108,9 +80,13 @@
     try {
       var resp = await fetch('/api/fullbook/check-all-status');
       var result = await resp.json();
-      if (!result || !result.success) { showToast((result&&result.message)||'获取数据失败', 'error'); return; }
+      if (!result || !result.success) {
+        $('books-grid-area').innerHTML = '<div class="detail-empty">✦ 加载失败</div>';
+        showToast((result&&result.message)||'获取数据失败', 'error');
+        return;
+      }
       renderBooks(result.books);
-    } catch(e) { showToast('刷新失败: '+e.message, 'error'); }
+    } catch(e) { $('books-grid-area').innerHTML = '<div class="detail-empty">✦ 加载失败</div>'; showToast('刷新失败: '+e.message, 'error'); }
     finally { hideLoading(); }
   }
 

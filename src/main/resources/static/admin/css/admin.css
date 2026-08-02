@@ -1,7 +1,7 @@
 /* ============================================================
    fqnovel-unidbg Admin Panel — Ink & Parchment Theme
    墨与笺 · 后台管理系统专用样式
-   Version: 0.0.5
+   Version: 2.0.0
    ============================================================ */
 
 /* ============================================================
@@ -39,7 +39,7 @@
   font-family: var(--font-display);
   font-size: 1.15rem;
   font-weight: 700;
-  color: var(--accent-gold);
+  color: var(--gold);
   letter-spacing: 0.3px;
 }
 
@@ -52,7 +52,7 @@
 .sidebar-subtitle {
   display: block;
   font-size: 0.68rem;
-  color: var(--text-muted);
+  color: var(--ink-green);
   margin-top: 3px;
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -239,4 +239,25 @@
 .theme-toggle-admin:hover {
   background: var(--bg-hover);
   border-color: var(--accent-gold-dim);
+}
+
+/* ============================================================
+   SHARED COMPONENTS (自 public.css 移入的 admin 侧组件)
+   ============================================================ */
+.chapter-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+.chapter-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.82rem;
+}
+.chapter-item:last-child { border-bottom: none; }
+.detail-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
 }
