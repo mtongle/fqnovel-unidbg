@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-17-blue?logo=openjdk" alt="Java 17">
-  <img src="https://img.shields.io/badge/Spring%20Boot-2.6.3-brightgreen?logo=spring" alt="Spring Boot 2.6.3">
+  <img src="https://img.shields.io/badge/Spring%20Boot-2.7.18-brightgreen?logo=spring" alt="Spring Boot 2.7.18">
   <img src="https://img.shields.io/badge/Unidbg-0.9.8-purple" alt="Unidbg 0.9.8">
   <img src="https://img.shields.io/badge/Maven-3.6%2B-red?logo=apachemaven" alt="Maven 3.6+">
   <img src="https://img.shields.io/badge/License-Apache%202.0-blue" alt="License">
@@ -30,9 +30,8 @@
 - **设备池轮询** — 多设备轮询调用，降低单设备风控概率
 - **自动重试与恢复** — 下载任务自动恢复，断点续传，失败自动重试
 - **全本下载** — 流式下载全书内容，支持进度查询与自动恢复
-- **11 大 API 模块** — 搜索、目录、章节、签名、段评、设备管理、Admin 后台、SSR 段评页面、图片代理等
+- **11 大 API 模块** — 搜索、目录、章节、签名、段评、设备管理、Admin 后台、SSR 段评页面等
 - **段评全链路** — 统计→详情→回复分页→SSR 段评预览页 → 章节正文内联徽章
-- **图片代理** — 服务端直转图片（带 HEIC→JPEG），避免跨域问题
 - **Legado 书源** — 可直接配置为阅读 3 书源，手机端无缝阅读
 - **内置 Web 面板** — Admin 管理后台 + SSR 段评页面，开箱即用
 
@@ -41,7 +40,7 @@
 | 组件 | 选型 | 组件 | 选型 |
 |------|------|------|------|
 | 语言 | Java 17 | 核心引擎 | Unidbg 0.9.8 |
-| 框架 | Spring Boot 2.6.3 | 构建工具 | Maven 3.6+ / Wrapper |
+| 框架 | Spring Boot 2.7.18 | 构建工具 | Maven 3.6+ / Wrapper |
 | 缓存 | Redis（可选） | 部署 | JAR / Docker |
 
 ## 🚀 快速开始
@@ -77,7 +76,7 @@ fq:
 spring:
   redis:
     host: 127.0.0.1       # 不需要全本下载可设为 0.0.0.0 禁用
-    port: 6379
+    port: 26586
 ```
 
 ```bash
@@ -219,15 +218,6 @@ curl -X POST 'http://127.0.0.1:8099/api/fqcomment/reply/list' \
 curl 'http://127.0.0.1:8099/api/ssr/comment-page?bookId=...&chapterId=...&paraIndex=0'
 ```
 
-### 图片代理 `/api/img`
-
-服务端直转图片，使用设备池 Cookie/UA/Referer 获取图片，支持 HEIC→JPEG 转换，避免前端跨域问题。
-
-| 端点 | 说明 |
-|------|------|
-| `GET /proxy?url=` | 代理图片（返回 JPEG 字节） |
-| `GET /proxy/clear-cache` | 清除图片缓存 |
-
 ### Admin 管理后台 `/api/admin`
 
 提供 Web 管理页面（访问 `/api/admin` 自动重定向）。
@@ -274,11 +264,18 @@ src/main/resources/
 ├── com/dragon/read/oversea/gp/  — Unidbg 运行时资源（APK、so、rootfs）
 ├── legado/fqnovel.json          — Legado 书源配置
 ├── static/
-│   ├── admin/        — Admin 管理页面
-│   ├── comment/      — SSR 段评页面
-│   ├── css/          — 段评页面样式
-│   ├── js/           — 段评页面脚本
-│   └── img/          — 静态图片资源
+│   ├── admin/          — Admin 管理页面
+│   ├── dashboard.html  — 公开面板（仪表盘）
+│   ├── search.html     — 搜索页
+│   ├── reader.html     — 阅读页
+│   ├── books.html      — 书籍列表页
+│   ├── comments.html   — 段评页
+│   ├── download.html   — 全本下载页
+│   ├── api.html        — API 文档页
+│   ├── index.html      — 首页
+│   ├── css/            — 段评页面样式
+│   ├── js/             — 段评页面脚本
+│   └── img/            — 静态图片资源
 ├── application.yml   — 主配置
 
 tools/     — Python 辅助脚本
@@ -300,7 +297,6 @@ results/   — 全本下载输出
 - 若用于阅读器，请控制预加载与缓存频率
 - `application.unidbg.verbose=true` 会开启详细日志，**极慢**，生产务必关闭
 - `restart.sh` 脚本已移至 `bin/restart.sh`，使用相对路径定位项目根目录
-- 图片代理 `/api/img/proxy` 会缓存转换后的 JPEG 至内存，最大 500 张，TTL 1 小时
 - SSR 段评页面可通过明暗主题切换按钮调整阅读配色
 
 ## 📜 更新日志

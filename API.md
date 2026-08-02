@@ -443,8 +443,7 @@ curl -X POST "http://127.0.0.1:8099/api/fqcomment/idea" \
   -H "Content-Type: application/json" \
   -d '{
     "chapterId": "7422333445566778899",
-    "commentSource": 2,
-    "serverChannel": 17
+    "commentSource": 2
   }'
 ```
 
@@ -459,9 +458,7 @@ curl -X POST "http://127.0.0.1:8099/api/fqcomment/list" \
     "paraIndex": 0,
     "commentSource": 2,
     "commentType": 2,
-    "serverChannel": 18,
     "groupType": 15,
-    "sort": 2,
     "count": 20
   }'
 ```

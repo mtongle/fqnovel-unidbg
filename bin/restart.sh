@@ -2,6 +2,9 @@
 set -e  # 遇到错误立即退出
 echo "[$(date)] 正在重启项目..."
 
+# 先切换到脚本目录所在的项目根目录，再使用相对路径定位 JAR
+cd "$(dirname "$0")/.."
+
 JAR_FILE=$(ls -t target/unidbg-boot-server-*.jar 2>/dev/null | head -1)
 if [ -z "$JAR_FILE" ]; then
     echo "[$(date)] 错误: 未找到 JAR 文件 (target/unidbg-boot-server-*.jar)"

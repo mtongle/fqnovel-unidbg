@@ -17,7 +17,7 @@ import urllib.request
 
 
 # 本地服务地址（与后端 Spring Boot 的端口保持一致）
-BASE = 'http://127.0.0.1:9999'
+BASE = 'http://127.0.0.1:8099'
 
 
 def stream_fullbook_download(book_id: str, batch_size: int, max_chapters: int | None, save_to_redis: bool, timeout: int) -> None:

@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 删除 jib 死配置、SleuthAsyncConfig 无引用 Bean、断链符号链接、模板文件与遗留日志
 - `FQEncryptController`：`.get()` 阻塞改返回 CompletableFuture
 
+### 已知问题
+- `DeviceManagementService` 端口 9999 修复未做（设备注册/重启流程生成的清理脚本仍写死 9999 端口，需后续安全计划处理）
+
 ## [v0.0.5] - 2026-07-17
 
 ### Added

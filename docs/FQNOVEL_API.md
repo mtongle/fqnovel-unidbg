@@ -25,22 +25,7 @@ GET /api/fqnovel/health
 }
 ```
 
-### 2. 获取单个章节内容 (新增)
-```
-GET /api/fqnovel/item_id/{itemId}
-```
-
-参数：
-- `itemId`: 章节ID
-
-响应：直接返回解密后的章节文本内容
-
-示例：
-```bash
-curl "http://localhost:9999/api/fqnovel/item_id/7282975997584998953"
-```
-
-### 3. 获取章节内容 (兼容接口)
+### 2. 获取章节内容 (兼容接口)
 ```
 GET /api/fqnovel/chapter/{bookId}/{chapterId}
 POST /api/fqnovel/chapter
@@ -48,7 +33,7 @@ POST /api/fqnovel/chapter
 
 这些接口保持向后兼容，但内部使用新的 API 模式。
 
-### 4. 批量获取章节内容 (更新)
+### 3. 批量获取章节内容 (更新)
 ```
 POST /api/fqnovel/chapters/batch
 ```
@@ -61,7 +46,7 @@ POST /api/fqnovel/chapters/batch
 }
 ```
 
-### 5. 批量获取章节内容 (新增 - 支持范围)
+### 4. 批量获取章节内容 (新增 - 支持范围)
 ```
 POST /api/fqnovel/chapters/batch
 ```
@@ -171,17 +156,12 @@ FqVariable var = new FqVariable();
 
 ### 获取书籍信息
 ```bash
-curl "http://localhost:9999/api/fqnovel/book/7276384138653862966"
-```
-
-### 获取单个章节
-```bash
-curl "http://localhost:9999/api/fqnovel/item_id/7282975997584998953"
+curl "http://localhost:8099/api/fqnovel/book/7276384138653862966"
 ```
 
 ### 批量获取章节
 ```bash
-curl -X POST "http://localhost:9999/api/fqnovel/chapters/batch" \
+curl -X POST "http://localhost:8099/api/fqnovel/chapters/batch" \
   -H "Content-Type: application/json" \
   -d '{
     "bookId": "7276384138653862966",

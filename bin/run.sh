@@ -1,7 +1,15 @@
 #!/bin/bash
-# 指定 Java 路径
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
-export PATH=$JAVA_HOME/bin:$PATH
+# 自动探测 Java 路径；如需覆盖可预先设置 JAVA_HOME 环境变量
+if [ -z "$JAVA_HOME" ] && command -v java >/dev/null 2>&1; then
+    JAVA_HOME=$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")
+fi
+if [ -n "$JAVA_HOME" ]; then
+    export PATH="$JAVA_HOME/bin:$PATH"
+fi
+if ! command -v java >/dev/null 2>&1; then
+    echo "[$(date)] 错误: 未找到 java，请安装 JDK 17 或设置 JAVA_HOME 环境变量"
+    exit 1
+fi
 
 # 使用项目自带的 mvnw 编译并运行
 ./mvnw clean package -DskipTests
