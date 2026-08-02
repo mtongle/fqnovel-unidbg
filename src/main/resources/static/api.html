@@ -66,55 +66,6 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
 </head>
 <body>
 
-<!-- SVG sprite -->
-<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-  <symbol id="icon-api" viewBox="0 0 24 24">
-    <path d="M13.5 3H10a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h3.5a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1z"/>
-    <path d="M14 9v2.5a2 2 0 0 1-2 2h0a2 2 0 0 1-2-2V9"/>
-    <line x1="12" y1="13.5" x2="12" y2="18"/>
-    <line x1="9" y1="18" x2="15" y2="18"/>
-  </symbol>
-  <symbol id="icon-book" viewBox="0 0 24 24">
-    <path d="M4 19.5v-15A1.5 1.5 0 0 1 5.5 3H11a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H5.5A1.5 1.5 0 0 1 4 18.5z"/>
-    <path d="M12 19V4a1 1 0 0 1 1-1h5.5A1.5 1.5 0 0 1 20 4.5v15A1.5 1.5 0 0 1 18.5 21H13a1 1 0 0 1-1-1z"/>
-    <line x1="12" y1="7" x2="20" y2="7"/>
-    <line x1="4" y1="7" x2="12" y2="7"/>
-  </symbol>
-  <symbol id="icon-search" viewBox="0 0 24 24">
-    <circle cx="10.5" cy="10.5" r="7"/><line x1="15.5" y1="15.5" x2="21" y2="21"/>
-  </symbol>
-  <symbol id="icon-download" viewBox="0 0 24 24">
-    <line x1="12" y1="3" x2="12" y2="15"/>
-    <polyline points="7,10 12,15 17,10"/>
-    <line x1="4" y1="19" x2="20" y2="19"/>
-  </symbol>
-  <symbol id="icon-device" viewBox="0 0 24 24">
-    <rect x="5" y="2" width="14" height="20" rx="2.5"/>
-    <line x1="12" y1="18" x2="12.01" y2="18"/>
-  </symbol>
-  <symbol id="icon-lock" viewBox="0 0 24 24">
-    <rect x="5" y="11" width="14" height="10" rx="2"/>
-    <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
-    <circle cx="12" cy="16" r="1.5"/>
-  </symbol>
-  <symbol id="icon-refresh" viewBox="0 0 24 24">
-    <polyline points="23,4 23,10 17,10"/>
-    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-  </symbol>
-  <symbol id="icon-comment" viewBox="0 0 24 24">
-    <path d="M21 12a9 9 0 0 1-9 9H4l2.5-3.5A9 9 0 1 1 21 12z"/>
-  </symbol>
-  <symbol id="icon-monitor" viewBox="0 0 24 24">
-    <rect x="2" y="3" width="20" height="14" rx="2"/>
-    <line x1="8" y1="21" x2="16" y2="21"/>
-    <line x1="12" y1="17" x2="12" y2="21"/>
-  </symbol>
-  <symbol id="icon-settings" viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-  </symbol>
-</svg>
-
 <button class="public-mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu">☰</button>
 <button class="public-theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">✦</button>
 
@@ -126,18 +77,18 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   </div>
   <a href="/dashboard.html" class="public-sidebar-back" onclick="closeMobileSidebar()"><span class="public-nav-icon">←</span>返回仪表盘</a>
   <nav class="public-sidebar-nav">
-    <a href="#section-fqnovel" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-book"/></svg></span>小说内容</a>
-    <a href="#section-fqsearch" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-search"/></svg></span>搜索与目录</a>
-    <a href="#section-discovery" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-search"/></svg></span>发现与分类</a>
-    <a href="#section-fullbook" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-download"/></svg></span>全本下载</a>
-    <a href="#section-device" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-device"/></svg></span>设备管理</a>
-    <a href="#section-signature" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-lock"/></svg></span>签名生成</a>
-    <a href="#section-cache" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-refresh"/></svg></span>Redis 缓存</a>
-    <a href="#section-fqcomment" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-comment"/></svg></span>段评查询</a>
-    <a href="#section-ssr" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-monitor"/></svg></span>SSR 段评页面</a>
-    <a href="#section-img" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-api"/></svg></span>图片代理</a>
-    <a href="#section-legado" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-book"/></svg></span>Legado 书源</a>
-    <a href="#section-admin" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="#icon-settings"/></svg></span>管理后台</a>
+    <a href="#section-fqnovel" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg></span>小说内容</a>
+    <a href="#section-fqsearch" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-search"/></svg></span>搜索与目录</a>
+    <a href="#section-discovery" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-search"/></svg></span>发现与分类</a>
+    <a href="#section-fullbook" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg></span>全本下载</a>
+    <a href="#section-device" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-device"/></svg></span>设备管理</a>
+    <a href="#section-signature" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-lock"/></svg></span>签名生成</a>
+    <a href="#section-cache" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg></span>Redis 缓存</a>
+    <a href="#section-fqcomment" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-comment"/></svg></span>段评查询</a>
+    <a href="#section-ssr" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-monitor"/></svg></span>SSR 段评页面</a>
+    <a href="#section-img" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-api"/></svg></span>图片代理</a>
+    <a href="#section-legado" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg></span>Legado 书源</a>
+    <a href="#section-admin" class="public-nav-item" onclick="closeMobileSidebar()"><span class="public-nav-icon"><svg class="ic"><use href="/css/icons.svg#icon-settings"/></svg></span>管理后台</a>
   </nav>
   <div class="public-sidebar-footer">
     <span style="font-size:0.75rem;color:var(--text-muted);">公开文档 · 只读</span>
@@ -159,7 +110,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/fqnovel -->
   <section class="section" id="section-fqnovel">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-book"/></svg>小说内容</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg>小说内容</h2>
       <span class="route-prefix">/api/fqnovel</span>
     </div>
     <div class="card mb-12">
@@ -332,7 +283,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/fqsearch -->
   <section class="section" id="section-fqsearch">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-search"/></svg>搜索与目录</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-search"/></svg>搜索与目录</h2>
       <span class="route-prefix">/api/fqsearch</span>
     </div>
     <div class="card mb-12">
@@ -504,7 +455,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/fqnovel/category -->
   <section class="section" id="section-discovery">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-search"/></svg>发现与分类</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-search"/></svg>发现与分类</h2>
       <span class="route-prefix">/api/fqnovel/category</span>
     </div>
     <div class="card mb-12">
@@ -609,7 +560,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/fullbook -->
   <section class="section" id="section-fullbook">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-download"/></svg>全本下载</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg>全本下载</h2>
       <span class="route-prefix">/api/fullbook</span>
     </div>
     <div class="card mb-12">
@@ -827,7 +778,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/device -->
   <section class="section" id="section-device">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-device"/></svg>设备管理</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-device"/></svg>设备管理</h2>
       <span class="route-prefix">/api/device</span>
     </div>
     <div class="card mb-12">
@@ -965,7 +916,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/fq-signature -->
   <section class="section" id="section-signature">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-lock"/></svg>签名生成</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-lock"/></svg>签名生成</h2>
       <span class="route-prefix">/api/fq-signature</span>
     </div>
     <div class="card mb-12">
@@ -1069,7 +1020,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/cache -->
   <section class="section" id="section-cache">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-refresh"/></svg>Redis 缓存</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-refresh"/></svg>Redis 缓存</h2>
       <span class="route-prefix">/api/cache</span>
     </div>
     <div class="card mb-12">
@@ -1206,7 +1157,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/fqcomment -->
   <section class="section" id="section-fqcomment">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-comment"/></svg>段评查询</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-comment"/></svg>段评查询</h2>
       <span class="route-prefix">/api/fqcomment</span>
     </div>
     <div class="card mb-12">
@@ -1322,7 +1273,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/ssr -->
   <section class="section" id="section-ssr">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-monitor"/></svg>SSR 段评页面</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-monitor"/></svg>SSR 段评页面</h2>
       <span class="route-prefix">/api/ssr</span>
     </div>
     <div class="card mb-12">
@@ -1398,7 +1349,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/img -->
   <section class="section" id="section-img">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-api"/></svg>图片代理</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-api"/></svg>图片代理</h2>
       <span class="route-prefix">/api/img</span>
     </div>
     <div class="card mb-12">
@@ -1459,7 +1410,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/legado -->
   <section class="section" id="section-legado">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-book"/></svg>Legado 书源</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-book"/></svg>Legado 书源</h2>
       <span class="route-prefix">/api/legado</span>
     </div>
     <div class="card mb-12">
@@ -1509,7 +1460,7 @@ body.light .method-badge.delete { background: rgba(184, 74, 74, 0.12); color: #B
   <!-- /api/admin -->
   <section class="section" id="section-admin">
     <div class="section-header">
-      <h2><svg class="ic"><use href="#icon-settings"/></svg>管理后台</h2>
+      <h2><svg class="ic"><use href="/css/icons.svg#icon-settings"/></svg>管理后台</h2>
       <span class="route-prefix">/api/admin</span>
     </div>
     <div class="card mb-12">
