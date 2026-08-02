@@ -1,6 +1,9 @@
 server:
   port: 8099
   address: 0.0.0.0
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,text/css,application/javascript,image/svg+xml
 application:
   unidbg:
     dynarmic: false
@@ -21,6 +24,11 @@ fq:
 spring:
   application:
     name: unidbg-boot-server
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          max-age: 7d
   task:
     execution:
       pool:
