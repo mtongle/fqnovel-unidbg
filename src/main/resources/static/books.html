@@ -119,7 +119,7 @@
         '<div class="book-card-stats"><span>已下载: <strong>' + (b.downloadedChapters!=null?b.downloadedChapters:'?') + '</strong></span><span>总章节: <strong>' + (b.totalChapters!=null?b.totalChapters:'?') + '</strong></span></div>' +
         '<div class="book-card-actions">' +
         '<button class="btn btn-sm btn-primary show-chapters-btn" data-book-id="'+encodeURIComponent(b.bookId)+'" data-book-name="'+escapeHtml(b.bookName||'')+'"><svg class="ic"><use href="/css/icons.svg#icon-clipboard"/></svg> 查看章节</button>' +
-        '<button class="btn btn-sm btn-outline" onclick="window.location.href=\'/admin/download.html\'"><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg> 下载管理</button>' +
+        '<button class="btn btn-sm btn-outline" onclick="window.location.href=\'/download.html\'"><svg class="ic"><use href="/css/icons.svg#icon-download"/></svg> 下载管理</button>' +
         '<button class="btn btn-sm btn-danger delete-book-btn" data-book-id="'+encodeURIComponent(b.bookId)+'">删除</button></div></div>';
     }).join('') + '</div>';
 
