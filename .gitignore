@@ -62,6 +62,9 @@ opencode.jsonc
 ### Local tooling ###
 .claude/
 .codegraph/
+.mimosa/
+.opencode/
+openspec/
 
 ### Python venv ###
 tools/venv/
