@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - 新增 `FQCryptoTest` 加解密单元测试（round-trip / registerkey / gzip / hex 校验）
 - 新增全局 `GlobalExceptionHandler` 统一错误响应结构（缺失参数/类型错误 → 400）
+- 配置编辑器 `config.html`：schema 新增 profiles 组（`spring.profiles.active`，`noAutoInsert`）与 redis 组 `spring.redis.password` 可编辑字段；掩码字段未重输时不再阻断保存，placeholder 改为「留空则保留原值（已脱敏）」
+- 新增 `ConfigManagementServiceTest`：脱敏占位符替换、未知键逐字保留、无效 YAML 拒绝等 10 个用例
+- 静态 HTML 响应（根 /admin/ /error/ 三层）`Cache-Control: no-cache`，CSS/JS 保持 `max-age: 7d`，保证面板去重与配置改动即时生效（`StaticHtmlCacheConfig`）
+- 评论数徽章改为 HTTP PNG 端点 `GET /api/fqnovel/comment-badge/{count}`（`CommentBadgeController` + `BadgeImageRenderer`）：替换原内联 SVG data-URI，进程内缓存（上限 128 条）、`Cache-Control: max-age=86400`；路径段容忍 Legado 点击元数据后缀（只取前导数字，其余忽略），无有效数字/非正数返回 400；新增 `CommentBadgeControllerTest`
+
+### Changed
+- `ConfigManagementService.saveConfigFromYaml`：脱敏占位符 `****` 永不落盘——值恰为占位符的键行用磁盘旧值整行替换（保留缩进与行内注释），磁盘无此键则删除该行；其余行（含未知键）逐字保留；`spring.config.location` 支持 `file:` 前缀剥离；SnakeYAML 语法错误统一转 `IllegalArgumentException`（返回 400「YAML 格式无效」而非 500）
+- 管理面板去重：删除重复功能页 `admin/{search,download,books,reader,comments}.html`，导航收敛为 概览/配置/设备池/系统监控；公开 `books.html`「下载管理」改指 `/download.html`
+- `DeviceGeneratorService`/`DeviceRegisterClientService`：注明 MD5 为 OpenUDID 注册协议必需（不可替换为 SHA-256）；`FQEncryptServiceWorker` 签名缓存键由 MD5 改 SHA-256，消除弱哈希缓存碰撞
+- 仓库卫生：删除 `tools/` 下 3 个未用 Python 脚本（`batch_device_register_xml.py`/`export_book_cached_merge.py`/`fullbook_download_and_merge.py`），`.gitignore` 补忽略本地工具目录（`.mimosa`/`.opencode`/`openspec`）
 
 ### Security
 - `AdminAuthFilter`：URL 解码防 `/api/%61dmin` 编码绕过、fail-closed 校验、令牌 24h TTL + 过期清理、兼容尾斜杠
