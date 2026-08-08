@@ -250,6 +250,11 @@ public class DeviceGeneratorService {
 
     /**
      * MD5编码（显式 UTF-8，与 DeviceRegisterClientService 保持一致）
+     *
+     * 注意：此处 MD5 为协议必需算法，不可替换为 SHA-256——
+     * OpenUDID 由服务端（fqnovel/ByteDance device_register）按真实 App 算法
+     * md5(androidId) + md5(md5(androidId))[0:8] 校验生成，替换会导致设备注册失败。
+     * 该哈希不承担任何完整性/认证职责，无安全碰撞风险暴露面。
      */
     private String md5Encode(String text) {
         try {

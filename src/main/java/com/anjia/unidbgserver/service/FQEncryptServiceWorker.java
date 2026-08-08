@@ -149,7 +149,8 @@ public class FQEncryptServiceWorker extends Worker {
 
     private String buildCacheKey(String url, String headers) {
         try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
+            // 内部签名缓存键：使用 SHA-256 取代 MD5，避免弱哈希碰撞导致的缓存污染
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(url.getBytes("UTF-8"));
             md.update(headers != null ? headers.getBytes("UTF-8") : new byte[0]);
             byte[] digest = md.digest();
