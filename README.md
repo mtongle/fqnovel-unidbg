@@ -108,6 +108,7 @@ mvn package -T10 -DskipTests && java -jar target/unidbg-boot-server-0.0.5.jar
 | `GET /chapter/{bookId}/{chapterId}` | 单章内容 |
 | `POST /chapter` | POST 单章 |
 | `GET /chapter/enriched/{bookId}/{chapterId}` | ⭐ **段评增强章节**（正文内联评论徽章） |
+| `GET /comment-badge/{count}` | ⭐ **评论数徽章**（PNG 图片，供增强章节内联引用） |
 | `POST /chapters/batch` | ⭐ **批量章节（推荐）** |
 | `GET /health` | 健康检查 |
 
@@ -253,7 +254,7 @@ curl -X POST 'http://127.0.0.1:8099/api/legado/comment' \
 
 ```
 src/main/java/com/anjia/unidbgserver/
-├── web/          — Controller（11 个，对应 11 个路由前缀）
+├── web/          — Controller（12 个，对应 11 个路由前缀）
 ├── service/      — Service（19 个）
 ├── unidbg/       — Unidbg 核心引擎（IdleFQ）
 ├── config/       — Spring 配置类
@@ -278,7 +279,6 @@ src/main/resources/
 │   └── img/            — 静态图片资源
 ├── application.yml   — 主配置
 
-tools/     — Python 辅助脚本
 bin/       — 启动与管理脚本
 docs/      — 项目文档
 results/   — 全本下载输出
