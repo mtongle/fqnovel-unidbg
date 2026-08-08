@@ -64,7 +64,7 @@
       <div class="config-editor-wrapper">
         <textarea id="config-editor" class="config-textarea" spellcheck="false" placeholder="正在加载配置..."></textarea>
       </div>
-      <div class="cfg-hint">修改后保存:提交前自动全文档检测「已脱敏」值(<code> ****</code>),未处理将阻止保存,防止敏感配置被覆盖丢失。</div>
+      <div class="cfg-hint">修改后保存:掩码字段(值为 <code> ****</code>)留空则保留原值,由后端替换为磁盘旧值;无需重输敏感字段也可保存。</div>
     </div>
 
     <div class="config-actions">
@@ -86,8 +86,9 @@
   'use strict';
 
   /* ============================================================
-     配置表单 Schema(8 组 29 业务字段;默认值以 application.yml 现值校准)
+     配置表单 Schema(9 组 31 业务字段;默认值以 application.yml 现值校准)
      spring.application.name 为只读标识,单独展示
+     noAutoInsert: 缺失键 + 用户未填写 → 不插入该行(留空则保留原值)
      ============================================================ */
   var SCHEMA = [
     { gid: 'server', title: '服务器 · Server', fields: [
@@ -130,7 +131,11 @@
       { key: 'spring.redis.lettuce.pool.max-active', label: '最大活跃连接', desc: '连接池最大活跃连接', type: 'number', def: '8' },
       { key: 'spring.redis.lettuce.pool.max-idle', label: '最大空闲连接', desc: '连接池最大空闲连接', type: 'number', def: '8' },
       { key: 'spring.redis.lettuce.pool.min-idle', label: '最小空闲连接', desc: '连接池最小空闲连接', type: 'number', def: '0' },
-      { key: 'spring.redis.lettuce.pool.max-wait', label: '最大等待', desc: '获取连接最大等待时间', type: 'text', def: '-1ms' }
+      { key: 'spring.redis.lettuce.pool.max-wait', label: '最大等待', desc: '获取连接最大等待时间', type: 'text', def: '-1ms' },
+      { key: 'spring.redis.password', label: '密码', desc: 'Redis 密码(敏感字段,服务端返回已脱敏;留空则保留原值)', type: 'password', def: '' }
+    ]},
+    { gid: 'profiles', title: 'Profile 环境', fields: [
+      { key: 'spring.profiles.active', label: '激活的 Profile', desc: '当前激活的 Spring Profile(如 prod)', type: 'text', noAutoInsert: true }
     ]},
     { gid: 'logging', title: '日志 · Logging', fields: [
       { key: 'logging.level.root', label: '日志级别', desc: '根日志级别(info / debug / warn / error)', type: 'text', def: 'info' }
@@ -432,7 +437,7 @@
      ============================================================ */
   function controlHtml(f, id, masked, exists, v) {
     var val = (v && v.exists && !v.masked) ? String(v.v) : '';
-    var dis = !exists ? ' disabled' : '';
+    var dis = (!exists && !f.noAutoInsert) ? ' disabled' : '';
     switch (f.type) {
       case 'bool':
         return '<label class="cfg-toggle" title="' + escapeAttr(f.label) + '">' +
@@ -444,7 +449,7 @@
         return '<input type="range" id="' + id + '" class="cfg-input cfg-range" min="0" max="1" step="0.01" value="' + escapeAttr(val) + '"' + dis + '>' +
           '<output class="cfg-range-val" id="' + id + '__out">' + escapeHtml(val) + '</output>';
       case 'password':
-        return '<input type="password" id="' + id + '" class="cfg-input" autocomplete="off" placeholder="' + (masked ? '已脱敏,请重新输入' : '') + '"' + dis + '>';
+        return '<input type="password" id="' + id + '" class="cfg-input" autocomplete="off" placeholder="' + (masked ? '留空则保留原值（已脱敏）' : '') + '"' + dis + '>';
       default:
         return '<input type="text" id="' + id + '" class="cfg-input" value="' + escapeAttr(val) + '"' + dis + '>';
     }
@@ -455,8 +460,14 @@
     var masked = !!(v && v.masked);
     var exists = !!(v && v.exists);
     var extra = '';
-    if (masked) extra += '<div class="cfg-extra"><span class="cfg-mask-warn">⚠ 已脱敏,需重新输入</span></div>';
-    if (!exists) extra += '<div class="cfg-extra"><span class="cfg-missing-hint">该键当前不在 YAML 中,保存时将以默认值新增(默认: ' + escapeHtml(f.def) + ')</span></div>';
+    if (masked) extra += '<div class="cfg-extra"><span class="cfg-mask-warn">⚠ 已脱敏,留空则保留原值</span></div>';
+    if (!exists) {
+      if (f.noAutoInsert) {
+        extra += '<div class="cfg-extra"><span class="cfg-missing-hint">该键当前不在 YAML 中,留空则不新增该行;填写后保存时将新增</span></div>';
+      } else {
+        extra += '<div class="cfg-extra"><span class="cfg-missing-hint">该键当前不在 YAML 中,保存时将以默认值新增(默认: ' + escapeHtml(f.def) + ')</span></div>';
+      }
+    }
     var dupWarn = '';
     if (dupLines && dupLines.length > 1) {
       dupWarn = '<div class="cfg-extra"><span class="cfg-warn">⚠ 重复键 ' + escapeHtml(f.key) + ' 存在 ' + dupLines.length + ' 处(第 ' + dupLines.join('、') + ' 行),保存将按末行生效</span></div>';
@@ -512,7 +523,7 @@
     if (state.mode === 'yaml') $('config-editor').value = state.currentText;
     $('cfg-mode-hint').textContent = state.mode === 'form'
       ? '表单仅修改已知键的值行,未知键 / 注释 / 空行逐字保留'
-      : '高级模式:直接编辑完整 YAML;提交前同样全文档检测已脱敏值';
+      : '高级模式:直接编辑完整 YAML;掩码值( **** )留空则保留原值,由后端替换写入';
     setDirty(state.dirty, true);
   }
 
@@ -527,7 +538,7 @@
 
   function readControl(f, v) {
     var el = document.getElementById(fieldInputId(f.key));
-    if (!el) return String(f.def);
+    if (!el) return f.noAutoInsert ? '' : String(f.def);
     switch (f.type) {
       case 'bool': return el.checked ? 'true' : 'false';
       case 'number': return el.value === '' ? String(f.def) : el.value;
@@ -547,9 +558,14 @@
           var el = document.getElementById(fieldInputId(f.key));
           var typed = el ? el.value : '';
           if (typed) patches.push({ path: f.key, value: typed });
-          /* 未重新输入:不改动该行(保持 ****),由全文档扫描拦截 */
+          /* 未重新输入:不改动该行(保留 ****),留空则保留原值,由后端替换为磁盘旧值 */
         } else if (exists) {
           patches.push({ path: f.key, value: readControl(f, v) });
+        } else if (f.noAutoInsert) {
+          /* noAutoInsert:缺失键 + 用户未填写 → 不插入该行(留空则保留原值,不强制新增) */
+          var el2 = document.getElementById(fieldInputId(f.key));
+          var val = el2 ? el2.value : '';
+          if (val) patches.push({ path: f.key, value: val });
         } else {
           patches.push({ path: f.key, value: String(f.def) });
         }
@@ -558,7 +574,8 @@
     return patches;
   }
 
-  /* 全文档脱敏扫描(两种模式共用):整份待写 YAML 中值为 ' ****' 的键 → 拦截 */
+  /* 全文档脱敏扫描(两种模式共用):已脱敏值的 **** 行不再阻断保存(由后端替换为磁盘旧值)。
+     仅保留"重复敏感键死锁"守卫:同一敏感键在表单模式中多行且全部已脱敏,无法安全定位 → 阻断。 */
   function scanMaskedInText(outputText, isFormMode) {
     var lines = cfgParseLines(outputText);
     var scan = cfgScanMasked(lines);
@@ -566,19 +583,14 @@
     if (isFormMode && scan.deadlock.length) {
       return { deadlock: true, paths: scan.deadlock };
     }
-    return { deadlock: false, paths: scan.masked.map(function (m) { return m.path + ' (第 ' + m.line + ' 行)'; }) };
+    return null;
   }
 
   function renderMaskedWarning(bad) {
     var box = $('cfg-masked-warnings');
     var list = bad.paths.map(function (p) { return '<li>' + escapeHtml(p) + '</li>'; }).join('');
-    if (bad.deadlock) {
-      box.innerHTML = '<strong>⚠ 重复敏感键死锁:以下键在 YAML 中存在多行且全部已脱敏,表单模式无法安全定位。</strong>' +
-        '<ul>' + list + '</ul><div>请删除重复键后,在「高级 YAML」模式中处理。</div>';
-    } else {
-      box.innerHTML = '<strong>⚠ 已脱敏,需重新输入:以下敏感键仍为脱敏值( **** ),未重新输入前禁止保存,防止覆盖真实配置。</strong>' +
-        '<ul>' + list + '</ul>';
-    }
+    box.innerHTML = '<strong>⚠ 重复敏感键死锁:以下键在 YAML 中存在多行且全部已脱敏,表单模式无法安全定位。</strong>' +
+      '<ul>' + list + '</ul><div>请删除重复键后,在「高级 YAML」模式中处理。</div>';
     box.classList.remove('hidden');
     var btn = $('btn-save-config');
     if (btn) btn.disabled = false;
@@ -595,7 +607,7 @@
     if (!output.trim()) { showToast('配置内容不能为空', 'error'); return; }
 
     var bad = scanMaskedInText(output, state.mode === 'form');
-    if (bad) { renderMaskedWarning(bad); showToast('存在已脱敏字段,保存被拦截', 'error'); return; }
+    if (bad) { renderMaskedWarning(bad); showToast('存在重复敏感键,保存被拦截,请先处理重复键', 'error'); return; }
 
     $('cfg-masked-warnings').classList.add('hidden');
     state.busy = true;
