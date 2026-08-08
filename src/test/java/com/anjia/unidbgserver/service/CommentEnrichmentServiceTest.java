@@ -9,8 +9,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -26,91 +24,53 @@ class CommentEnrichmentServiceTest {
     @InjectMocks
     private CommentEnrichmentService service;
 
-    // ========== generateSvgDataUri tests ==========
+    // ========== generateBadgeSrc tests ==========
 
     @Test
-    void generateSvgDataUri_startsWithDataUriPrefix() throws Exception {
-        String result = invokeGenerateSvgDataUri(5, "http://example.com");
+    void generateBadgeSrc_startsWithBadgePath() throws Exception {
+        String result = invokeGenerateBadgeSrc(5, "http://example.com");
         assertNotNull(result);
-        assertTrue(result.startsWith("data:image/svg+xml;base64,"));
+        assertTrue(result.startsWith("/api/fqnovel/comment-badge/"));
     }
 
     @Test
-    void generateSvgDataUri_containsSvgTagsInDecodedPortion() throws Exception {
-        String result = invokeGenerateSvgDataUri(5, "http://example.com");
+    void generateBadgeSrc_containsClickMeta() throws Exception {
+        String result = invokeGenerateBadgeSrc(5, "http://example.com");
         assertNotNull(result);
-
-        String base64Part = result.substring("data:image/svg+xml;base64,".length());
-        // Split on first comma to separate base64 from click metadata
-        int commaIdx = base64Part.indexOf(',');
-        assertTrue(commaIdx > 0, "Should contain comma separating base64 from click meta");
-
-        String svgBase64 = base64Part.substring(0, commaIdx);
-        String decoded = new String(Base64.getDecoder().decode(svgBase64), StandardCharsets.UTF_8);
-
-        assertTrue(decoded.contains("<svg"), "Decoded SVG should contain <svg");
-        assertTrue(decoded.contains("</svg>"), "Decoded SVG should contain </svg>");
-    }
-
-    @Test
-    void generateSvgDataUri_containsCountInSvg() throws Exception {
-        int expectedCount = 42;
-        String result = invokeGenerateSvgDataUri(expectedCount, "http://example.com");
-        assertNotNull(result);
-
-        String base64Part = result.substring("data:image/svg+xml;base64,".length());
-        int commaIdx = base64Part.indexOf(',');
-        String svgBase64 = base64Part.substring(0, commaIdx);
-        String decoded = new String(Base64.getDecoder().decode(svgBase64), StandardCharsets.UTF_8);
-
-        assertTrue(decoded.contains(String.valueOf(expectedCount)),
-                "Decoded SVG should contain the count value");
-    }
-
-    @Test
-    void generateSvgDataUri_endsWithClickMeta() throws Exception {
-        String result = invokeGenerateSvgDataUri(5, "http://example.com");
-        assertNotNull(result);
-
         assertTrue(result.contains("{\"click\":\"showCmt("),
-                "Result should contain inline try-catch with java.showBrowser");
+                "Result should contain click metadata with showCmt");
         assertTrue(result.contains("\",\"style\":\"text\"}"),
                 "Result should contain style:text in metadata");
     }
 
     @Test
-    void generateSvgDataUri_widthVariesByCount() throws Exception {
-        String result3 = invokeGenerateSvgDataUri(3, "http://example.com");
-        String base64Part3 = result3.substring("data:image/svg+xml;base64,".length());
-        int commaIdx3 = base64Part3.indexOf(',');
-        String svgBase643 = base64Part3.substring(0, commaIdx3);
-        String decoded3 = new String(Base64.getDecoder().decode(svgBase643), StandardCharsets.UTF_8);
-        assertTrue(decoded3.contains("width=\"28\""), "count=3 should have width=28");
-
-        String result150 = invokeGenerateSvgDataUri(150, "http://example.com");
-        String base64Part150 = result150.substring("data:image/svg+xml;base64,".length());
-        int commaIdx150 = base64Part150.indexOf(',');
-        String svgBase64150 = base64Part150.substring(0, commaIdx150);
-        String decoded150 = new String(Base64.getDecoder().decode(svgBase64150), StandardCharsets.UTF_8);
-        assertTrue(decoded150.contains("width=\"33\""), "count=150 should have width=33");
-
-        String result1500 = invokeGenerateSvgDataUri(1500, "http://example.com");
-        String base64Part1500 = result1500.substring("data:image/svg+xml;base64,".length());
-        int commaIdx1500 = base64Part1500.indexOf(',');
-        String svgBase641500 = base64Part1500.substring(0, commaIdx1500);
-        String decoded1500 = new String(Base64.getDecoder().decode(svgBase641500), StandardCharsets.UTF_8);
-        assertTrue(decoded1500.contains("width=\"40\""), "count=1500 should have width=40");
+    void generateBadgeSrc_noRawSingleQuote() throws Exception {
+        String result = invokeGenerateBadgeSrc(5, "http://example.com");
+        assertNotNull(result);
+        assertFalse(result.contains("'"),
+                "Attribute value must not contain any raw single quote (src is single-quoted)");
     }
 
     @Test
-    void generateSvgDataUri_countZeroReturnsNull() throws Exception {
-        String result = invokeGenerateSvgDataUri(0, "http://example.com");
+    void generateBadgeSrc_containsEscapedClickUrl() throws Exception {
+        String result = invokeGenerateBadgeSrc(
+                5, "/api/ssr/comment-page?bookId=b1&chapterId=c1&paraIndex=0");
+        assertNotNull(result);
+        assertTrue(result.contains("showCmt(\\\"/api/ssr/comment-page?bookId=b1&chapterId=c1&paraIndex=0\\\""),
+                "Click URL should be wrapped in escaped double quotes (JSON-escaped JS)");
+        assertTrue(result.contains(",\\\"番茄\\\",true"),
+                "Click JS should carry the 番茄 source flag with escaped quotes");
+    }
+
+    @Test
+    void generateBadgeSrc_countZeroReturnsNull() throws Exception {
+        String result = invokeGenerateBadgeSrc(0, "http://example.com");
         assertNull(result, "count=0 should return null");
     }
 
     @Test
-    void generateSvgDataUri_countNegativeReturnsNull() throws Exception {
-        String result = invokeGenerateSvgDataUri(-1, "http://example.com");
+    void generateBadgeSrc_countNegativeReturnsNull() throws Exception {
+        String result = invokeGenerateBadgeSrc(-1, "http://example.com");
         assertNull(result, "count<0 should return null");
     }
 
@@ -123,8 +83,8 @@ class CommentEnrichmentServiceTest {
         commentCounts.put(0, 5);
 
         String result = invokeInjectCommentIcons(content, commentCounts, "book1", "chapter1");
-        assertTrue(result.contains("<img src='data:image"),
-                "Should contain img tag with data URI when comments exist");
+        assertTrue(result.contains("<img src='/api/fqnovel/comment-badge/"),
+                "Should contain img tag with badge HTTP URL when comments exist");
         assertTrue(result.contains("bookId=book1"), "Should contain bookId in URL");
         assertTrue(result.contains("chapterId=chapter1"), "Should contain chapterId in URL");
         assertTrue(result.contains("paraIndex=0"), "Should contain paraIndex=0");
@@ -184,20 +144,36 @@ class CommentEnrichmentServiceTest {
     void injectCommentIcons_titleLine_noIconOnTitle() throws Exception {
         String content = "第一章 开始\n\n正文第一段\n\n正文第二段";
         Map<Integer, Integer> commentCounts = new HashMap<>();
-        commentCounts.put(2, 5); // first content paragraph (index 2) has 5 comments
-        commentCounts.put(4, 3); // second content paragraph (index 4) has 3 comments
+        commentCounts.put(1, 5); // first content paragraph (index 1) has 5 comments
+        commentCounts.put(3, 3); // second content paragraph (index 3) has 3 comments
 
         String result = invokeInjectCommentIcons(content, commentCounts, "b1", "c1", "第一章 开始");
         assertTrue(result.startsWith("<p>第一章 开始</p>"),
                 "Title line should be rendered without icon");
-        // 段落索引与 API para_index 对齐：标题行(0)、空行(1)、正文第一段(2)、空行(3)、正文第二段(4)
-        assertTrue(result.contains("paraIndex=2") && result.contains("paraIndex=4"),
-                "Content paragraphs should use paraIndex=2 and paraIndex=4 (title + blank lines occupy 0-1 and 3)");
+        // 段落索引与 API para_index 对齐（实况验证：标题行不占索引）：
+        // 标题行(不递增)、空行(1)、正文第一段(1)、空行(2)、正文第二段(3)
+        assertTrue(result.contains("paraIndex=1") && result.contains("paraIndex=3"),
+                "Content paragraphs should use paraIndex=1 and paraIndex=3 (title does not occupy index 0)");
         // Title is before first img; ensure no img between title and first content
         int titleEnd = result.indexOf("</p>") + 4;
         int firstImg = result.indexOf("<img");
         assertTrue(firstImg > titleEnd,
                 "First img should appear after title paragraph, not on it");
+    }
+
+    @Test
+    void injectCommentIcons_titleLine_notCountedInParaIndex() throws Exception {
+        // 实况验证：API 的 para_index 0 对应首个正文段落（标题行不占索引）
+        String content = "第一章 标题\n正文第一段\n正文第二段";
+        Map<Integer, Integer> commentCounts = new HashMap<>();
+        commentCounts.put(0, 7); // 首个正文段落 → para_index 0
+        commentCounts.put(1, 3); // 第二个正文段落 → para_index 1
+
+        String result = invokeInjectCommentIcons(content, commentCounts, "b1", "c1", "第一章 标题");
+        assertTrue(result.contains("paraIndex=0") && result.contains("paraIndex=1"),
+                "First content paragraph should map to para_index=0 (title line not counted)");
+        assertFalse(result.contains("paraIndex=2"),
+                "No icon should be shifted one line up onto the previous paragraph");
     }
 
     @Test
@@ -214,11 +190,11 @@ class CommentEnrichmentServiceTest {
                 "No icon should be placed at the blank line index");
     }
 
-    private String invokeGenerateSvgDataUri(int count, String clickUrl) throws Exception {
+    private String invokeGenerateBadgeSrc(int count, String commentUrl) throws Exception {
         Method method = CommentEnrichmentService.class.getDeclaredMethod(
-                "generateSvgDataUri", int.class, String.class);
+                "generateBadgeSrc", int.class, String.class);
         method.setAccessible(true);
-        return (String) method.invoke(service, count, clickUrl);
+        return (String) method.invoke(service, count, commentUrl);
     }
 
     private String invokeInjectCommentIcons(

@@ -9,8 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -29,6 +27,9 @@ public class CommentEnrichmentService {
 
     /** 段评页面路径 */
     private static final String COMMENT_PAGE_PATH = "/api/ssr/comment-page";
+
+    /** 评论数徽章图片路径（PNG，见 CommentBadgeController） */
+    private static final String BADGE_PATH = "/api/fqnovel/comment-badge/";
 
     /**
      * 增强章节内容：查询段评统计，在有评论的段落后插入段评图标
@@ -153,9 +154,10 @@ public class CommentEnrichmentService {
 
         String[] paragraphs = content.split("\n", -1);
         StringBuilder enriched = new StringBuilder();
-        // 段落索引与 API 段评统计的 para_index 对齐：
-        // API 按"原始段落顺序"计数（含空段与标题行），因此每次渲染一个段落
-        // （无论是否为空、是否是标题行）都要递增 paraIndex，否则图标错位。
+        // 段落索引与 API 段评统计的 para_index 对齐（实况验证）：
+        // API 的 para_index 从 0 开始计数"首个正文段落"，标题行不占索引
+        // （实测 para 0 的评论对应第一章正文第一段，而非标题行）。
+        // 因此标题行不注入图标、也不递增 paraIndex；空段则照常递增。
         int paraIndex = 0;
         boolean firstNonEmpty = true;
 
@@ -179,7 +181,7 @@ public class CommentEnrichmentService {
                     && para.trim().equals(title);
             firstNonEmpty = false;
 
-            // 标题行不注入图标（但 paraIndex 已在上方递增）
+            // 标题行不注入图标、不递增索引；正文行按 paraIndex 注入徽章后递增
             if (!isTitleLine) {
                 Integer count = commentCounts.get(paraIndex);
                 if (count != null && count > 0) {
@@ -188,14 +190,14 @@ public class CommentEnrichmentService {
                             + "&chapterId=" + encodeParam(chapterId)
                             + "&paraIndex=" + paraIndex;
 
-                    String svgDataUri = generateSvgDataUri(count, commentUrl);
-                    if (svgDataUri != null) {
-                        enriched.append(" <img src='").append(svgDataUri)
+                    String badgeSrc = generateBadgeSrc(count, commentUrl);
+                    if (badgeSrc != null) {
+                        enriched.append(" <img src='").append(badgeSrc)
                                 .append("' style='display:inline-block;vertical-align:middle'/>");
                     }
                 }
+                paraIndex++;
             }
-            paraIndex++;
 
             enriched.append("</p>\n");
         }
@@ -211,38 +213,28 @@ public class CommentEnrichmentService {
         return CommonUtils.urlEncode(s);
     }
 
-    private String generateSvgDataUri(int count, String clickUrl) {
+    /**
+     * 生成段评徽章图片引用（D1/D2/D3）
+     * <p>
+     * 返回相对 URL：{@code /api/fqnovel/comment-badge/{count}} + 点击元数据
+     * {@code ,{"click":"showCmt(\"<url>\",\"番茄\",true)","style":"text"}}。
+     * 点击 JS 使用双引号字符串并整体经 {@link CommonUtils#escapeJson} 转义，
+     * 保证输出属性值内不含裸单引号（img 属性以单引号输出，任何 DOM 解析器不会截断）；
+     * URL 查询参数中的 {@code &} 保持原样，不做 HTML 转义。
+     *
+     * @param count      评论数
+     * @param commentUrl 段评页面相对 URL
+     * @return 徽章图片引用；count &le; 0 时返回 null
+     */
+    private String generateBadgeSrc(int count, String commentUrl) {
         if (count <= 0) return null;
 
-        // 固定高度，宽度基于文本自适应
-        int height = 24;
-        int fontSize = 12;
-        String countStr = String.valueOf(count);
-        // 粗略估算文本宽度（每个数字约7px，加左右内边距）
-        int textWidth = countStr.length() * 7;
-        int padding = 12;
-        int width = Math.max(28, textWidth + padding);
-
-        int rx = height / 2;
-        int textY = height - 7;
-
-        String svg = String.format(
-                "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"%d\" height=\"%d\" viewBox=\"0 0 %d %d\">" +
-                        "<rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" rx=\"%d\" fill=\"#999\"/>" +
-                        "<text x=\"%d\" y=\"%d\" text-anchor=\"middle\" fill=\"#fff\" font-size=\"%d\" font-weight=\"bold\">%s</text>" +
-                        "</svg>",
-                width, height, width, height,
-                width, height, rx,
-                width / 2, textY,
-                fontSize, countStr
-        );
-
-        String base64Svg = Base64.getEncoder().encodeToString(svg.getBytes(StandardCharsets.UTF_8));
-
-        String clickJs = "showCmt('" + escapeJsonStr(clickUrl) + "','番茄',true)";
+        // 点击 JS：双引号字符串（url 先做 JSON 字符串转义）
+        String clickJs = "showCmt(\"" + escapeJsonStr(commentUrl) + "\",\"番茄\",true)";
+        // 整体再转义一次后嵌入 JSON（\" -> \\\"），最终属性值内无裸单引号
         String clickMeta = "{\"click\":\"" + escapeJsonStr(clickJs) + "\",\"style\":\"text\"}";
 
-        return "data:image/svg+xml;base64," + base64Svg + "," + clickMeta;
+        return BADGE_PATH + count + "," + clickMeta;
     }
 
     private String escapeJsonStr(String s) {
