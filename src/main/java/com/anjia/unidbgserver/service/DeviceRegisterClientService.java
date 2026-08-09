@@ -374,7 +374,7 @@ public class DeviceRegisterClientService {
         // 协议必需：OpenUDID 按真实 App 算法 md5(androidId) 链式生成，服务端要求 MD5 结果，
         // 不可替换为 SHA-256（替换会导致设备注册签名不匹配）。属模拟兼容，不作完整性保护。
         try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
+            MessageDigest md = MessageDigest.getInstance("MD5"); // mimosa-ignore 协议必需算法，见上方注释；属模拟兼容，不作完整性保护
             byte[] digest = md.digest(text.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
             for (byte b : digest) {

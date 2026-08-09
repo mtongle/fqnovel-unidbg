@@ -258,7 +258,7 @@ public class DeviceGeneratorService {
      */
     private String md5Encode(String text) {
         try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
+            MessageDigest md = MessageDigest.getInstance("MD5"); // mimosa-ignore 协议必需算法，见上方注释；不承担完整性/认证职责
             byte[] digest = md.digest(text.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
             for (byte b : digest) {
