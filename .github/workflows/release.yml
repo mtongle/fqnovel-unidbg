@@ -48,24 +48,38 @@ jobs:
           sed 's/\[替换为你的ip或域名\]/127.0.0.1/g; s/\[你的端口号\]/8099/g' \
             src/main/resources/legado/fqnovel.json > legado-fqnovel-preconfigured.json
 
+      - name: Extract release notes from CHANGELOG
+        run: |
+          # Release notes come from the matching section of CHANGELOG.md
+          # (single source of truth, follows Keep a Changelog).
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          awk -v sec="v${VERSION}" '
+            $0 ~ "^## \\[" sec "\\]" {flag=1; next}
+            flag && $0 ~ "^## \\[" {flag=0}
+            flag {print}
+          ' CHANGELOG.md > release-notes-section.md
+          # Fallback if the section is missing, so the body is never empty
+          if [ ! -s release-notes-section.md ]; then
+            echo "See [CHANGELOG](CHANGELOG.md) for details." > release-notes-section.md
+          fi
+          {
+            echo "## 📥 Downloads"
+            echo "- unidbg-boot-server-${VERSION}.jar"
+            echo "- legado-fqnovel-template.json"
+            echo "- legado-fqnovel-preconfigured.json"
+            echo
+            cat release-notes-section.md
+          } > release-notes.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "v${{ env.VERSION }}"
+          body_path: release-notes.md
           files: |
             unidbg-boot-server-${{ env.VERSION }}.jar
             legado-fqnovel-template.json
             legado-fqnovel-preconfigured.json
-          body: |
-            # fqnovel-unidbg v${{ env.VERSION }}
-
-            ## 📥 Downloads
-            - JAR: unidbg-boot-server-${{ env.VERSION }}.jar
-            - Legado template: legado-fqnovel-template.json
-            - Legado preconfigured: legado-fqnovel-preconfigured.json
-
-            ## 📋 Changes
-            See [CHANGELOG](CHANGELOG.md) for full details.
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
