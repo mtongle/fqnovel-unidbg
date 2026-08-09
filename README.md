@@ -82,10 +82,10 @@ spring:
 ```bash
 # 方式一：Maven Wrapper（推荐）
 ./mvnw package -DskipTests
-java -jar target/unidbg-boot-server-0.0.5.jar
+java -jar target/unidbg-boot-server-0.0.6.jar
 
 # 方式二：本机 Maven
-mvn package -T10 -DskipTests && java -jar target/unidbg-boot-server-0.0.5.jar
+mvn package -T10 -DskipTests && java -jar target/unidbg-boot-server-0.0.6.jar
 
 # 方式三：快捷脚本
 ./bin/run.sh

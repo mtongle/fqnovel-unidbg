@@ -4,7 +4,7 @@
 
 **项目名称**: fqnovel-unidbg
 **当前分支**: main
-**最新版本**: 0.0.5
+**最新版本**: 0.0.6
 **状态**: ✅ 稳定运行
 
 ## 🏗️ 项目架构
@@ -120,7 +120,7 @@
 ```bash
 # 方式一：Maven Wrapper（推荐）
 ./mvnw package -DskipTests
-java -jar target/unidbg-boot-server-0.0.5.jar
+java -jar target/unidbg-boot-server-0.0.6.jar
 
 # 方式二：快捷脚本
 ./bin/run.sh

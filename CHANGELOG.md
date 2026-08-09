@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.0.6] - 2026-08-09
 
 ### Added
 - 新增 `FQCryptoTest` 加解密单元测试（round-trip / registerkey / gzip / hex 校验）
@@ -20,13 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 管理面板去重：删除重复功能页 `admin/{search,download,books,reader,comments}.html`，导航收敛为 概览/配置/设备池/系统监控；公开 `books.html`「下载管理」改指 `/download.html`
 - `DeviceGeneratorService`/`DeviceRegisterClientService`：注明 MD5 为 OpenUDID 注册协议必需（不可替换为 SHA-256）；`FQEncryptServiceWorker` 签名缓存键由 MD5 改 SHA-256，消除弱哈希缓存碰撞
 - 仓库卫生：删除 `tools/` 下 3 个未用 Python 脚本（`batch_device_register_xml.py`/`export_book_cached_merge.py`/`fullbook_download_and_merge.py`），`.gitignore` 补忽略本地工具目录（`.mimosa`/`.opencode`/`openspec`）
-
-### Security
-- `AdminAuthFilter`：URL 解码防 `/api/%61dmin` 编码绕过、fail-closed 校验、令牌 24h TTL + 过期清理、兼容尾斜杠
-- `AdminController`：移除 `admin123` 默认密码（改为必填环境变量 `APPLICATION_ADMIN_PASSWORD`）、常量时间密码比较、`/config` 返回敏感键脱敏
-- `application.yml`：删除 Redis 明文密码（改 `REDIS_PASSWORD` 注入）、host 0.0.0.0→127.0.0.1、删除幽灵 `profiles.active=prod`
-- 全 service 签名结果含 `error` 键时中止（原把 error 当 HTTP header 静默发出）
-- `LoggingAspect`：query string 敏感参数脱敏、POST body 经 `ContentCachingRequestWrapper` 真实读取
+- 构建升级：Spring Boot 2.6.3→2.7.18、spring-cloud 2021.0.7→2021.0.9、Java 11→17
+- 命名统一：6 个 `Fq` 前缀类重命名为 `FQ`（`git mv` 保留历史）
+- DTO 清理：`FQRegisterKeyPayload`/`FQBatchFullResponse` 内嵌加密/解密逻辑移至 service 层
+- `bin/restart.sh`：端口 9999→8099、`mvn`→`./mvnw`
+- 删除 jib 死配置、SleuthAsyncConfig 无引用 Bean、断链符号链接、模板文件与遗留日志
+- `FQEncryptController`：`.get()` 阻塞改返回 CompletableFuture
 
 ### Fixed
 - `FQNovelService`：批量章节 `dataMap.get(itemIds.get(0))` 双重 NPE 判空
@@ -38,13 +37,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `FQRegisterKeyService`：方法级 synchronized 改设备维度分段锁
 - 搜索/分类接口：count/limit/offset 范围校验、quickSearch 补默认 tabType
 
-### Changed
-- 构建升级：Spring Boot 2.6.3→2.7.18、spring-cloud 2021.0.7→2021.0.9、Java 11→17
-- 命名统一：6 个 `Fq` 前缀类重命名为 `FQ`（`git mv` 保留历史）
-- DTO 清理：`FQRegisterKeyPayload`/`FQBatchFullResponse` 内嵌加密/解密逻辑移至 service 层
-- `bin/restart.sh`：端口 9999→8099、`mvn`→`./mvnw`
-- 删除 jib 死配置、SleuthAsyncConfig 无引用 Bean、断链符号链接、模板文件与遗留日志
-- `FQEncryptController`：`.get()` 阻塞改返回 CompletableFuture
+### Security
+- `AdminAuthFilter`：URL 解码防 `/api/%61dmin` 编码绕过、fail-closed 校验、令牌 24h TTL + 过期清理、兼容尾斜杠
+- `AdminController`：移除 `admin123` 默认密码（改为必填环境变量 `APPLICATION_ADMIN_PASSWORD`）、常量时间密码比较、`/config` 返回敏感键脱敏
+- `application.yml`：删除 Redis 明文密码（改 `REDIS_PASSWORD` 注入）、host 0.0.0.0→127.0.0.1、删除幽灵 `profiles.active=prod`
+- 全 service 签名结果含 `error` 键时中止（原把 error 当 HTTP header 静默发出）
+- `LoggingAspect`：query string 敏感参数脱敏、POST body 经 `ContentCachingRequestWrapper` 真实读取
 
 ### 已知问题
 - `DeviceManagementService` 端口 9999 修复未做（设备注册/重启流程生成的清理脚本仍写死 9999 端口，需后续安全计划处理）
